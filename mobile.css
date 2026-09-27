@@ -97,3 +97,6 @@
 .level-grid input:checked+span svg{color:#173746}
 .level-grid .deep input:checked+span{border-color:#c93643;background:#fff0ef;color:#a72c38}
 .level-grid input:focus-visible+span{outline:3px solid #6bb6a9;outline-offset:2px}
+
+/* outline nav icons */
+.bottom-nav button svg{width:24px;height:24px;display:block}
