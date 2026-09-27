@@ -86,3 +86,14 @@
 .stats-people{margin:12px 0 0;font-size:14px;color:#5f7c89}
 .stats-people b{color:#173746}
 @media(min-width:700px){.stats-grid{grid-template-columns:repeat(4,1fr)}}
+
+/* water level picker */
+.level-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.level-grid label{position:relative;cursor:pointer;min-width:0}
+.level-grid input{position:absolute;opacity:0}
+.level-grid span{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px;border:1px solid #cfdee3;border-radius:10px;background:#fff;font-size:13px;color:#43606e;text-align:center;line-height:1.3}
+.level-grid svg{width:34px;height:42px;color:#9fb3bb}
+.level-grid input:checked+span{border:2px solid #207c70;background:#ddf0ea;color:#0a5b51;font-weight:600;padding:9px 1px}
+.level-grid input:checked+span svg{color:#173746}
+.level-grid .deep input:checked+span{border-color:#c93643;background:#fff0ef;color:#a72c38}
+.level-grid input:focus-visible+span{outline:3px solid #6bb6a9;outline-offset:2px}
