@@ -87,7 +87,7 @@ async function ensureMap(which){
   if(S.maps[which])return S.maps[which];
   const m=makeMap(el,{zoom:11});S.maps[which]=m;PIN_LAYER[which]=L.layerGroup().addTo(m);
   m.on('baselayerchange',()=>{});
-  drawPins(which);if(store.get('uh_lay_flood',''))toggleFlood(true);if(store.get('uh_lay_teams',''))toggleTeams(true);
+  drawPins(which);if(store.get('uh_lay_flood','1')!=='0')toggleFlood(true);if(store.get('uh_lay_teams',''))toggleTeams(true);
   if(which==='map'&&typeof drawTrip==='function')drawTrip();
   return m;
 }
@@ -135,7 +135,7 @@ async function locateMe(which,btn){
 /* ชั้นน้ำท่วมถนนจาก Floodboard */
 const FLOOD_COL={blocked:'#d32f2f',risky:'#f57c00',caution:'#fbc02d'};   /* สีแบบ floodboard: ผ่านไม่ได้ / เสี่ยง / น้ำขังผ่านได้ (คิดจากรถสูง) */
 const floodV=p=>{const v=(p||{}).verdict;return typeof v==='string'?v:(v&&(v.truck||v.pickup))||(p||{}).status};
-async function toggleFlood(on){store.set('uh_lay_flood',on?'1':'');$('#lay-flood').checked=on;
+async function toggleFlood(on){store.set('uh_lay_flood',on?'1':'0');$('#lay-flood').checked=on;
   Object.values(S.maps).forEach(m=>{if(m&&m._flood){m._flood.remove();m._flood=null}});if(!on)return;
   try{if(!S.flood){const r=await fetch('https://www.floodboard.org/api/export/roads.geojson');const j=await r.json();j.features=(j.features||[]).filter(f=>{const p=f.properties||{};return !p.cleared&&FLOOD_COL[floodV(p)]});S.flood=j}
     Object.values(S.maps).forEach(m=>{if(!m)return;m._flood=L.geoJSON(S.flood,{interactive:false,attribution:'น้ำท่วมถนน © <a href="https://www.floodboard.org/about" target="_blank" rel="noopener">Floodboard</a> (CC BY 4.0)',style:f=>({color:FLOOD_COL[floodV(f.properties)],weight:5,opacity:.85,lineCap:'round'}),pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:4,color:FLOOD_COL[floodV(f.properties)],weight:2})}).addTo(m)});
