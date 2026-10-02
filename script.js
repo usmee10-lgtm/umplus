@@ -41,11 +41,14 @@ S.volunteer=!!(volKey()&&store.get('uh_vol_ok',''));
 async function loadCases(force){
   if(S.loading){if(force&&S.loadP){await S.loadP.catch(()=>{});return loadCases()}return}  /* force: รอรอบที่กำลังโหลดอยู่ แล้วโหลดใหม่ */
   S.loading=true;let done;S.loadP=new Promise(r=>done=r);
-  try{await loadCasesInner()}finally{done()}}
+  try{await loadCasesInner()}finally{done()}
+  if(S.reload){S.reload=false;return loadCases()}}
 async function loadCasesInner(){$('#sync-status').textContent='กำลังอัปเดต…';
   try{
-    const p={action:'list',t:Math.floor(Date.now()/15000)};if(volKey())p.key=volKey();
+    const key=volKey(),p={action:'list',t:Math.floor(Date.now()/15000)};if(key)p.key=key;
     const r=await apiGet(p);if(!r||!r.ok)throw new Error(r&&r.error||'list');
+    /* รหัสเปลี่ยนระหว่างรอ (เพิ่งเข้า/ออกโหมดอาสา) → ผลนี้เก่าแล้ว ทิ้งไป แล้วโหลดใหม่ ไม่งั้นจะลบรหัสที่เพิ่งใส่ถูก */
+    if(key!==volKey()){S.reload=true;return}
     const prev=new Set(S.cases.map(c=>String(c.id)));const first=!S.loaded;
     S.cases=(r.cases||[]).map(c=>({...c,needs:Array.isArray(c.needs)?c.needs:String(c.needs||'').split(/\s*,\s*/).filter(Boolean)}));
     S.loaded=Date.now();
