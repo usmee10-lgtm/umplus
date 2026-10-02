@@ -57,12 +57,14 @@ function renderAll(){
   $('#live-badge').hidden=!(S.loaded&&Date.now()-S.loaded<REFRESH_MS*3);
   drawPins('home');drawPins('map');renderList();$('#all-count').textContent=S.loaded?S.cases.length+' เคส':'';renderMyReq();renderVol();
   if(S.view==='detail'&&S.detailId)renderDetail(false);
-  if(S.view==='stats')renderStats();
+  const stTab=$('.tabbar [data-go=stats]');if(stTab)stTab.style.display=S.volunteer?'':'none';
+  if(S.view==='stats'){if(S.volunteer)renderStats();else go('home')}
   if(typeof tripRefresh==='function')tripRefresh();
 }
 
 /* ---------- เปลี่ยนหน้า ---------- */
 function go(view,push=true){
+  if(view==='stats'&&!S.volunteer){view='home';if(!push)history.replaceState({view},'','#home')}  /* หน้าสรุปเฉพาะทีมอาสา */
   if(view===S.view&&view!=='detail'){return}
   $$('.view').forEach(v=>{const on=v.id==='view-'+view;v.classList.toggle('active',on);v.hidden=!on});
   S.view=view;document.body.classList.toggle('in-form',view==='form');
