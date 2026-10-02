@@ -57,6 +57,7 @@ function renderAll(){
   $('#live-badge').hidden=!(S.loaded&&Date.now()-S.loaded<REFRESH_MS*3);
   drawPins('home');drawPins('map');renderList();$('#all-count').textContent=S.loaded?S.cases.length+' เคส':'';renderMyReq();renderVol();
   if(S.view==='detail'&&S.detailId)renderDetail(false);
+  if(S.view==='stats')renderStats();
   if(typeof tripRefresh==='function')tripRefresh();
 }
 
@@ -70,6 +71,7 @@ function go(view,push=true){
   if(push&&location.hash!=='#'+view)history.pushState({view},'', '#'+view);
   if(view==='home')ensureMap('home');
   if(view==='map')ensureMap('map');
+  if(view==='stats')renderStats();
   if(view==='form'){if(F.done)resetForm();showStep(F.step||1);ensureFormMap()}
   if(view!=='detail'&&S.detailMap){S.detailMap.remove();S.detailMap=null}
   window.scrollTo(0,0);
@@ -80,7 +82,7 @@ const A11Y={ready:false};
 function focusView(view){const v=$('#view-'+view);if(!v)return;const t=v.querySelector('h1[tabindex]')||v;if(t===v)v.tabIndex=-1;
   setTimeout(()=>{if(!v.contains(document.activeElement)||document.activeElement===document.body)t.focus({preventScroll:true})},0)}
 $('#skip-link').addEventListener('click',e=>{e.preventDefault();focusView(S.view||'home')});
-addEventListener('popstate',()=>{const v=(location.hash||'#home').slice(1);go(['home','map','emergency','form','detail','sent'].includes(v)?v:'home',false)});
+addEventListener('popstate',()=>{const v=(location.hash||'#home').slice(1);go(['home','map','emergency','stats','form','detail','sent'].includes(v)?v:'home',false)});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){e.preventDefault();go(b.dataset.go)}});
 
 /* ---------- แผนที่หลัก ---------- */
@@ -613,11 +615,67 @@ function tripRefresh(){renderTrip();drawTrip();tripBadges()}
 /* ---------- เริ่มต้น ---------- */
 iconify();renderFilters();renderLegend();netbar();
 {const c=store.json('uh_cases_cache',null);if(c&&c.cases&&!S.volunteer)S.cases=c.cases}
+/* ---------- หน้าสรุป: ตัวเลขภาพรวมจากรายการเคส (คำนวณในเครื่อง) ---------- */
+const AREA=store.json('uh_area',{});  /* เขตของแต่ละพิกัด (หาจากหมุดครั้งเดียวแล้วเก็บไว้) */
+const areaKey=c=>(+c.lat).toFixed(3)+','+(+c.lng).toFixed(3);
+function areaOf(c){if(c.district)return String(c.district).replace(/^เขต/,'');const m=String(c.address||'').match(/เขต\s*([ก-๙]+)/);if(m)return m[1];return hasPin(c)?AREA[areaKey(c)]||'':''}
+let areaBusy=false;
+async function fillAreas(){if(areaBusy)return;const todo=[...new Set(S.cases.filter(c=>hasPin(c)&&!c.district&&!/เขต/.test(c.address||'')&&AREA[areaKey(c)]===undefined).map(areaKey))].slice(0,60);
+  if(!todo.length)return;areaBusy=true;
+  try{for(let i=0;i<todo.length;i+=4){await Promise.all(todo.slice(i,i+4).map(async k=>{const [la,ln]=k.split(',');const p=await geoReverseRaw(la,ln);
+      if(p)AREA[k]=p.city&&!/กรุงเทพ/.test(p.city)?(p.city||'').replace(/^จังหวัด/,''):(p.district||p.county||'').replace(/^เขต/,'')}));
+    store.put('uh_area',AREA);if(S.view==='stats')renderStats(true)}}
+  finally{areaBusy=false}}
+function statBars(rows,opt={}){const max=Math.max(1,...rows.map(r=>r.n));
+  return `<ul class="bars">${rows.map(r=>`<li>${opt.tap?`<button type="button" ${opt.tap(r)}>`:'<div>'}<span class="bl">${r.icon?ic(r.icon):''}${esc(r.label)}</span><span class="bt"><i style="width:${Math.max(3,r.n/max*100)}%"></i></span><b>${r.n}</b>${opt.tap?'</button>':'</div>'}</li>`).join('')}</ul>`}
+function renderStats(soft){
+  const el=$('#stats');if(!el)return;const all=S.cases;
+  if(!S.loaded&&!all.length){el.innerHTML='<p class="empty">กำลังโหลด…</p>';return}
+  const act=all.filter(c=>c.status!=='done'),open=all.filter(c=>c.status==='open'),going=all.filter(c=>c.status==='going'),done=all.filter(c=>c.status==='done');
+  const urgent=act.filter(isDanger),ppl=act.reduce((a,c)=>a+(Number(c.people)||1),0);
+  const DAY=86400000,now=Date.now(),t0=new Date();t0.setHours(0,0,0,0);
+  const newToday=all.filter(c=>Number(c.createdAt)>=t0.getTime()).length,doneToday=done.filter(c=>Number(c.updatedAt)>=t0.getTime()).length;
+  const waits=done.map(c=>Number(c.updatedAt)-Number(c.createdAt)).filter(x=>x>0).sort((a,b)=>a-b),med=waits.length?waits[Math.floor(waits.length/2)]:0;
+  const dur=ms=>{const h=ms/3600000;return h<1?Math.round(ms/60000)+' นาที':h<48?(Math.round(h*10)/10)+' ชม.':Math.round(h/24)+' วัน'};
+  /* 7 วันล่าสุด: ขอใหม่ vs ช่วยแล้ว */
+  const days=[...Array(7)].map((_,i)=>{const s=t0.getTime()-(6-i)*DAY,e=s+DAY;return {d:new Date(s),n:all.filter(c=>+c.createdAt>=s&&+c.createdAt<e).length,k:done.filter(c=>+c.updatedAt>=s&&+c.updatedAt<e).length}});
+  const dmax=Math.max(1,...days.map(x=>Math.max(x.n,x.k)));
+  const cnt=(list,fn)=>{const m={};list.forEach(c=>[].concat(fn(c)).forEach(k=>{if(k)m[k]=(m[k]||0)+1}));return m};
+  const needs=cnt(act,c=>[...new Set((c.needs||[]).map(needKey))]);
+  const needRows=NEED_TYPES.map(t=>({key:t.key,label:t.label,icon:t.icon,n:needs[t.key]||0})).filter(r=>r.n).sort((a,b)=>b.n-a.n);
+  const lv=cnt(act,c=>c.level||'none');const lvRows=[...Object.keys(LEVEL_TH),'none'].map(k=>({key:k,label:LEVEL_TH[k]||'ไม่ระบุ',n:lv[k]||0})).filter(r=>r.n);
+  const ar=cnt(act,c=>areaOf(c)||'');const arRows=Object.entries(ar).map(([label,n])=>({label,n})).sort((a,b)=>b.n-a.n).slice(0,8);
+  const unknownArea=act.filter(c=>!areaOf(c)).length;
+  const tile=(n,l,cls='',go='')=>`<button type="button" class="stile ${cls}" ${go}><b>${n.toLocaleString('th-TH')}</b><span>${l}</span></button>`;
+  el.innerHTML=`<p class="stats-upd">${S.loaded?'อัปเดต '+new Date(S.loaded).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.':'ข้อมูลล่าสุดที่บันทึกไว้'} · ${all.length} เคสทั้งหมด</p>
+  <section class="scard" aria-labelledby="st-now"><h2 id="st-now">ตอนนี้</h2>
+    <div class="stiles">${tile(open.length,'รอช่วย','',`data-sgo="open"`)}${tile(urgent.length,'ด่วน','is-red',`data-sgo="danger"`)}${tile(going.length,'กำลังไป','',`data-sgo="going"`)}${tile(done.length,'ช่วยแล้ว','is-green',`data-sgo="done"`)}</div>
+    <div class="sline"><span>${ic('users')}คนที่ยังรอความช่วยเหลือ</span><b>${ppl.toLocaleString('th-TH')} คน</b></div>
+    <div class="sline"><span>${ic('clock')}เวลาช่วยเหลือ (ค่ากลาง)</span><b>${med?dur(med):'-'}</b></div></section>
+  <section class="scard" aria-labelledby="st-today"><h2 id="st-today">วันนี้</h2>
+    <div class="spair"><div><b>${newToday}</b><span>คำขอใหม่</span></div><div><b>${doneToday}</b><span>ช่วยเสร็จ</span></div></div>
+    <div class="trend" role="img" aria-label="7 วันล่าสุด ${days.map(x=>x.d.toLocaleDateString('th-TH',{day:'numeric',month:'short'})+' ขอใหม่ '+x.n+' ช่วยแล้ว '+x.k).join(', ')}">
+      ${days.map(x=>`<div class="tcol"><div class="tbars"><i class="tn" style="height:${x.n/dmax*100}%"><em>${x.n||''}</em></i><i class="tk" style="height:${x.k/dmax*100}%"><em>${x.k||''}</em></i></div><small>${x.d.toLocaleDateString('th-TH',{weekday:'narrow'})}<br>${x.d.getDate()}</small></div>`).join('')}
+    </div>
+    <div class="tkey"><span><i class="tn"></i>ขอใหม่</span><span><i class="tk"></i>ช่วยแล้ว</span></div></section>
+  <section class="scard" aria-labelledby="st-need"><h2 id="st-need">ต้องการอะไรมากที่สุด <small>(เคสที่ยังไม่เสร็จ)</small></h2>
+    ${needRows.length?statBars(needRows,{tap:r=>`data-sneed="${r.key}" aria-label="${r.label} ${r.n} เคส · ดูในแผนที่"`}):'<p class="hint">ยังไม่มีเคส</p>'}</section>
+  <section class="scard" aria-labelledby="st-area"><h2 id="st-area">พื้นที่ที่มีเคสมากที่สุด</h2>
+    ${arRows.length?statBars(arRows.map(r=>({...r,label:/^[ก-๙]/.test(r.label)&&!/^(สมุทร|นนทบุรี|ปทุม)/.test(r.label)?'เขต'+r.label:r.label}))):'<p class="hint">กำลังหาเขตจากหมุด…</p>'}
+    ${unknownArea?`<p class="hint">${areaBusy?'กำลังหาเขตจากหมุด… ':''}ไม่ทราบพื้นที่ ${unknownArea} เคส</p>`:''}</section>
+  <section class="scard" aria-labelledby="st-lv"><h2 id="st-lv">ระดับน้ำ <small>(เคสที่ยังไม่เสร็จ)</small></h2>${lvRows.length?statBars(lvRows):'<p class="hint">ยังไม่มีข้อมูล</p>'}</section>`;
+  if(!soft)fillAreas();
+}
+$('#stats').addEventListener('click',e=>{const g=e.target.closest('[data-sgo]'),n=e.target.closest('[data-sneed]');if(!g&&!n)return;
+  FL.q='';$('#case-search').value='';FL.people=[];FL.level=[];
+  if(g){FL.status=g.dataset.sgo;FL.types=[]}else{FL.status='active';FL.types=[n.dataset.sneed]}
+  saveFL();renderFilters();applyFilters();go('map');setSheet(true)});
 const startView=(location.hash||'#home').slice(1);
-go(['home','map','emergency'].includes(startView)?startView:'home',false);
+go(['home','map','emergency','stats'].includes(startView)?startView:'home',false);
 history.replaceState({view:S.view},'','#'+S.view);
 renderAll();loadCases();flushQueue();trackMine();
 $$('.view').forEach(v=>v.hidden=!v.classList.contains('active'));setTimeout(()=>{A11Y.ready=true},0);
 setInterval(()=>{if(!document.hidden)loadCases()},REFRESH_MS);
 setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
+
 
