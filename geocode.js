@@ -14,7 +14,7 @@ function geoParts(nq){const nums=[],words=[];let prev='';
   nq.replace(/(บ้านเลขที่|เลขที่)\s*\d+(\/\d+)?/g,' ').split(' ').forEach(t=>{const pv=prev;prev=t;if(!t)return;
     if(/^\d+\/\d+$/.test(t))return;                                 /* 12/3 = บ้านเลขที่ ไม่ใช่เลขซอย */
     if(/^\d+(-\d+)*$/.test(t)){if(!/^(หมู่|หมู่ที่|ม\.)$/.test(pv))nums.push(...t.split('-'));return}
-    const w=t.replace(/^(ซอย|ถนน|ตรอก|แขวง|เขต)/,'');if(!w||GEO_STOP.test(t)||GEO_STOP.test(w))return;
+    const w=t.replace(/^(ซอย|ถนน|ตรอก|แขวง|เขต)/,'');if(/^\d+(-\d+)*$/.test(w)){nums.push(...w.split('-'));return}if(!w||GEO_STOP.test(t)||GEO_STOP.test(w))return;
     const m=w.match(/^(.*?[^\d\s])(\d+)$/);if(m){words.push(m[1]);nums.push(m[2])}else if(!/^\d/.test(w))words.push(w)});
   return {base:words.sort((x,y)=>y.length-x.length)[0]||'',words,nums}}
 async function geoQuery(q,signal,limit=10){
@@ -34,7 +34,7 @@ async function geoSuggest(q,signal){
     .filter(x=>{const k=x.label+'|'+x.lat.toFixed(3);if(!x.title||seen.has(k))return false;seen.add(k);return true})
     .map(x=>{const hay=(x.title+' '+x.sub).replace(/\s+/g,''),own=x.title.match(/\d+/g)||[];let sc=0;
       P.words.forEach(w=>{if(hay.includes(w))sc+=w===P.base?6:2});
-      P.nums.forEach((n,i)=>{if(own.includes(n))sc+=i===0?4:2});
+      P.nums.forEach((n,i)=>{if(own[i]===n)sc+=i===0?5:3;else if(own.includes(n))sc+=1});
       if(P.nums.length&&own.length&&!own.includes(P.nums[0]))sc-=2;   /* เลขซอยไม่ตรง */
       if(P.base&&!hay.includes(P.base))sc-=5;                           /* ไม่มีชื่อหลักเลย */
       sc+=x.bkk?3:-3;x.score=sc;return x})
