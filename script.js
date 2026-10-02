@@ -133,11 +133,12 @@ async function locateMe(which,btn){
   }catch(e){toast(e.code===1?'ไม่ได้รับอนุญาตให้ใช้ตำแหน่ง':'หาตำแหน่งไม่สำเร็จ');btn&&btn.classList.remove('on')}
 }
 /* ชั้นน้ำท่วมถนนจาก Floodboard */
-const FLOOD_COL={blocked:'#D32F2F',risky:'#0F2188',caution:'#6F7AB8',ok:'#9FA6CF'};
+const FLOOD_COL={blocked:'#d32f2f',risky:'#f57c00',caution:'#fbc02d'};   /* สีแบบ floodboard: ผ่านไม่ได้ / เสี่ยง / น้ำขังผ่านได้ (คิดจากรถสูง) */
+const floodV=p=>{const v=(p||{}).verdict;return typeof v==='string'?v:(v&&(v.truck||v.pickup))||(p||{}).status};
 async function toggleFlood(on){store.set('uh_lay_flood',on?'1':'');$('#lay-flood').checked=on;
   Object.values(S.maps).forEach(m=>{if(m&&m._flood){m._flood.remove();m._flood=null}});if(!on)return;
-  try{if(!S.flood){const r=await fetch('https://www.floodboard.org/api/export/roads.geojson');S.flood=await r.json()}
-    Object.values(S.maps).forEach(m=>{if(!m)return;m._flood=L.geoJSON(S.flood,{interactive:false,style:f=>{const v=(f.properties||{}).verdict||(f.properties||{}).status;return {color:FLOOD_COL[v]||'#6F7AB8',weight:4,opacity:.75}},pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:4,color:FLOOD_COL[(f.properties||{}).verdict]||'#6F7AB8',weight:2})}).addTo(m)});
+  try{if(!S.flood){const r=await fetch('https://www.floodboard.org/api/export/roads.geojson');const j=await r.json();j.features=(j.features||[]).filter(f=>{const p=f.properties||{};return !p.cleared&&FLOOD_COL[floodV(p)]});S.flood=j}
+    Object.values(S.maps).forEach(m=>{if(!m)return;m._flood=L.geoJSON(S.flood,{interactive:false,attribution:'น้ำท่วมถนน © <a href="https://www.floodboard.org/about" target="_blank" rel="noopener">Floodboard</a> (CC BY 4.0)',style:f=>({color:FLOOD_COL[floodV(f.properties)],weight:5,opacity:.85,lineCap:'round'}),pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:4,color:FLOOD_COL[floodV(f.properties)],weight:2})}).addTo(m)});
   }catch(e){toast('โหลดข้อมูลน้ำท่วมไม่สำเร็จ')}}
 $('#lay-flood').addEventListener('change',e=>toggleFlood(e.target.checked));
 /* ชั้นทีมกู้ภัย (ตำแหน่งปัดเศษสำหรับคนทั่วไป) */

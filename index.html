@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="./assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=10">
+<link rel="stylesheet" href="./app.css?v=11">
 </head>
 <body>
 <!-- ===== หน้าแรก ===== -->
@@ -197,16 +197,17 @@
   <button type="button" role="menuitemradio" data-base="dark" data-icon="moon">มืด</button>
   <hr>
   <label class="tg"><input type="checkbox" id="lay-flood"><span>น้ำท่วมถนน (Floodboard)</span></label>
+  <div class="flood-key"><span><i style="background:#d32f2f"></i>ผ่านไม่ได้ · ใช้เรือ</span><span><i style="background:#f57c00"></i>เสี่ยง</span><span><i style="background:#fbc02d"></i>น้ำขัง · รถสูงผ่านได้</span></div>
   <label class="tg"><input type="checkbox" id="lay-teams"><span>ทีมกู้ภัย</span></label>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" hidden></div>
 
-<script src="./icons.js?v=10"></script>
-<script src="./geocode.js?v=10"></script>
-<script src="./location.js?v=10"></script>
-<script src="./hotlines.js?v=10"></script>
-<script src="./script.js?v=10"></script>
+<script src="./icons.js?v=11"></script>
+<script src="./geocode.js?v=11"></script>
+<script src="./location.js?v=11"></script>
+<script src="./hotlines.js?v=11"></script>
+<script src="./script.js?v=11"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
