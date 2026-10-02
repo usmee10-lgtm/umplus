@@ -100,7 +100,12 @@ function drawPins(which){
   const pts=[];
   list.filter(hasPin).forEach(c=>{const k=pinKind(c);pts.push([+c.lat,+c.lng]);
     L.marker([+c.lat,+c.lng],{icon:pinIcon(k),zIndexOffset:k==='danger'?1000:k==='open'?500:0,title:(c.needs||[]).join(', ')}).bindPopup(()=>popupHtml(c)).addTo(lg)});
-  if(!fitted[which]&&pts.length){m.fitBounds(pts,{padding:[60,60],maxZoom:14});fitted[which]=true}
+  if(!fitted[which]&&pts.length){  /* เว้นที่ให้แผงล่าง/แถบค้นหาบนมือถือ ไม่ให้หมุดไปซ่อนใต้แผง */
+    const sh=which==='home'&&!isDesktop()?($('#view-home .home-sheet')||{}).offsetHeight||0:0;
+    /* ตัดจุดที่อยู่ไกลจากกลุ่มหลักมาก (>40 กม. จากค่ามัธยฐาน) เพื่อไม่ให้แผนที่ซูมออกทั้งภาค */
+    const med=a=>{const x=[...a].sort((p,q)=>p-q);return x[Math.floor(x.length/2)]},mc={lat:med(pts.map(p=>p[0])),lng:med(pts.map(p=>p[1]))};
+    const core=pts.filter(p=>kmBetween(mc,{lat:p[0],lng:p[1]})<=40);
+    m.fitBounds(core.length?core:pts,{paddingTopLeft:[40,which==='home'?150:60],paddingBottomRight:[40,(sh||0)+40],maxZoom:14});fitted[which]=true}
 }
 function popupHtml(c){
   const addr=[c.address,c.district?'เขต'+c.district:''].filter(Boolean).join(' · ');
@@ -477,7 +482,8 @@ const TRIP={ids:store.json('uh_trip',[]).filter(x=>typeof x==='string').slice(0,
 const tripSave=()=>TRIP.ids.length?store.put('uh_trip',TRIP.ids):store.set('uh_trip','');
 const tripIndex=id=>TRIP.ids.indexOf(String(id));
 const tripCases=()=>TRIP.ids.map(id=>S.cases.find(c=>String(c.id)===id)||{id,missing:true});
-const tripDist=(a,b)=>{const R=6371,t=Math.PI/180,dl=(b.lat-a.lat)*t,dn=(b.lng-a.lng)*t,x=Math.sin(dl/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x))};
+function kmBetween(a,b){const R=6371,t=Math.PI/180,dl=(b.lat-a.lat)*t,dn=(b.lng-a.lng)*t,x=Math.sin(dl/2)**2+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x))}
+const tripDist=kmBetween;
 function tripToggle(id){id=String(id);const i=tripIndex(id);if(i>=0)TRIP.ids.splice(i,1);else if(TRIP.ids.length<25)TRIP.ids.push(id);tripSave();tripRefresh()}
 function tripMove(i,d){const j=i+d;if(j<0||j>=TRIP.ids.length)return;[TRIP.ids[i],TRIP.ids[j]]=[TRIP.ids[j],TRIP.ids[i]];tripSave();tripRefresh()}
 function tripOrigin(){const me=S.me||TRIP.lastPos;if(!S.me&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{TRIP.lastPos={lat:p.coords.latitude,lng:p.coords.longitude}},()=>{},{timeout:10000,maximumAge:120000});return me}
