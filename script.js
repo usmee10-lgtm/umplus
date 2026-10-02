@@ -35,8 +35,11 @@ const S={cases:[],loaded:0,loading:false,volunteer:false,view:null,maps:{},flood
 const volKey=()=>store.get('uh_vol_key','');
 S.volunteer=!!(volKey()&&store.get('uh_vol_ok',''));
 
-async function loadCases(){
-  if(S.loading)return;S.loading=true;$('#sync-status').textContent='กำลังอัปเดต…';
+async function loadCases(force){
+  if(S.loading){if(force&&S.loadP){await S.loadP.catch(()=>{});return loadCases()}return}  /* force: รอรอบที่กำลังโหลดอยู่ แล้วโหลดใหม่ */
+  S.loading=true;let done;S.loadP=new Promise(r=>done=r);
+  try{await loadCasesInner()}finally{done()}}
+async function loadCasesInner(){$('#sync-status').textContent='กำลังอัปเดต…';
   try{
     const p={action:'list',t:Math.floor(Date.now()/15000)};if(volKey())p.key=volKey();
     const r=await apiGet(p);if(!r||!r.ok)throw new Error(r&&r.error||'list');
@@ -453,9 +456,16 @@ function renderVol(forceOpen){
   $('#vol-label').textContent=S.volunteer?(store.get('uh_team','')||'ทีมอาสา'):'ทีมอาสา';
   const p=$('#vol-panel');if(forceOpen)p.hidden=false;if(p.hidden)return;
   if(p.dataset.mode===(S.volunteer?'v':'p')&&p.children.length)return;p.dataset.mode=S.volunteer?'v':'p';
-  if(!S.volunteer){p.innerHTML='<h3>ใส่รหัสทีมอาสา</h3><p class="hint">เพื่อดูเบอร์โทร รับเคส ปิดเคส หรือคืนเคส</p><div class="row"><input id="vol-key" type="password" autocomplete="off" placeholder="รหัสอาสา" aria-label="รหัสอาสา"><button type="button" class="pill pill-blue" id="vol-go">เข้า</button></div>';
-    const go2=async()=>{const k=$('#vol-key').value.trim();if(!k)return $('#vol-key').focus();store.set('uh_vol_key',k);store.set('uh_vol_ok','');$('#vol-go').disabled=true;S.loaded=S.loaded;await loadCases();$('#vol-go')&&($('#vol-go').disabled=false);
-      if(S.volunteer){toast('เข้าโหมดทีมอาสาแล้ว',{ok:true});p.hidden=true;renderVol()}else if(navigator.onLine)toast('รหัสไม่ถูกต้อง หรือเชื่อมต่อไม่ได้')};
+  if(!S.volunteer){p.innerHTML='<h3>ใส่รหัสทีมอาสา</h3><p class="hint">เพื่อดูเบอร์โทร รับเคส ปิดเคส หรือคืนเคส</p><div class="row"><input id="vol-key" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="รหัสอาสา" aria-label="รหัสอาสา" aria-describedby="vol-msg"><button type="button" class="pill pill-blue" id="vol-go">เข้า</button></div><p class="err" id="vol-msg" role="alert"></p>';
+    /* ตรวจรหัสด้วยคำขอของตัวเอง (ไม่ชนกับการรีเฟรชอัตโนมัติ) ลองซ้ำ 1 ครั้งถ้าเซิร์ฟเวอร์ตอบผิดรูปแบบ แยก "รหัสผิด" กับ "เชื่อมต่อไม่ได้" */
+    const go2=async()=>{const k=$('#vol-key').value.replace(/\u200b/g,'').trim();if(!k)return $('#vol-key').focus();
+      const btn=$('#vol-go'),msg=$('#vol-msg');btn.disabled=true;btn.textContent='กำลังตรวจ…';msg.textContent='';
+      let r=null,netErr=false;
+      for(let i=0;i<2&&!r;i++){try{const x=await apiGet({action:'list',key:k,t:Date.now()},20000);if(x&&x.ok)r=x;else netErr=true}catch(e){netErr=true;await new Promise(z=>setTimeout(z,800))}}
+      if($('#vol-go')){btn.disabled=false;btn.textContent='เข้า'}
+      if(r&&r.volunteer){store.set('uh_vol_key',k);store.set('uh_vol_ok','1');S.volunteer=true;toast('เข้าโหมดทีมอาสาแล้ว',{ok:true});p.hidden=true;p.dataset.mode='';await loadCases(true);renderAll();return}
+      if(r){msg.textContent='รหัสไม่ถูกต้อง ตรวจตัวพิมพ์เล็ก/ใหญ่ แล้วลองใหม่';$('#vol-key').select()}
+      else msg.textContent=navigator.onLine?'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองกด "เข้า" อีกครั้ง':'ไม่มีสัญญาณ ลองใหม่เมื่อออนไลน์'};
     $('#vol-go').onclick=go2;$('#vol-key').onkeydown=e=>{if(e.key==='Enter')go2()};return}
   p.innerHTML=`<h3>ชื่อทีม</h3><div class="row"><input id="team-in" aria-label="ชื่อทีม" placeholder="ชื่อทีม / อาสา" value="${esc(store.get('uh_team',''))}" maxlength="40"></div>
     <div class="sep"></div><h3>แชร์ตำแหน่งทีม</h3><p class="hint">ให้ผู้แจ้งเห็นว่าทีมอยู่พื้นที่ไหน (ปัดเศษประมาณ 100 ม.)</p>
