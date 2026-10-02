@@ -214,7 +214,7 @@ function startForm(opt={}){
 function resetForm(){
   F.needs.clear();F.lat=F.lng=null;F.addrDirty=false;F.people=1;F.step=1;
   $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
-  ['#addr-input','#phone-in','#name-in','#details-in','#lat-in','#lng-in'].forEach(s=>$(s).value='');
+  ['#addr-input','#phone-in','#name-in','#details-in','#ma-no','#ma-vil','#ma-soi','#ma-road','#ma-sub','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');$('#manual-addr').open=false;
   $('#ppl-out').textContent='1';$$('input[name=level]').forEach(i=>i.checked=false);
   $('#addr-status').textContent='';$('#pin-status').textContent='แตะแผนที่เพื่อปักหมุด หรือลากหมุดให้ตรง';
   if(F.marker){F.marker.remove();F.marker=null}
@@ -231,7 +231,7 @@ async function ensureFormMap(){
   return S.formMap;
 }
 async function setPin(lat,lng,pan=true,reverse=true){
-  F.lat=+lat;F.lng=+lng;$('#lat-in').value=F.lat.toFixed(6);$('#lng-in').value=F.lng.toFixed(6);markOk('loc');
+  F.lat=+lat;F.lng=+lng;markOk('loc');
   $('#pin-status').textContent='ปักหมุดแล้ว · ลากหมุดเพื่อปรับให้ตรง';
   const m=await ensureFormMap();
   if(m){if(F.marker)F.marker.setLatLng([F.lat,F.lng]);else{F.marker=L.marker([F.lat,F.lng],{draggable:true,icon:L.divIcon({className:'form-pin',html:'<span></span>',iconSize:[34,40],iconAnchor:[17,40]})}).addTo(m);
@@ -247,7 +247,27 @@ async function useGPS(){
 $('#form-gps').addEventListener('click',useGPS);
 $('#addr-input').addEventListener('input',()=>{F.addrDirty=!!$('#addr-input').value.trim();if(F.addrDirty)markOk('loc')});
 geoAttach($('#addr-input'),$('#addr-list'),it=>{$('#addr-input').value=it.label||it.title;F.addrDirty=true;setPin(it.lat,it.lng,true,false);$('#addr-status').textContent='ปักหมุดตามที่อยู่แล้ว · ลากหมุดปรับได้'},{status:$('#addr-status')});
-$('#coord-apply').addEventListener('click',()=>{const a=parseFloat($('#lat-in').value),b=parseFloat($('#lng-in').value);if(isNaN(a)||isNaN(b)||Math.abs(a)>90||Math.abs(b)>180){$('#pin-status').textContent='พิกัดไม่ถูกต้อง';return}setPin(a,b,true,true)});
+/* กรอกที่อยู่เอง (แทนละติจูด/ลองจิจูด): รวมเป็นข้อความที่อยู่ แล้วลองปักหมุดโดยประมาณ */
+const BKK_DIST='พระนคร ดุสิต หนองจอก บางรัก บางเขน บางกะปิ ปทุมวัน ป้อมปราบศัตรูพ่าย พระโขนง มีนบุรี ลาดกระบัง ยานนาวา สัมพันธวงศ์ พญาไท ธนบุรี บางกอกใหญ่ ห้วยขวาง คลองสาน ตลิ่งชัน บางกอกน้อย บางขุนเทียน ภาษีเจริญ หนองแขม ราษฎร์บูรณะ บางพลัด ดินแดง บึงกุ่ม สาทร บางซื่อ จตุจักร บางคอแหลม ประเวศ คลองเตย สวนหลวง จอมทอง ดอนเมือง ราชเทวี ลาดพร้าว วัฒนา บางแค หลักสี่ สายไหม คันนายาว สะพานสูง วังทองหลาง คลองสามวา บางนา ทวีวัฒนา ทุ่งครุ บางบอน'.split(' ');
+$('#bkk-districts').innerHTML=BKK_DIST.map(d=>`<option value="${d}">`).join('');
+function maVal(id,pre){let v=$(id).value.trim().replace(/\s+/g,' ');if(!v)return '';if(pre){v=geoNorm(v).replace(new RegExp('^('+pre+')\\s*'),'');return pre+v}return v}
+function manualAddr(){
+  const no=$('#ma-no').value.trim(),parts=[no?(/^(บ้านเลขที่|เลขที่)/.test(no)?no:'เลขที่ '+no):'',maVal('#ma-vil'),maVal('#ma-soi','ซอย'),maVal('#ma-road','ถนน'),maVal('#ma-sub','แขวง'),maVal('#ma-dist','เขต')].filter(Boolean);
+  const mark=$('#ma-mark').value.trim();
+  return {text:[parts.join(' '),parts.length?'กรุงเทพฯ':'',mark?'(จุดสังเกต: '+mark+')':''].filter(Boolean).join(' '),
+    query:[maVal('#ma-soi','ซอย'),maVal('#ma-road','ถนน'),maVal('#ma-sub','แขวง'),maVal('#ma-dist','เขต')].filter(Boolean).join(' ')}}
+$('#addr-apply').addEventListener('click',async()=>{
+  const a=manualAddr(),st=$('#addr-status');
+  if(!a.text){st.textContent='กรอกอย่างน้อย ซอย ถนน หรือเขต';$('#ma-soi').focus();return}
+  $('#addr-input').value=a.text;F.addrDirty=true;markOk('loc');$('#manual-addr').open=false;
+  $('#addr-input').scrollIntoView({behavior:'smooth',block:'center'});
+  if(F.lat!=null){st.textContent='ใช้ที่อยู่นี้แล้ว · หมุดเดิมยังอยู่';return}
+  st.textContent='ใช้ที่อยู่นี้แล้ว · กำลังหาจุดบนแผนที่…';
+  try{const r=a.query?await geoSuggest(a.query):[];const hit=r.find(x=>x.bkk)||r[0];
+    if(hit&&F.lat==null){await setPin(hit.lat,hit.lng,true,false);st.textContent='ปักหมุดโดยประมาณ · ลากหมุดให้ตรงบ้าน';$('#pin-status').textContent='หมุดโดยประมาณ · ลากให้ตรงบ้าน'}
+    else if(F.lat==null)st.textContent='ใช้ที่อยู่นี้แล้ว · แตะแผนที่เพื่อปักหมุดได้ (ไม่บังคับ)'}
+  catch(e){st.textContent='ใช้ที่อยู่นี้แล้ว · แตะแผนที่เพื่อปักหมุดได้ (ไม่บังคับ)'}
+});
 $('#ppl-minus').addEventListener('click',()=>{F.people=Math.max(1,F.people-1);$('#ppl-out').textContent=F.people});
 $('#ppl-plus').addEventListener('click',()=>{F.people=Math.min(999,F.people+1);$('#ppl-out').textContent=F.people});
 $('#phone-in').addEventListener('input',()=>markOk('phone'));
@@ -271,7 +291,7 @@ function showStep(n){F.step=n;$('#step1').hidden=n!==1;$('#step2').hidden=n!==2;
   $('#form-title').textContent=n===1?'ขอความช่วยเหลือ':'ตรวจก่อนส่ง';
   const b=$('#form-next');b.className='btn '+(n===1?'btn-blue':'btn-green');b.textContent=n===1?'ถัดไป':'ส่งคำขอ';b.disabled=false;window.scrollTo(0,0)}
 function renderReview(d){
-  const rows=[['list','ต้องการ',d.needs.join(', ')],['pin','ที่อยู่',[d.address,d.lat!==''?`(${d.lat}, ${d.lng})`:''].filter(Boolean).join(' ')],['phone','เบอร์โทร',d.phone],
+  const rows=[['list','ต้องการ',d.needs.join(', ')],['pin','ที่อยู่',[d.address,d.lat!==''?'· ปักหมุดแล้ว':''].filter(Boolean).join(' ')||'ปักหมุดแล้ว'],['phone','เบอร์โทร',d.phone],
 ['users','จำนวนคน',d.people+' คน'],['wave','ระดับน้ำ',LEVEL_TH[d.level]||'ไม่ระบุ'],['user','ชื่อ',d.name||'-'],['note','รายละเอียด',d.details||'-']];
   $('#review').innerHTML=rows.map(([i,k,v])=>`<div class="rv">${ic(i)}<span><small>${k}</small><b>${esc(v)}</b></span></div>`).join('');
 }
