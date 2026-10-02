@@ -10,8 +10,10 @@ function geoLabel(p){
   return {title,sub,full:[title,sub].filter(Boolean).join(', ')}}
 /* แยกคำค้น: ชื่อหลัก (เช่น ราษฎร์พัฒนา) + เลข (ซอย 4, แยก 1) — Photon ตัดคำไทยไม่เก่ง จึงค้นหลายแบบแล้วให้คะแนนเอง */
 const GEO_STOP=/^(ซอย|ถนน|ตรอก|แยก|หมู่|หมู่ที่|ม\.|เลขที่|บ้านเลขที่|แขวง|เขต|ตำบล|อำเภอ|จังหวัด|กรุงเทพมหานคร|กรุงเทพฯ?)$/;
-function geoParts(nq){const nums=[],words=[];
-  nq.split(' ').forEach(t=>{if(!t)return;if(/^\d+([\/\-]\d+)*$/.test(t)){nums.push(...t.split(/[\/\-]/));return}
+function geoParts(nq){const nums=[],words=[];let prev='';
+  nq.replace(/(บ้านเลขที่|เลขที่)\s*\d+(\/\d+)?/g,' ').split(' ').forEach(t=>{const pv=prev;prev=t;if(!t)return;
+    if(/^\d+\/\d+$/.test(t))return;                                 /* 12/3 = บ้านเลขที่ ไม่ใช่เลขซอย */
+    if(/^\d+(-\d+)*$/.test(t)){if(!/^(หมู่|หมู่ที่|ม\.)$/.test(pv))nums.push(...t.split('-'));return}
     const w=t.replace(/^(ซอย|ถนน|ตรอก|แขวง|เขต)/,'');if(!w||GEO_STOP.test(t)||GEO_STOP.test(w))return;
     const m=w.match(/^(.*?[^\d\s])(\d+)$/);if(m){words.push(m[1]);nums.push(m[2])}else if(!/^\d/.test(w))words.push(w)});
   return {base:words.sort((x,y)=>y.length-x.length)[0]||'',words,nums}}
@@ -35,7 +37,7 @@ async function geoSuggest(q,signal){
       P.nums.forEach((n,i)=>{if(own.includes(n))sc+=i===0?4:2});
       if(P.nums.length&&own.length&&!own.includes(P.nums[0]))sc-=2;   /* เลขซอยไม่ตรง */
       if(P.base&&!hay.includes(P.base))sc-=5;                           /* ไม่มีชื่อหลักเลย */
-      if(x.bkk)sc+=1;x.score=sc;return x})
+      sc+=x.bkk?3:-3;x.score=sc;return x})
     .sort((a,b)=>b.score-a.score).slice(0,8);
 }
 async function geoReverseRaw(lat,lng){
