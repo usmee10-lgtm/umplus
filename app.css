@@ -507,3 +507,21 @@ a{color:var(--primary)}
 .other-box label em{color:var(--red);font-style:normal}
 .other-box input{width:100%;min-height:52px;font-size:16px}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* ระดับน้ำ: เลือกจากภาพ (คน + ระดับน้ำ) */
+.level-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.level-grid label{position:relative;cursor:pointer;min-width:0}
+.level-grid input{position:absolute;opacity:0;width:1px;height:1px}
+.level-grid span{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px 9px;border-radius:16px;background:var(--bg);transition:background .15s,box-shadow .15s,transform .1s}
+.level-grid svg{width:38px;height:46px;overflow:visible}
+.level-grid .hd,.level-grid .bd{fill:#9aa1c4}
+.level-grid .wt{fill:rgba(15,33,136,.22)}
+.level-grid .wv{fill:none;stroke:rgba(15,33,136,.45);stroke-width:1.5}
+.level-grid b{font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.2;white-space:nowrap}
+.level-grid label:active span{transform:scale(.96)}
+.level-grid input:checked+span{background:var(--primary);box-shadow:0 6px 16px -6px rgba(15,33,136,.6)}
+.level-grid input:checked+span .hd,.level-grid input:checked+span .bd{fill:#fff}
+.level-grid input:checked+span .wt{fill:var(--green);opacity:.85}
+.level-grid input:checked+span .wv{stroke:#fff}
+.level-grid input:checked+span b{color:#fff}
+.level-grid input:focus-visible+span{outline:3px solid var(--green);outline-offset:2px}
