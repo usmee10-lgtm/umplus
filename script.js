@@ -27,8 +27,11 @@ function statusChip(c){const k=pinKind(c);const txt=STATUS_TH[c.status]||'รอ
 /* ---------- API (POST แบบ text/plain JSON) ---------- */
 async function apiPost(body,timeout=20000){const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),timeout);
   try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:ctl.signal});return await r.json()}finally{clearTimeout(tm)}}
-async function apiGet(params,timeout=20000){const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),timeout);
-  try{const r=await fetch(API_URL+'?'+new URLSearchParams(params),{signal:ctl.signal});return await r.json()}finally{clearTimeout(tm)}}
+/* GET อ่านอย่างเดียว ปลอดภัยที่จะลองซ้ำ: Apps Script บางครั้งตอบหน้า error (HTML) หรือช้าตอนเพิ่งตื่น → ลองใหม่ 1 ครั้ง */
+async function apiGet(params,timeout=25000,retry=1){const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),timeout);
+  try{const r=await fetch(API_URL+'?'+new URLSearchParams(params),{signal:ctl.signal});const t=await r.text();return JSON.parse(t)}
+  catch(e){if(retry>0&&navigator.onLine){await new Promise(z=>setTimeout(z,800));return apiGet(params,timeout,retry-1)}throw e}
+  finally{clearTimeout(tm)}}
 
 /* ---------- สถานะแอป ---------- */
 const S={cases:[],loaded:0,loading:false,volunteer:false,view:null,maps:{},flood:null,teams:[],me:null};
@@ -461,7 +464,7 @@ function renderVol(forceOpen){
     const go2=async()=>{let k=$('#vol-key').value.replace(/\u200b/g,'').trim();if(!k)return $('#vol-key').focus();
       const btn=$('#vol-go'),msg=$('#vol-msg');btn.disabled=true;btn.textContent='กำลังตรวจ…';msg.textContent='';
       let r=null,netErr=false;
-      for(let i=0;i<2&&!r;i++){try{const x=await apiGet({action:'list',key:k,t:Date.now()},20000);if(x&&x.ok)r=x;else netErr=true}catch(e){netErr=true;await new Promise(z=>setTimeout(z,800))}}
+      for(let i=0;i<2&&!r;i++){try{const x=await apiGet({action:'list',key:k,t:Date.now()},25000,0);if(x&&x.ok)r=x;else netErr=true}catch(e){netErr=true;await new Promise(z=>setTimeout(z,800))}}
       /* มือถือบางรุ่นขึ้นตัวพิมพ์ใหญ่ให้เอง → ลองตัวพิมพ์เล็กอีกครั้ง */
       if(r&&!r.volunteer&&k!==k.toLowerCase()){try{const x=await apiGet({action:'list',key:k.toLowerCase(),t:Date.now()},20000);if(x&&x.ok&&x.volunteer){r=x;k=k.toLowerCase()}}catch(e){}}
       if($('#vol-go')){btn.disabled=false;btn.textContent='เข้า'}
