@@ -453,3 +453,50 @@ a{color:var(--primary)}
 .flood-key{display:grid;gap:3px;padding:2px 12px 8px 40px;font-size:12px;color:#5a659f}
 .flood-key span{display:flex;align-items:center;gap:7px}
 .flood-key i{display:block;width:16px;height:4px;border-radius:2px}
+
+/* =====================================================================
+   Mobile-first polish (v111)
+   ===================================================================== */
+/* หน้าแรก: ฉากหลังจางด้านบน ให้โลโก้/ช่องค้นหาอ่านชัดบนแผนที่ที่รายละเอียดเยอะ */
+#view-home::before{content:"";position:absolute;z-index:450;left:0;right:0;top:0;height:calc(var(--safe-t) + 150px);pointer-events:none;
+  background:linear-gradient(to bottom,rgba(242,243,247,.96) 0%,rgba(242,243,247,.85) 55%,rgba(242,243,247,0) 100%)}
+#view-home .leaflet-control-scale{display:none}
+#view-home .leaflet-control-attribution{opacity:.75}
+.search-card{min-height:58px;font-size:16.5px}
+.search-card:active{transform:scale(.99)}
+
+/* ปุ่มประเภท: แตะง่าย อ่านง่าย */
+.type-btn{min-height:76px}
+.type-btn span{font-size:13.5px;line-height:1.25}
+
+/* สถานะไม่ซ้ำสีกับความเร่งด่วน: ความเร่งด่วนบอกด้วยป้าย urg อยู่แล้ว */
+.st-danger{background:var(--tint);color:var(--primary)}
+
+/* หน้าแผนที่: แผ่นรายการตอนพับ เหลือแค่หัว (จำนวนเคส) ไม่โผล่เนื้อหาครึ่ง ๆ ใต้แท็บบาร์ */
+@media (max-width:1023px){
+  .list-sheet{height:calc(var(--tab-h) + var(--safe-b) + 84px)}
+  .list-sheet:not(.open) .list-body{visibility:hidden}
+  .list-sheet .sheet-handle{min-height:60px;padding:10px 0 8px}
+  .list-sheet .sheet-handle span{font-size:16px}
+  .list-sheet:not(.open) .sheet-handle span::after{content:" · แตะเพื่อดูรายการ";font-weight:500;color:var(--muted)}
+  .list-sheet.open{height:calc(100% - var(--safe-t) - 56px)}
+  #view-map .leaflet-control-scale{margin-bottom:calc(var(--tab-h) + var(--safe-b) + 100px)!important}
+  #view-map .leaflet-control-attribution{margin-bottom:calc(var(--tab-h) + var(--safe-b) + 90px)!important}
+
+  /* รายละเอียดเคส: เรื่องสำคัญ (สถานะ ความต้องการ ปุ่มนำทาง/โทร) ขึ้นก่อน แผนที่ตามหลัง */
+  .detail{display:flex;flex-direction:column;gap:12px}
+  .detail>.d-map-col{order:2}
+  .detail-head{margin:4px 2px 0}
+  .detail-map{height:200px}
+  .detail .actions .pill{min-height:52px;font-size:16px}
+}
+
+/* ฟอร์ม: ปุ่ม "ถัดไป" มีพื้นรองให้ไม่ทับเนื้อหา */
+.form-foot{background:linear-gradient(to bottom,rgba(242,243,247,0),var(--bg) 35%)}
+
+/* จอเตี้ย (iPhone SE ฯลฯ) */
+@media (max-height:700px){
+  .home-sheet .sheet-head{font-size:18px;padding-top:12px;padding-bottom:10px}
+  .type-btn{min-height:64px}
+  .type-grid{gap:6px}
+}
