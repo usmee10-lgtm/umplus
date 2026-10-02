@@ -255,7 +255,12 @@ function manualAddr(){
   const no=$('#ma-no').value.trim(),parts=[no?(/^(บ้านเลขที่|เลขที่)/.test(no)?no:'เลขที่ '+no):'',maVal('#ma-vil'),maVal('#ma-soi','ซอย'),maVal('#ma-road','ถนน'),maVal('#ma-sub','แขวง'),maVal('#ma-dist','เขต')].filter(Boolean);
   const mark=$('#ma-mark').value.trim();
   return {text:[parts.join(' '),parts.length?'กรุงเทพฯ':'',mark?'(จุดสังเกต: '+mark+')':''].filter(Boolean).join(' '),
-    query:[maVal('#ma-soi','ซอย'),maVal('#ma-road','ถนน'),maVal('#ma-sub','แขวง'),maVal('#ma-dist','เขต')].filter(Boolean).join(' ')}}
+    queries:maQueries()}}
+/* ลองค้นจากละเอียด → กว้าง (Photon หาเจอดีเมื่อคำสั้น) */
+function maQueries(){const bare=(id,pre)=>maVal(id,pre).replace(new RegExp('^'+pre),'');
+  const soi=maVal('#ma-soi','ซอย'),road=maVal('#ma-road','ถนน'),vil=maVal('#ma-vil'),sub=bare('#ma-sub','แขวง'),dist=bare('#ma-dist','เขต'),area=dist||sub;
+  return [[soi&&[soi,area].filter(Boolean).join(' '),'ซอย'],[soi,'ซอย'],[road&&[road,area].filter(Boolean).join(' '),'ถนน'],[vil&&[vil,area].filter(Boolean).join(' '),'หมู่บ้าน'],[sub&&[sub,dist].filter(Boolean).join(' '),'แขวง'],[sub,'แขวง'],[dist,'เขต']]
+    .filter(([q],i,a)=>q&&a.findIndex(x=>x[0]===q)===i)}
 $('#addr-apply').addEventListener('click',async()=>{
   const a=manualAddr(),st=$('#addr-status');
   if(!a.text){st.textContent='กรอกอย่างน้อย ซอย ถนน หรือเขต';$('#ma-soi').focus();return}
@@ -263,8 +268,9 @@ $('#addr-apply').addEventListener('click',async()=>{
   $('#addr-input').scrollIntoView({behavior:'smooth',block:'center'});
   if(F.lat!=null){st.textContent='ใช้ที่อยู่นี้แล้ว · หมุดเดิมยังอยู่';return}
   st.textContent='ใช้ที่อยู่นี้แล้ว · กำลังหาจุดบนแผนที่…';
-  try{const r=a.query?await geoSuggest(a.query):[];const hit=r.find(x=>x.bkk)||r[0];
-    if(hit&&F.lat==null){await setPin(hit.lat,hit.lng,true,false);st.textContent='ปักหมุดโดยประมาณ · ลากหมุดให้ตรงบ้าน';$('#pin-status').textContent='หมุดโดยประมาณ · ลากให้ตรงบ้าน'}
+  try{let hit=null,lvl='';for(const [q,l] of a.queries){const r=await geoSuggest(q);hit=r.find(x=>x.bkk)||r[0];if(hit){lvl=l;break}}
+    if(hit&&F.lat==null){await setPin(hit.lat,hit.lng,true,false);if(S.formMap&&(lvl==='เขต'||lvl==='แขวง'))S.formMap.setZoom(14);
+      st.textContent=`ปักหมุดโดยประมาณ (ระดับ${lvl}) · ลากหมุดให้ตรงบ้าน`;$('#pin-status').textContent='หมุดโดยประมาณ · ลากให้ตรงบ้าน'}
     else if(F.lat==null)st.textContent='ใช้ที่อยู่นี้แล้ว · แตะแผนที่เพื่อปักหมุดได้ (ไม่บังคับ)'}
   catch(e){st.textContent='ใช้ที่อยู่นี้แล้ว · แตะแผนที่เพื่อปักหมุดได้ (ไม่บังคับ)'}
 });
