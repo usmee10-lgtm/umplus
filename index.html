@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="./assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=24">
+<link rel="stylesheet" href="./app.css?v=25">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -85,16 +85,17 @@
         <p class="hint" id="pin-status" aria-live="polite">แตะแผนที่เพื่อปักหมุด หรือลากหมุดให้ตรง</p>
         <details class="coord" id="manual-addr"><summary><span data-icon="note"></span>กรอกที่อยู่เอง</summary>
           <div class="addr-form">
-            <label>บ้านเลขที่ / หมู่<input id="ma-no" maxlength="30" autocomplete="off" placeholder="เช่น 12/3 หมู่ 4"></label>
-            <label>หมู่บ้าน / อาคาร<input id="ma-vil" maxlength="60" autocomplete="off" placeholder="ถ้ามี"></label>
-            <label>ซอย<input id="ma-soi" maxlength="60" autocomplete="off" placeholder="เช่น รามคำแหง 24"></label>
-            <label>ถนน<input id="ma-road" maxlength="60" autocomplete="off" placeholder="เช่น รามคำแหง"></label>
-            <label>แขวง<input id="ma-sub" maxlength="40" autocomplete="off" placeholder="เช่น หัวหมาก"></label>
-            <label>เขต<input id="ma-dist" maxlength="40" autocomplete="off" list="bkk-districts" placeholder="เช่น บางกะปิ"></label>
-            <label class="span2">จุดสังเกต<input id="ma-mark" maxlength="80" autocomplete="off" placeholder="เช่น ตรงข้ามเซเว่น บ้านประตูสีฟ้า"></label>
+            <label class="span2" for="ma-street">ซอย / ถนน
+              <span class="search-field"><span data-icon="search"></span><input id="ma-street" maxlength="80" autocomplete="off" enterkeyhint="next" placeholder="เช่น ซ.รามคำแหง 24"></span></label>
+            <div id="ma-list" class="sug-list inline span2" role="listbox" hidden></div>
+            <p class="hint span2" id="ma-tip">พิมพ์แล้วเลือกจากรายการ ระบบเติมเขตและปักหมุดให้</p>
+            <label>บ้านเลขที่<input id="ma-no" maxlength="40" autocomplete="off" enterkeyhint="next" placeholder="เช่น 12/3"></label>
+            <label>เขต<input id="ma-dist" maxlength="40" autocomplete="off" enterkeyhint="next" list="bkk-districts" placeholder="เช่น บางกะปิ"></label>
+            <label class="span2">จุดสังเกต <small>(ไม่บังคับ)</small><input id="ma-mark" maxlength="80" autocomplete="off" enterkeyhint="done" placeholder="เช่น ตรงข้ามเซเว่น บ้านประตูสีฟ้า"></label>
           </div>
           <datalist id="bkk-districts"></datalist>
-          <button type="button" class="pill pill-green full" id="addr-apply" data-icon="check">ใช้ที่อยู่นี้</button>
+          <div class="addr-preview" id="ma-preview" aria-live="polite" hidden><small>ที่อยู่ที่จะส่ง</small><b id="ma-preview-text"></b></div>
+          <button type="button" class="pill pill-green full" id="addr-apply" data-icon="check">เสร็จ</button>
         </details>
         <p class="err" id="err-loc" role="alert" hidden>บอกที่อยู่ หรือปักหมุดบนแผนที่</p>
       </section>
@@ -213,11 +214,11 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=24"></script>
-<script src="./geocode.js?v=24"></script>
-<script src="./location.js?v=24"></script>
-<script src="./hotlines.js?v=24"></script>
-<script src="./script.js?v=24"></script>
+<script src="./icons.js?v=25"></script>
+<script src="./geocode.js?v=25"></script>
+<script src="./location.js?v=25"></script>
+<script src="./hotlines.js?v=25"></script>
+<script src="./script.js?v=25"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>

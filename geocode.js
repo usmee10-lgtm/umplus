@@ -14,10 +14,12 @@ async function geoSuggest(q,signal){
   const r=await fetch(u,{signal});if(!r.ok)throw new Error('geo '+r.status);
   const j=await r.json();const seen=new Set();
   return (j.features||[]).filter(f=>{const p=f.properties||{};return !p.countrycode||p.countrycode==='TH'}).map(f=>{const p=f.properties||{},L=geoLabel(p);
-    return {lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],title:L.title,sub:L.sub,label:L.full,bkk:geoIsBkk(p)}})
+    return {lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],title:L.title,sub:L.sub,label:L.full,bkk:geoIsBkk(p),dist:p.district||'',area:p.locality||'',type:p.type||'',name:p.name||'',street:p.street||''}})
     .filter(x=>{const k=x.label+'|'+x.lat.toFixed(3);if(!x.title||seen.has(k))return false;seen.add(k);return true})
     .sort((a,b)=>(b.bkk-a.bkk)).slice(0,8);
 }
+async function geoReverseRaw(lat,lng){
+  try{const r=await fetch(`${GEO.url}/reverse?lat=${lat}&lon=${lng}&limit=1`);if(!r.ok)return null;const f=((await r.json()).features||[])[0];return f?f.properties||null:null}catch(e){return null}}
 async function geoReverse(lat,lng){
   try{const r=await fetch(`${GEO.url}/reverse?lat=${lat}&lon=${lng}&limit=1`);if(!r.ok)return '';
     const f=((await r.json()).features||[])[0];if(!f)return '';return geoLabel(f.properties||{}).full}catch(e){return ''}

@@ -243,7 +243,7 @@ function startForm(opt={}){
 function resetForm(){
   F.needs.clear();F.lat=F.lng=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
   $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
-  ['#addr-input','#phone-in','#name-in','#details-in','#ma-no','#ma-vil','#ma-soi','#ma-road','#ma-sub','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');$('#manual-addr').open=false;
+  ['#addr-input','#phone-in','#name-in','#details-in','#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');MA.sub='';MA.picked=null;$('#ma-preview').hidden=true;$('#manual-addr').open=false;
   $('#ppl-out').textContent='1';$$('input[name=level]').forEach(i=>i.checked=false);
   $('#addr-status').textContent='';$('#pin-status').textContent='แตะแผนที่เพื่อปักหมุด หรือลากหมุดให้ตรง';
   if(F.marker){F.marker.remove();F.marker=null}
@@ -281,23 +281,42 @@ geoAttach($('#addr-input'),$('#addr-list'),it=>{$('#addr-input').value=it.label|
 /* กรอกที่อยู่เอง (แทนละติจูด/ลองจิจูด): รวมเป็นข้อความที่อยู่ แล้วลองปักหมุดโดยประมาณ */
 const BKK_DIST='พระนคร ดุสิต หนองจอก บางรัก บางเขน บางกะปิ ปทุมวัน ป้อมปราบศัตรูพ่าย พระโขนง มีนบุรี ลาดกระบัง ยานนาวา สัมพันธวงศ์ พญาไท ธนบุรี บางกอกใหญ่ ห้วยขวาง คลองสาน ตลิ่งชัน บางกอกน้อย บางขุนเทียน ภาษีเจริญ หนองแขม ราษฎร์บูรณะ บางพลัด ดินแดง บึงกุ่ม สาทร บางซื่อ จตุจักร บางคอแหลม ประเวศ คลองเตย สวนหลวง จอมทอง ดอนเมือง ราชเทวี ลาดพร้าว วัฒนา บางแค หลักสี่ สายไหม คันนายาว สะพานสูง วังทองหลาง คลองสามวา บางนา ทวีวัฒนา ทุ่งครุ บางบอน'.split(' ');
 $('#bkk-districts').innerHTML=BKK_DIST.map(d=>`<option value="${d}">`).join('');
-function maVal(id,pre){let v=$(id).value.trim().replace(/\s+/g,' ');if(!v)return '';if(pre){v=geoNorm(v).replace(new RegExp('^('+pre+')\\s*'),'');return pre+v}return v}
+/* กรอกที่อยู่เอง: 4 ช่อง (ซอย/ถนน มีรายการแนะนำ → เติมเขต+แขวง+ปักหมุดให้เอง) ข้อความที่อยู่อัปเดตทันทีที่พิมพ์ */
+const MA={sub:'',picked:null,distOf:''};
+const distNorm=v=>{v=String(v||'').replace(/^\s*เขต\s*/,'').replace(/\s+/g,'').trim();const hit=BKK_DIST.find(d=>d===v)||BKK_DIST.find(d=>v.length>=3&&d.startsWith(v));return hit||v};
 function manualAddr(){
-  const no=$('#ma-no').value.trim(),parts=[no?(/^(บ้านเลขที่|เลขที่)/.test(no)?no:'เลขที่ '+no):'',maVal('#ma-vil'),maVal('#ma-soi','ซอย'),maVal('#ma-road','ถนน'),maVal('#ma-sub','แขวง'),maVal('#ma-dist','เขต')].filter(Boolean);
-  const mark=$('#ma-mark').value.trim();
-  return {text:[parts.join(' '),parts.length?'กรุงเทพฯ':'',mark?'(จุดสังเกต: '+mark+')':''].filter(Boolean).join(' '),
-    queries:maQueries()}}
-/* ลองค้นจากละเอียด → กว้าง (Photon หาเจอดีเมื่อคำสั้น) */
-function maQueries(){const bare=(id,pre)=>maVal(id,pre).replace(new RegExp('^'+pre),'');
-  const soi=maVal('#ma-soi','ซอย'),road=maVal('#ma-road','ถนน'),vil=maVal('#ma-vil'),sub=bare('#ma-sub','แขวง'),dist=bare('#ma-dist','เขต'),area=dist||sub;
-  return [[soi&&[soi,area].filter(Boolean).join(' '),'ซอย'],[soi,'ซอย'],[road&&[road,area].filter(Boolean).join(' '),'ถนน'],[vil&&[vil,area].filter(Boolean).join(' '),'หมู่บ้าน'],[sub&&[sub,dist].filter(Boolean).join(' '),'แขวง'],[sub,'แขวง'],[dist,'เขต']]
-    .filter(([q],i,a)=>q&&a.findIndex(x=>x[0]===q)===i)}
+  const street=geoNorm($('#ma-street').value).replace(/\s+/g,' '),no=$('#ma-no').value.trim().replace(/\s+/g,' '),dist=distNorm($('#ma-dist').value),mark=$('#ma-mark').value.trim();
+  const sub=MA.sub&&MA.distOf===dist?MA.sub:'';
+  const main=[no?(/^(บ้านเลขที่|เลขที่)/.test(no)?no:'เลขที่ '+no):'',street,sub?'แขวง'+sub:'',dist?'เขต'+dist:''].filter(Boolean);
+  const text=[main.join(' '),main.length&&(street||dist)?'กรุงเทพฯ':'',mark?'(จุดสังเกต: '+mark+')':''].filter(Boolean).join(' ');
+  const queries=[[street&&[street,dist].filter(Boolean).join(' '),'ซอย/ถนน'],[street,'ซอย/ถนน'],[sub&&[sub,dist].join(' '),'แขวง'],[dist,'เขต']].filter(([q],i,a)=>q&&a.findIndex(x=>x[0]===q)===i);
+  return {text,queries,ok:!!(street||dist||mark)}}
+function maSync(){const a=manualAddr();$('#ma-preview').hidden=!a.text;$('#ma-preview-text').textContent=a.text;
+  if(a.text){$('#addr-input').value=a.text;F.addrDirty=true;markOk('loc')}}
+['#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(id=>{const el=$(id);el.addEventListener('input',()=>{if(id==='#ma-street')MA.picked=null;maSync()});
+  el.addEventListener('keydown',e=>{if(e.key!=='Enter'||e.defaultPrevented||e.isComposing)return;if(id==='#ma-street'&&!$('#ma-list').hidden)return;e.preventDefault();
+    const order=['#ma-street','#ma-no','#ma-dist','#ma-mark'],i=order.indexOf(id);if(i<order.length-1)$(order[i+1]).focus();else $('#addr-apply').click()})});
+$('#ma-dist').addEventListener('change',()=>{const v=distNorm($('#ma-dist').value);if(v)$('#ma-dist').value=v;maSync()});
+/* เลือกซอย/ถนนจากรายการ → เติมเขต แขวง และปักหมุดทันที */
+geoAttach($('#ma-street'),$('#ma-list'),it=>{
+  const street=it.type==='street'?it.name:(it.street||it.name);$('#ma-street').value=street;
+  if(it.type!=='street'&&it.name&&!$('#ma-mark').value.trim())$('#ma-mark').value='ใกล้'+it.name;
+  if(it.dist){$('#ma-dist').value=distNorm(it.dist);MA.distOf=distNorm(it.dist)}MA.sub=it.area&&it.area!==it.dist?it.area:'';MA.picked=it;maSync();
+  setPin(it.lat,it.lng,true,false);$('#ma-tip').textContent='ปักหมุดที่'+street+'แล้ว · ลากหมุดให้ตรงบ้าน';
+  setTimeout(()=>$('#ma-no').focus(),50)},{status:$('#ma-tip')});
+/* เปิดช่องกรอกเอง: ถ้ามีหมุดแล้ว เติมซอย/ถนน เขต แขวง จากหมุดให้ก่อน */
+$('#manual-addr').addEventListener('toggle',async()=>{if(!$('#manual-addr').open)return;
+  if(F.lat==null||$('#ma-street').value||$('#ma-dist').value){setTimeout(()=>$('#ma-street').focus(),50);return}
+  $('#ma-tip').textContent='กำลังเติมที่อยู่จากหมุด…';const p=await geoReverseRaw(F.lat,F.lng);
+  if(p&&!$('#ma-street').value&&!$('#ma-dist').value){const st=p.type==='street'?p.name:p.street;if(st)$('#ma-street').value=st;
+    if(p.district){$('#ma-dist').value=distNorm(p.district);MA.distOf=distNorm(p.district)}MA.sub=p.locality&&p.locality!==p.district?p.locality:'';
+    $('#ma-tip').textContent='เติมจากหมุดให้แล้ว · ใส่บ้านเลขที่เพิ่มได้';maSync();setTimeout(()=>$('#ma-no').focus(),50)}
+  else{$('#ma-tip').textContent='พิมพ์แล้วเลือกจากรายการ ระบบเติมเขตและปักหมุดให้';setTimeout(()=>$('#ma-street').focus(),50)}});
 $('#addr-apply').addEventListener('click',async()=>{
   const a=manualAddr(),st=$('#addr-status');
-  if(!a.queries.length&&!$('#ma-mark').value.trim()){st.textContent='กรอกอย่างน้อย ซอย ถนน หรือเขต';$('#ma-soi').focus();return}
-  $('#addr-input').value=a.text;F.addrDirty=true;markOk('loc');$('#manual-addr').open=false;
-  $('#addr-input').scrollIntoView({behavior:'smooth',block:'center'});
-  if(F.lat!=null){st.textContent='ใช้ที่อยู่นี้แล้ว · หมุดเดิมยังอยู่';return}
+  if(!a.ok){$('#ma-tip').textContent='ใส่ซอย/ถนน หรือเขต อย่างน้อย 1 ช่อง';$('#ma-street').focus();return}
+  maSync();$('#manual-addr').open=false;$('#addr-input').scrollIntoView({behavior:'smooth',block:'center'});
+  if(F.lat!=null){st.textContent=MA.picked?'ใช้ที่อยู่นี้แล้ว · ปักหมุดตามซอย/ถนนแล้ว':'ใช้ที่อยู่นี้แล้ว · หมุดเดิมยังอยู่';return}
   st.textContent='ใช้ที่อยู่นี้แล้ว · กำลังหาจุดบนแผนที่…';
   try{let hit=null,lvl='';for(const [q,l] of a.queries){const r=await geoSuggest(q);hit=r.find(x=>x.bkk)||r[0];if(hit){lvl=l;break}}
     if(hit&&F.lat==null){await setPin(hit.lat,hit.lng,true,false);if(S.formMap&&(lvl==='เขต'||lvl==='แขวง'))S.formMap.setZoom(14);
