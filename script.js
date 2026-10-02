@@ -467,7 +467,11 @@ function renderVol(forceOpen){
     const go2=async()=>{let k=$('#vol-key').value.replace(/\u200b/g,'').trim();if(!k)return $('#vol-key').focus();
       const btn=$('#vol-go'),msg=$('#vol-msg');btn.disabled=true;btn.textContent='กำลังตรวจ…';msg.textContent='';
       let r=null,netErr=false;
-      for(let i=0;i<2&&!r;i++){try{const x=await apiGet({action:'list',key:k,t:Date.now()},25000,0);if(x&&x.ok)r=x;else netErr=true}catch(e){netErr=true;await new Promise(z=>setTimeout(z,800))}}
+      /* เซิร์ฟเวอร์ (Apps Script) บางครั้งตื่นช้า 20–30 วิ → ลอง 3 ครั้ง รอนานขึ้นทีละรอบ และบอกผู้ใช้ว่ากำลังลองใหม่ */
+      const waits=[10000,15000,30000];
+      for(let i=0;i<waits.length&&!r;i++){if(i)msg.textContent=`เซิร์ฟเวอร์ตอบช้า กำลังลองอีกครั้ง (${i+1}/${waits.length})…`;
+        try{const x=await apiGet({action:'list',key:k,t:Date.now()},waits[i],0);if(x&&x.ok)r=x;else netErr=true}catch(e){netErr=true;await new Promise(z=>setTimeout(z,600))}}
+      msg.textContent='';
       /* มือถือบางรุ่นขึ้นตัวพิมพ์ใหญ่ให้เอง → ลองตัวพิมพ์เล็กอีกครั้ง */
       if(r&&!r.volunteer&&k!==k.toLowerCase()){try{const x=await apiGet({action:'list',key:k.toLowerCase(),t:Date.now()},20000);if(x&&x.ok&&x.volunteer){r=x;k=k.toLowerCase()}}catch(e){}}
       if($('#vol-go')){btn.disabled=false;btn.textContent='เข้า'}
