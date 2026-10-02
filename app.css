@@ -543,3 +543,6 @@ a{color:var(--primary)}
 .leaflet-div-icon.zone-pin{background:none;border:0}
 .zone-pin span{display:grid;place-items:center;align-content:center;width:44px;height:44px;border-radius:50%;background:var(--primary);color:#fff;font:800 15px/1 var(--font,inherit);box-shadow:0 0 0 4px rgba(255,255,255,.9),0 4px 12px rgba(15,33,136,.35);cursor:pointer}
 .zone-pin small{font-size:9.5px;font-weight:600;opacity:.85;margin-top:1px}
+.zone-list,.zone{min-width:0;max-width:100%}
+.zone{overflow:hidden}
+.trip{min-width:0;overflow:hidden}

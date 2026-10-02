@@ -457,8 +457,8 @@ function tripLegs(){const pts=tripCases().filter(c=>!c.missing&&hasPin(c)&&c.sta
 function tripUrl(){const l=tripLegs();return l.length?l[0].url:''}
 /* โซนเคสใกล้กัน: รวมเคสที่รอช่วยซึ่งอยู่ห่างกันไม่เกิน ZONE_KM เป็นกลุ่ม ให้ทีมรับทีละโซน */
 const ZONE_KM=2.5,ZONE_MAX=10;
-function zoneArea(list){const cnt={};list.forEach(c=>{const k=c.district?'เขต'+c.district:String(c.address||'').split(/[,·]/)[0].trim().slice(0,28);if(k)cnt[k]=(cnt[k]||0)+1});
-  return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).slice(0,2).join(' · ')||'ไม่ระบุพื้นที่'}
+function zoneArea(list){const cnt={};list.forEach(c=>{const k=c.district?'เขต'+c.district:String(c.address||'').replace(/^(บ้านเลขที่|เลขที่)?\s*[\d\/\-\s]+/,'').split(/[,·]/)[0].trim().slice(0,24);if(k)cnt[k]=(cnt[k]||0)+1});
+  return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(x=>x[0])[0]||'ไม่ระบุพื้นที่'}
 function tripZones(){
   let left=S.cases.filter(c=>c.status==='open'&&hasPin(c)&&tripIndex(c.id)<0).map(c=>({c,lat:+c.lat,lng:+c.lng}));
   const zones=[];
