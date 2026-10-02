@@ -11,7 +11,7 @@ function iconify(root=document){root.querySelectorAll('[data-icon]').forEach(el=
 function toast(msg,opt={}){const t=document.createElement('div');t.className='toast'+(opt.ok?' ok':'');t.setAttribute('role','status');
   t.innerHTML=ic(opt.icon||(opt.ok?'check':'info'))+'<span></span>';t.querySelector('span').textContent=msg;
   if(opt.action){const b=document.createElement('button');b.type='button';b.textContent=opt.action;b.onclick=()=>{opt.onAction&&opt.onAction();t.remove()};t.append(b)}
-  $('#toasts').append(t);setTimeout(()=>t.remove(),opt.ms||5000)}
+  $('#toasts').append(t);const kill=()=>{if(t.contains(document.activeElement)||t.matches(':hover'))setTimeout(kill,2000);else t.remove()};setTimeout(kill,opt.ms||(opt.action?10000:5000))}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 function ago(ts){const t=Number(ts)||Date.parse(ts);if(!t)return '';const m=Math.round((Date.now()-t)/60000);if(m<1)return 'เมื่อสักครู่';if(m<60)return m+' นาทีที่แล้ว';const h=Math.round(m/60);if(h<24)return h+' ชั่วโมงที่แล้ว';return new Date(t).toLocaleDateString('th-TH',{day:'numeric',month:'short'})+' '+new Date(t).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}
 const hasPin=c=>c&&c.lat!==''&&c.lat!=null&&c.lng!==''&&c.lng!=null&&!isNaN(+c.lat)&&!isNaN(+c.lng);
@@ -63,10 +63,10 @@ function renderAll(){
 /* ---------- เปลี่ยนหน้า ---------- */
 function go(view,push=true){
   if(view===S.view&&view!=='detail'){return}
-  $$('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+view));
+  $$('.view').forEach(v=>{const on=v.id==='view-'+view;v.classList.toggle('active',on);v.hidden=!on});
   S.view=view;document.body.classList.toggle('in-form',view==='form');
   $$('.tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.go===(view==='detail'?'map':view==='sent'||view==='form'?'home':view)));
-  $('#layer-menu').hidden=true;
+  closeLayerMenu(false);$$('.tabbar button').forEach(b=>b.classList.contains('active')?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current'));
   if(push&&location.hash!=='#'+view)history.pushState({view},'', '#'+view);
   if(view==='home')ensureMap('home');
   if(view==='map')ensureMap('map');
@@ -74,7 +74,12 @@ function go(view,push=true){
   if(view!=='detail'&&S.detailMap){S.detailMap.remove();S.detailMap=null}
   window.scrollTo(0,0);
   setTimeout(()=>Object.values(S.maps).forEach(m=>m&&m.invalidateSize()),60);
+  if(A11Y.ready)focusView(view);  /* ย้ายโฟกัสไปหัวข้อของหน้าใหม่ ให้โปรแกรมอ่านหน้าจออ่านต่อจากตรงนั้น */
 }
+const A11Y={ready:false};
+function focusView(view){const v=$('#view-'+view);if(!v)return;const t=v.querySelector('h1[tabindex]')||v;if(t===v)v.tabIndex=-1;
+  setTimeout(()=>{if(!v.contains(document.activeElement)||document.activeElement===document.body)t.focus({preventScroll:true})},0)}
+$('#skip-link').addEventListener('click',e=>{e.preventDefault();focusView(S.view||'home')});
 addEventListener('popstate',()=>{const v=(location.hash||'#home').slice(1);go(['home','map','emergency','form','detail','sent'].includes(v)?v:'home',false)});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){e.preventDefault();go(b.dataset.go)}});
 
@@ -124,14 +129,17 @@ let layerFor=null;
 document.addEventListener('click',e=>{
   const f=e.target.closest('.fab[data-act]');
   if(f){const which=S.view==='map'?'map':'home';
-    if(f.dataset.act==='layers'){const menu=$('#layer-menu');if(!menu.hidden&&layerFor===which){menu.hidden=true;return}layerFor=which;const r=f.getBoundingClientRect();
-      menu.style.top=Math.min(r.bottom+8,innerHeight-260)+'px';menu.style.right=(innerWidth-r.right)+'px';menu.hidden=false;
-      const cur=(S.maps[which]&&S.maps[which].currentBase)||'road';$$('#layer-menu [data-base]').forEach(b=>b.setAttribute('aria-checked',String(b.dataset.base===cur)));}
+    if(f.dataset.act==='layers'){const menu=$('#layer-menu');if(!menu.hidden&&layerFor===which){closeLayerMenu(true);return}layerFor=which;layerBtn=f;const r=f.getBoundingClientRect();
+      menu.style.top=Math.min(r.bottom+8,innerHeight-260)+'px';menu.style.right=(innerWidth-r.right)+'px';menu.hidden=false;f.setAttribute('aria-expanded','true');
+      const cur=(S.maps[which]&&S.maps[which].currentBase)||'road';$$('#layer-menu [data-base]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.base===cur)));
+      const first=menu.querySelector('[aria-pressed=true]')||menu.querySelector('button');if(first)first.focus();}
     else locateMe(which,f);return}
   const bb=e.target.closest('#layer-menu [data-base]');
-  if(bb){Object.values(S.maps).forEach(m=>m&&m.setBase(bb.dataset.base));if(S.formMap)S.formMap.setBase(bb.dataset.base);$('#layer-menu').hidden=true;return}
-  if(!e.target.closest('#layer-menu'))$('#layer-menu').hidden=true;
+  if(bb){Object.values(S.maps).forEach(m=>m&&m.setBase(bb.dataset.base));if(S.formMap)S.formMap.setBase(bb.dataset.base);closeLayerMenu(true);toast('แผนที่แบบ'+bb.textContent.trim());return}
+  if(!e.target.closest('#layer-menu')&&!$('#layer-menu').hidden)closeLayerMenu(false);
 });
+let layerBtn=null;
+function closeLayerMenu(refocus){const m=$('#layer-menu');if(!m)return;const was=!m.hidden;m.hidden=true;$$('.fab[data-act=layers]').forEach(b=>b.setAttribute('aria-expanded','false'));if(was&&refocus&&layerBtn)layerBtn.focus()}
 async function locateMe(which,btn){
   const m=await ensureMap(which);if(!m)return;btn&&btn.classList.add('on');
   try{const p=await getGPS();S.me=p;
@@ -167,12 +175,19 @@ $('#type-grid').addEventListener('click',e=>{const b=e.target.closest('[data-typ
 $('#btn-use-gps').addEventListener('click',()=>startForm({gps:true}));
 $('#btn-all-cases').addEventListener('click',()=>{FL.status='all';FL.types=[];FL.people=[];FL.level=[];FL.q='';$('#case-search').value='';saveFL();renderFilters();go('map');setSheet(true);applyFilters()});
 $('#btn-help').addEventListener('click',()=>{go('map');setSheet(true);if(!S.volunteer){$('#vol-panel').hidden=false;renderVol(true)}});
-const openSearch=()=>{$('#search-overlay').hidden=false;$('#search-input').value='';$('#search-list').hidden=true;$('#search-status').textContent='';setTimeout(()=>$('#search-input').focus(),50)};
+let searchFrom=null;
+const openSearch=e=>{searchFrom=(e&&e.currentTarget)||document.activeElement;$('#search-overlay').hidden=false;$$('.view.active,.tabbar').forEach(x=>x.inert=true);
+  $('#search-input').value='';$('#search-list').hidden=true;$('#search-status').textContent='';setTimeout(()=>$('#search-input').focus(),50)};
+function closeSearch(refocus=true){const o=$('#search-overlay');if(o.hidden)return;o.hidden=true;$$('.view,.tabbar').forEach(x=>x.inert=false);if(refocus&&searchFrom&&document.contains(searchFrom))searchFrom.focus()}
 $('#search-card').addEventListener('click',openSearch);$('#home-search-btn').addEventListener('click',openSearch);
-$('#search-cancel').addEventListener('click',()=>{$('#search-overlay').hidden=true});
-$('#search-gps').addEventListener('click',()=>{$('#search-overlay').hidden=true;startForm({gps:true})});
-geoAttach($('#search-input'),$('#search-list'),it=>{$('#search-overlay').hidden=true;startForm({loc:it})},{status:$('#search-status')});
-addEventListener('keydown',e=>{if(e.key==='Escape'){$('#search-overlay').hidden=true;$('#layer-menu').hidden=true}});
+$('#search-cancel').addEventListener('click',()=>closeSearch());
+$('#search-gps').addEventListener('click',()=>{closeSearch(false);startForm({gps:true})});
+geoAttach($('#search-input'),$('#search-list'),it=>{closeSearch(false);startForm({loc:it})},{status:$('#search-status')});
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){if(!$('#search-overlay').hidden){closeSearch();return}if(!$('#layer-menu').hidden){closeLayerMenu(true);return}}
+  if(e.key==='Tab'){const box=!$('#search-overlay').hidden?$('#search-overlay'):!$('#layer-menu').hidden?$('#layer-menu'):null;if(!box)return;  /* วนโฟกัสอยู่ในกล่องที่เปิดอยู่ */
+    const f=[...box.querySelectorAll('button,input,a[href],[tabindex]:not([tabindex="-1"])')].filter(x=>!x.disabled&&x.offsetParent!==null);if(!f.length)return;
+    const i=f.indexOf(document.activeElement);if(e.shiftKey&&(i<=0)){e.preventDefault();f[f.length-1].focus()}else if(!e.shiftKey&&(i===f.length-1||i<0)){e.preventDefault();f[0].focus()}}});
 
 /* ---------- คำขอของฉัน + คิวส่งตอนไม่มีสัญญาณ ---------- */
 const myReqs=()=>store.json('uh_my_cases',[]);const saveMy=a=>store.put('uh_my_cases',a.slice(-8));
@@ -293,8 +308,9 @@ $('#addr-apply').addEventListener('click',async()=>{
 $('#ppl-minus').addEventListener('click',()=>{F.people=Math.max(1,F.people-1);$('#ppl-out').textContent=F.people});
 $('#ppl-plus').addEventListener('click',()=>{F.people=Math.min(999,F.people+1);$('#ppl-out').textContent=F.people});
 $('#phone-in').addEventListener('input',()=>markOk('phone'));
-function markOk(k){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[k];$(sec).classList.remove('invalid');$('#err-'+k).hidden=true}
-function markBad(k){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[k];$(sec).classList.add('invalid');$('#err-'+k).hidden=false}
+const FIELD={needs:'#need-grid',loc:'#addr-input',phone:'#phone-in'};
+function markOk(k){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[k];$(sec).classList.remove('invalid');$('#err-'+k).hidden=true;$(FIELD[k]).removeAttribute('aria-invalid')}
+function markBad(k){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[k];$(sec).classList.add('invalid');$('#err-'+k).hidden=false;$(FIELD[k]).setAttribute('aria-invalid','true')}
 function phoneOk(v){let d=String(v||'').replace(/\D/g,'');if(d.startsWith('66'))d='0'+d.slice(2);return /^0\d{8,9}$/.test(d)}
 function validate(){const bad=[];
   if(!F.needs.size)bad.push('needs');
@@ -312,7 +328,8 @@ function formData(){
     details:$('#details-in').value.trim(),website:$('.hp').value}}
 function showStep(n){F.step=n;$('#step1').hidden=n!==1;$('#step2').hidden=n!==2;$('#form-step').textContent=n+'/2';
   $('#form-title').textContent=n===1?'ขอความช่วยเหลือ':'ตรวจก่อนส่ง';
-  const b=$('#form-next');b.className='btn '+(n===1?'btn-blue':'btn-green');b.textContent=n===1?'ถัดไป':'ส่งคำขอ';b.disabled=false;window.scrollTo(0,0)}
+  const b=$('#form-next');b.className='btn '+(n===1?'btn-blue':'btn-green');b.textContent=n===1?'ถัดไป':'ส่งคำขอ';b.disabled=false;window.scrollTo(0,0);
+  if(A11Y.ready&&S.view==='form')setTimeout(()=>$('#form-title').focus({preventScroll:true}),0)}
 function renderReview(d){
   const rows=[['list','ต้องการ',d.needs.join(', ')],['pin','ที่อยู่',[d.address,d.lat!==''?'· ปักหมุดแล้ว':''].filter(Boolean).join(' ')||'ปักหมุดแล้ว'],['phone','เบอร์โทร',d.phone],
 ['users','จำนวนคน',d.people+' คน'],['wave','ระดับน้ำ',LEVEL_TH[d.level]||'ไม่ระบุ'],['user','ชื่อ',d.name||'-'],['note','รายละเอียด',d.details||'-']];
@@ -347,7 +364,9 @@ const saveFL=()=>store.put('uh_filters2',{status:FL.status,types:FL.types,people
 const STATUS_TABS=[['active','ยังไม่เสร็จ'],['danger','ด่วน'],['open','รอช่วย'],['going','กำลังไป'],['done','ช่วยแล้ว'],['all','ทั้งหมด']];
 const PEOPLE_R=[['1-5','1–5 คน'],['6-20','6–20 คน'],['21-99999','มากกว่า 20 คน']];
 function renderFilters(){
-  $('#status-tabs').innerHTML=STATUS_TABS.map(([k,t])=>`<button type="button" role="tab" data-st="${k}" aria-selected="${FL.status===k}">${t}</button>`).join('');
+  const fk=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('[data-st],[data-ty]');const keep=fk?(fk.dataset.st?'[data-st="'+fk.dataset.st+'"]':'[data-ty="'+fk.dataset.ty+'"]'):null;
+  $('#status-tabs').innerHTML=STATUS_TABS.map(([k,t])=>`<button type="button" data-st="${k}" aria-pressed="${FL.status===k}">${t}</button>`).join('');
+  if(keep)setTimeout(()=>{const x=$(keep);x&&x.focus()},0);
   $('#type-chips').innerHTML=NEED_TYPES.map(t=>`<button type="button" data-ty="${t.key}" aria-pressed="${FL.types.includes(t.key)}">${ic(t.icon)}${t.label}</button>`).join('');
   $('#more-filter-panel').innerHTML='<h4>จำนวนคน</h4><div class="chips">'+PEOPLE_R.map(([k,t])=>`<label><input type="checkbox" data-pp="${k}" ${FL.people.includes(k)?'checked':''}><span>${t}</span></label>`).join('')+'</div>'+
     '<h4>ระดับน้ำ</h4><div class="chips">'+Object.entries({...LEVEL_TH,none:'ไม่ระบุ'}).map(([k,t])=>`<label><input type="checkbox" data-lv="${k}" ${FL.level.includes(k)?'checked':''}><span>${t}</span></label>`).join('')+'</div>'+
@@ -406,7 +425,7 @@ $('#sheet-handle').addEventListener('click',()=>setSheet(!$('#list-sheet').class
 
 /* ---------- ทีมอาสา ---------- */
 function renderVol(forceOpen){
-  const sw=$('#vol-switch');sw.classList.toggle('on',S.volunteer);sw.classList.toggle('active',S.volunteer);sw.setAttribute('aria-checked',String(S.volunteer));
+  const sw=$('#vol-switch');sw.classList.toggle('on',S.volunteer);sw.classList.toggle('active',S.volunteer);sw.setAttribute('aria-expanded',String(!$('#vol-panel').hidden));sw.setAttribute('aria-label',(S.volunteer?'โหมดทีมอาสา: เปิดอยู่':'เข้าโหมดทีมอาสา')+' · ตั้งค่า');
   sw.classList.toggle('sharing',!!SHARE.watch);
   $('#vol-label').textContent=S.volunteer?(store.get('uh_team','')||'ทีมอาสา'):'ทีมอาสา';
   const p=$('#vol-panel');if(forceOpen)p.hidden=false;if(p.hidden)return;
@@ -415,7 +434,7 @@ function renderVol(forceOpen){
     const go2=async()=>{const k=$('#vol-key').value.trim();if(!k)return $('#vol-key').focus();store.set('uh_vol_key',k);store.set('uh_vol_ok','');$('#vol-go').disabled=true;S.loaded=S.loaded;await loadCases();$('#vol-go')&&($('#vol-go').disabled=false);
       if(S.volunteer){toast('เข้าโหมดทีมอาสาแล้ว',{ok:true});p.hidden=true;renderVol()}else if(navigator.onLine)toast('รหัสไม่ถูกต้อง หรือเชื่อมต่อไม่ได้')};
     $('#vol-go').onclick=go2;$('#vol-key').onkeydown=e=>{if(e.key==='Enter')go2()};return}
-  p.innerHTML=`<h3>ชื่อทีม</h3><div class="row"><input id="team-in" placeholder="ชื่อทีม / อาสา" value="${esc(store.get('uh_team',''))}" maxlength="40"></div>
+  p.innerHTML=`<h3>ชื่อทีม</h3><div class="row"><input id="team-in" aria-label="ชื่อทีม" placeholder="ชื่อทีม / อาสา" value="${esc(store.get('uh_team',''))}" maxlength="40"></div>
     <div class="sep"></div><h3>แชร์ตำแหน่งทีม</h3><p class="hint">ให้ผู้แจ้งเห็นว่าทีมอยู่พื้นที่ไหน (ปัดเศษประมาณ 100 ม.)</p>
     <button type="button" class="pill ${SHARE.watch?'pill-ghost':'pill-green'} full" id="share-btn">${SHARE.watch?'หยุดแชร์ตำแหน่ง':'เริ่มแชร์ตำแหน่ง'}</button>
     <div class="sep"></div><button type="button" class="pill pill-line full" id="vol-out">ออกจากโหมดอาสา</button>`;
@@ -424,7 +443,7 @@ function renderVol(forceOpen){
   $('#share-btn').onclick=()=>{SHARE.watch?stopShare():startShare();p.dataset.mode='';renderVol()};
   $('#vol-out').onclick=()=>{stopShare();store.set('uh_vol_key','');store.set('uh_vol_ok','');S.volunteer=false;p.hidden=true;p.dataset.mode='';S.cases=(store.json('uh_cases_cache',{})||{}).cases||[];renderAll();if(S.view==='detail')go('map');loadCases()};
 }
-$('#vol-switch').addEventListener('click',()=>{const p=$('#vol-panel');p.hidden=!p.hidden;p.dataset.mode='';renderVol()});
+$('#vol-switch').addEventListener('click',()=>{const p=$('#vol-panel');p.hidden=!p.hidden;p.dataset.mode='';renderVol();if(!p.hidden){const f=p.querySelector('input,button');f&&f.focus()}});
 const SHARE={watch:null,last:0,pos:null};
 function startShare(){
   if(!store.get('uh_team','')){toast('ใส่ชื่อทีมก่อนแชร์');$('#team-in')&&$('#team-in').focus();return}
@@ -579,6 +598,7 @@ const startView=(location.hash||'#home').slice(1);
 go(['home','map','emergency'].includes(startView)?startView:'home',false);
 history.replaceState({view:S.view},'','#'+S.view);
 renderAll();loadCases();flushQueue();trackMine();
+$$('.view').forEach(v=>v.hidden=!v.classList.contains('active'));setTimeout(()=>{A11Y.ready=true},0);
 setInterval(()=>{if(!document.hidden)loadCases()},REFRESH_MS);
 setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 

@@ -11,20 +11,21 @@
 <link rel="apple-touch-icon" href="./assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=22">
+<link rel="stylesheet" href="./app.css?v=23">
 </head>
 <body>
+<a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a>
 <!-- ===== หน้าแรก ===== -->
 <main id="view-home" class="view active" aria-label="หน้าแรก">
   <div id="home-map" class="map-full" role="region" aria-label="แผนที่เคสที่ยังไม่เสร็จ"></div>
   <header class="home-top glass">
     <img class="logo" src="./assets/ummatee-logo.png" alt="UMMATEE" width="96" height="58">
-    <button type="button" class="icon-btn" id="home-search-btn" aria-label="ค้นหาที่อยู่" data-icon="search"></button>
+    <button type="button" class="icon-btn" id="home-search-btn" aria-label="ค้นหาที่อยู่" aria-haspopup="dialog" data-icon="search"></button>
   </header>
-  <button type="button" class="search-card" id="search-card"><i class="dot"></i><span>ต้องการความช่วยเหลือที่ไหน?</span></button>
-  <span class="live-badge" id="live-badge" hidden><i></i>LIVE</span>
+  <button type="button" class="search-card" id="search-card" aria-haspopup="dialog"><i class="dot" aria-hidden="true"></i><span>ต้องการความช่วยเหลือที่ไหน?</span></button>
+  <span class="live-badge" id="live-badge" hidden><i aria-hidden="true"></i>LIVE<span class="sr"> ข้อมูลอัปเดตล่าสุด</span></span>
   <div class="map-fabs" id="home-fabs">
-    <button type="button" class="fab glass" data-act="layers" aria-label="เปลี่ยนแบบแผนที่" data-icon="layers"></button>
+    <button type="button" class="fab glass" data-act="layers" aria-label="เปลี่ยนแบบแผนที่" aria-haspopup="dialog" aria-expanded="false" aria-controls="layer-menu" data-icon="layers"></button>
     <button type="button" class="fab glass" data-act="locate" aria-label="ตำแหน่งของฉัน" data-icon="locate"></button>
   </div>
   <section class="home-sheet" aria-labelledby="sheet-title">
@@ -59,29 +60,29 @@
 <main id="view-form" class="view" aria-label="ขอความช่วยเหลือ">
   <header class="page-top">
     <button type="button" class="icon-btn" id="form-back" aria-label="ย้อนกลับ" data-icon="back"></button>
-    <h1 id="form-title">ขอความช่วยเหลือ</h1>
+    <h1 id="form-title" tabindex="-1">ขอความช่วยเหลือ</h1>
     <span class="step" id="form-step">1/2</span>
   </header>
   <form id="req-form" novalidate>
     <div id="step1">
       <section class="card" id="sec-needs">
-        <h2>ต้องการอะไร <em>*</em></h2>
-        <div class="need-grid" id="need-grid"></div>
+        <h2 id="h-needs">ต้องการอะไร <em aria-hidden="true">*</em><span class="sr">(จำเป็น)</span></h2>
+        <div class="need-grid" id="need-grid" role="group" aria-labelledby="h-needs" aria-describedby="err-needs"></div>
         <div class="other-box" id="other-box" hidden>
           <label for="other-in">ต้องการอะไร <em>*</em></label>
-          <input id="other-in" name="other" maxlength="80" autocomplete="off" enterkeyhint="done" placeholder="เช่น ผ้าอ้อมผู้ใหญ่, ไฟฉาย, ย้ายสัตว์เลี้ยง">
-          <p class="err" id="err-other" hidden>พิมพ์สิ่งที่ต้องการ</p>
+          <input id="other-in" name="other" aria-required="true" aria-describedby="err-other" maxlength="80" autocomplete="off" enterkeyhint="done" placeholder="เช่น ผ้าอ้อมผู้ใหญ่, ไฟฉาย, ย้ายสัตว์เลี้ยง">
+          <p class="err" id="err-other" role="alert" hidden>พิมพ์สิ่งที่ต้องการ</p>
         </div>
-        <p class="err" id="err-needs" hidden>เลือกอย่างน้อย 1 อย่าง</p>
+        <p class="err" id="err-needs" role="alert" hidden>เลือกอย่างน้อย 1 อย่าง</p>
       </section>
       <section class="card" id="sec-loc">
-        <h2>อยู่ที่ไหน <em>*</em></h2>
-        <label class="search-field"><span data-icon="search"></span><input id="addr-input" name="address" autocomplete="street-address" placeholder="ค้นหาที่อยู่ ถนน ซอย หรือสถานที่" maxlength="300"></label>
+        <h2 id="h-loc">อยู่ที่ไหน <em aria-hidden="true">*</em><span class="sr">(จำเป็น)</span></h2>
+        <label class="search-field"><span data-icon="search"></span><input id="addr-input" name="address" aria-labelledby="h-loc" aria-describedby="addr-status err-loc" autocomplete="street-address" placeholder="ค้นหาที่อยู่ ถนน ซอย หรือสถานที่" maxlength="300"></label>
         <div id="addr-list" class="sug-list inline" role="listbox" hidden></div>
         <p class="hint" id="addr-status" aria-live="polite"></p>
         <button type="button" class="pill pill-green full" id="form-gps" data-icon="gps">ใช้ตำแหน่งตอนนี้</button>
-        <div id="form-map" class="form-map" role="region" aria-label="แผนที่ปักหมุด"></div>
-        <p class="hint" id="pin-status">แตะแผนที่เพื่อปักหมุด หรือลากหมุดให้ตรง</p>
+        <div id="form-map" class="form-map" role="region" aria-label="แผนที่ปักหมุด (ใช้ช่องค้นหาหรือกรอกที่อยู่เองแทนได้)"></div>
+        <p class="hint" id="pin-status" aria-live="polite">แตะแผนที่เพื่อปักหมุด หรือลากหมุดให้ตรง</p>
         <details class="coord" id="manual-addr"><summary><span data-icon="note"></span>กรอกที่อยู่เอง</summary>
           <div class="addr-form">
             <label>บ้านเลขที่ / หมู่<input id="ma-no" maxlength="30" autocomplete="off" placeholder="เช่น 12/3 หมู่ 4"></label>
@@ -95,17 +96,17 @@
           <datalist id="bkk-districts"></datalist>
           <button type="button" class="pill pill-green full" id="addr-apply" data-icon="check">ใช้ที่อยู่นี้</button>
         </details>
-        <p class="err" id="err-loc" hidden>บอกที่อยู่ หรือปักหมุดบนแผนที่</p>
+        <p class="err" id="err-loc" role="alert" hidden>บอกที่อยู่ หรือปักหมุดบนแผนที่</p>
       </section>
       <section class="card" id="sec-phone">
-        <h2>เบอร์โทร <em>*</em></h2>
-        <input id="phone-in" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="08X XXX XXXX" maxlength="20">
-        <p class="err" id="err-phone" hidden>ใส่เบอร์โทร 9–10 หลัก</p>
+        <h2 id="h-phone">เบอร์โทร <em aria-hidden="true">*</em><span class="sr">(จำเป็น)</span></h2>
+        <input id="phone-in" aria-labelledby="h-phone" aria-required="true" aria-describedby="err-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="08X XXX XXXX" maxlength="20">
+        <p class="err" id="err-phone" role="alert" hidden>ใส่เบอร์โทร 9–10 หลัก</p>
       </section>
       <section class="card">
         <input type="hidden" name="urg" value="รอได้">
-        <h2>จำนวนคน</h2>
-        <div class="stepper"><button type="button" id="ppl-minus" aria-label="ลดจำนวนคน" data-icon="minus"></button><output id="ppl-out" aria-live="polite">1</output><button type="button" id="ppl-plus" aria-label="เพิ่มจำนวนคน" data-icon="plus"></button></div>
+        <h2 id="h-ppl">จำนวนคน</h2>
+        <div class="stepper" role="group" aria-labelledby="h-ppl"><button type="button" id="ppl-minus" aria-label="ลดจำนวนคน" data-icon="minus"></button><output id="ppl-out" aria-live="polite" aria-label="จำนวนคน">1</output><button type="button" id="ppl-plus" aria-label="เพิ่มจำนวนคน" data-icon="plus"></button></div>
         <h2 class="mt">ระดับน้ำ</h2>
         <div class="level-grid" id="level-chips" role="radiogroup" aria-label="ระดับน้ำ">
           <label><input type="radio" name="level" value="ankle"><span><svg viewBox="0 0 40 48" aria-hidden="true"><circle class="hd" cx="20" cy="7" r="5"/><path class="bd" d="M13 15h14v15h-3v17h-8V30h-3z"/><rect class="wt" x="0" y="44" width="40" height="4" rx="2"/><path class="wv" d="M0 44 q5 -2.5 10 0 t10 0 t10 0 t10 0"/></svg><b>ข้อเท้า</b></span></label>
@@ -114,15 +115,15 @@
           <label><input type="radio" name="level" value="chest"><span><svg viewBox="0 0 40 48" aria-hidden="true"><circle class="hd" cx="20" cy="7" r="5"/><path class="bd" d="M13 15h14v15h-3v17h-8V30h-3z"/><rect class="wt" x="0" y="15" width="40" height="33" rx="2"/><path class="wv" d="M0 15 q5 -2.5 10 0 t10 0 t10 0 t10 0"/></svg><b>อก</b></span></label>
           <label><input type="radio" name="level" value="roof"><span><svg viewBox="0 0 40 48" aria-hidden="true"><circle class="hd" cx="20" cy="7" r="5"/><path class="bd" d="M13 15h14v15h-3v17h-8V30h-3z"/><rect class="wt" x="0" y="2" width="40" height="46" rx="2"/><path class="wv" d="M0 2 q5 -2.5 10 0 t10 0 t10 0 t10 0"/></svg><b>มิดหัว</b></span></label>
         </div>
-        <h2 class="mt">ชื่อ</h2>
-        <input id="name-in" name="name" autocomplete="name" placeholder="ชื่อที่ให้ทีมเรียก" maxlength="60">
-        <h2 class="mt">รายละเอียด</h2>
-        <textarea id="details-in" name="details" rows="3" maxlength="500" placeholder="เช่น มีผู้สูงอายุติดเตียง ทางเข้าเป็นซอยแคบ"></textarea>
+        <h2 class="mt" id="h-name">ชื่อ</h2>
+        <input id="name-in" aria-labelledby="h-name" name="name" autocomplete="name" placeholder="ชื่อที่ให้ทีมเรียก" maxlength="60">
+        <h2 class="mt" id="h-details">รายละเอียด</h2>
+        <textarea id="details-in" aria-labelledby="h-details" name="details" rows="3" maxlength="500" placeholder="เช่น มีผู้สูงอายุติดเตียง ทางเข้าเป็นซอยแคบ"></textarea>
         <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
       </section>
     </div>
     <div id="step2" hidden>
-      <section class="card review" id="review"></section>
+      <section class="card review" id="review" aria-label="ตรวจข้อมูลก่อนส่ง"></section>
       <p class="hint center">ข้อมูลส่งถึงทีมอาสาของมูลนิธิอุมมะตี · คนทั่วไปไม่เห็นชื่อและเบอร์ของคุณ</p>
     </div>
     <div class="form-foot">
@@ -134,8 +135,8 @@
 <!-- ===== ส่งแล้ว ===== -->
 <main id="view-sent" class="view" aria-label="ส่งคำขอแล้ว">
   <div class="sent">
-    <div class="sent-ic" data-icon="check"></div>
-    <h1 id="sent-title">ส่งคำขอแล้ว</h1>
+    <div class="sent-ic" data-icon="check" aria-hidden="true"></div>
+    <h1 id="sent-title" tabindex="-1">ส่งคำขอแล้ว</h1>
     <p id="sent-text">ทีมอาสาเห็นคำขอของคุณแล้ว ติดตามสถานะได้ที่หน้าแรก</p>
     <p class="sent-id" id="sent-id"></p>
     <button type="button" class="btn btn-green" data-go="home">กลับหน้าแรก</button>
@@ -148,7 +149,7 @@
     <div class="map-wrap">
       <div id="cases-map" class="map-full" role="region" aria-label="แผนที่เคส"></div>
       <div class="map-fabs">
-        <button type="button" class="fab glass" data-act="layers" aria-label="เปลี่ยนแบบแผนที่" data-icon="layers"></button>
+        <button type="button" class="fab glass" data-act="layers" aria-label="เปลี่ยนแบบแผนที่" aria-haspopup="dialog" aria-expanded="false" aria-controls="layer-menu" data-icon="layers"></button>
         <button type="button" class="fab glass" data-act="locate" aria-label="ตำแหน่งของฉัน" data-icon="locate"></button>
       </div>
       <div class="legend glass" id="legend"></div>
@@ -157,14 +158,14 @@
       <button type="button" class="sheet-handle" id="sheet-handle" aria-expanded="false" aria-controls="list-body"><i></i><span id="sheet-count">เคส</span></button>
       <div class="list-body" id="list-body">
         <div class="vol-row">
-          <button type="button" class="vol-switch" id="vol-switch" role="switch" aria-checked="false"><span id="vol-label">ทีมอาสา</span><i></i></button>
+          <button type="button" class="vol-switch" id="vol-switch" aria-expanded="false" aria-controls="vol-panel"><span id="vol-label">ทีมอาสา</span><i></i></button>
           <span class="sync" id="sync-status"></span>
         </div>
         <div class="vol-panel card" id="vol-panel" hidden></div>
         <label class="search-field"><span data-icon="search"></span><input id="case-search" type="search" autocomplete="off" placeholder="ค้นหาเคส: เขต ที่อยู่ ความต้องการ เลขเคส" aria-label="ค้นหาเคส"></label>
-        <div class="status-tabs" id="status-tabs" role="tablist" aria-label="กรองตามสถานะ"></div>
-        <div class="type-chips" id="type-chips" aria-label="กรองตามประเภท"></div>
-        <button type="button" class="pill pill-ghost small" id="more-filter" data-icon="filter" aria-expanded="false">ตัวกรองเพิ่ม</button>
+        <div class="status-tabs" id="status-tabs" role="group" aria-label="กรองตามสถานะ"></div>
+        <div class="type-chips" id="type-chips" role="group" aria-label="กรองตามประเภท"></div>
+        <button type="button" class="pill pill-ghost small" id="more-filter" data-icon="filter" aria-expanded="false" aria-controls="more-filter-panel">ตัวกรองเพิ่ม</button>
         <div class="more-filter card" id="more-filter-panel" hidden></div>
         <div class="trip card" id="trip-panel" hidden></div>
         <p class="count" id="case-count" aria-live="polite"></p>
@@ -178,17 +179,17 @@
 <main id="view-detail" class="view" aria-label="รายละเอียดเคส">
   <header class="page-top">
     <button type="button" class="icon-btn" id="detail-back" aria-label="กลับ" data-icon="back"></button>
-    <h1>รายละเอียดเคส</h1><span></span>
+    <h1 tabindex="-1">รายละเอียดเคส</h1><span></span>
   </header>
   <div id="detail" class="detail"></div>
 </main>
 
 <!-- ===== ฉุกเฉิน ===== -->
 <main id="view-emergency" class="view" aria-label="เบอร์ฉุกเฉิน">
-  <header class="page-top plain"><h1>เบอร์ฉุกเฉิน</h1></header>
+  <header class="page-top plain"><h1 tabindex="-1">เบอร์ฉุกเฉิน</h1></header>
   <div class="hl-tools">
     <label class="search-field"><span data-icon="search"></span><input id="hotline-search" type="search" placeholder="ค้นหาเบอร์หรือหน่วยงาน" aria-label="ค้นหาเบอร์"></label>
-    <div class="hl-cats" id="hotline-cats" role="tablist" aria-label="หมวด"></div>
+    <div class="hl-cats" id="hotline-cats" role="group" aria-label="หมวดเบอร์"></div>
   </div>
   <div id="hotline-directory" class="hl-list"></div>
 </main>
@@ -200,23 +201,23 @@
   <button type="button" data-go="emergency" data-icon="phone"><span>ฉุกเฉิน</span></button>
 </nav>
 
-<div class="layer-menu glass" id="layer-menu" hidden role="menu" aria-label="แบบแผนที่">
-  <button type="button" role="menuitemradio" data-base="road" data-icon="road">ถนน</button>
-  <button type="button" role="menuitemradio" data-base="sat" data-icon="sat">ดาวเทียม</button>
-  <button type="button" role="menuitemradio" data-base="dark" data-icon="moon">มืด</button>
+<div class="layer-menu glass" id="layer-menu" hidden role="dialog" aria-label="แบบแผนที่และชั้นข้อมูล">
+  <button type="button" data-base="road" data-icon="road">ถนน</button>
+  <button type="button" data-base="sat" data-icon="sat">ดาวเทียม</button>
+  <button type="button" data-base="dark" data-icon="moon">มืด</button>
   <hr>
   <label class="tg"><input type="checkbox" id="lay-flood" checked><span>น้ำท่วมถนน (Floodboard)</span></label>
-  <div class="flood-key"><span><i style="background:#d32f2f"></i>ผ่านไม่ได้ · ใช้เรือ</span><span><i style="background:#f57c00"></i>เสี่ยง</span><span><i style="background:#fbc02d"></i>น้ำขัง · รถสูงผ่านได้</span></div>
+  <div class="flood-key" aria-label="สีเส้นน้ำท่วม"><span><i style="background:#d32f2f"></i>ผ่านไม่ได้ · ใช้เรือ</span><span><i style="background:#f57c00"></i>เสี่ยง</span><span><i style="background:#fbc02d"></i>น้ำขัง · รถสูงผ่านได้</span></div>
   <label class="tg"><input type="checkbox" id="lay-teams"><span>ทีมกู้ภัย</span></label>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
-<div class="netbar" id="netbar" hidden></div>
+<div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=22"></script>
-<script src="./geocode.js?v=22"></script>
-<script src="./location.js?v=22"></script>
-<script src="./hotlines.js?v=22"></script>
-<script src="./script.js?v=22"></script>
+<script src="./icons.js?v=23"></script>
+<script src="./geocode.js?v=23"></script>
+<script src="./location.js?v=23"></script>
+<script src="./hotlines.js?v=23"></script>
+<script src="./script.js?v=23"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>

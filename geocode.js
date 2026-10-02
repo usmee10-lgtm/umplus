@@ -26,18 +26,24 @@ async function geoReverse(lat,lng){
 function geoAttach(input,list,onPick,opt={}){
   let tm=null,ctl=null,items=[],active=-1;
   const status=opt.status||null;
-  const render=()=>{list.replaceChildren();list.hidden=!items.length;
-    items.forEach((it,i)=>{const b=document.createElement('button');b.type='button';b.className='sug'+(i===active?' on':'');b.setAttribute('role','option');
+  /* combobox สำหรับโปรแกรมอ่านหน้าจอ: บอกว่ามีรายการแนะนำ และรายการไหนถูกเลือกด้วยลูกศร */
+  if(!list.id)list.id=input.id+'-list';
+  input.setAttribute('role','combobox');input.setAttribute('aria-autocomplete','list');input.setAttribute('aria-controls',list.id);input.setAttribute('aria-expanded','false');
+  list.setAttribute('aria-label','ที่อยู่ที่แนะนำ');
+  const render=()=>{list.replaceChildren();list.hidden=!items.length;input.setAttribute('aria-expanded',String(!!items.length));
+    if(active>=0&&items.length)input.setAttribute('aria-activedescendant',list.id+'-o'+active);else input.removeAttribute('aria-activedescendant');
+    items.forEach((it,i)=>{const b=document.createElement('button');b.type='button';b.id=list.id+'-o'+i;b.tabIndex=-1;b.className='sug'+(i===active?' on':'');b.setAttribute('role','option');b.setAttribute('aria-selected',String(i===active));
       b.innerHTML=ic('pin')+'<span><b></b><small></small></span>';b.querySelector('b').textContent=it.title;b.querySelector('small').textContent=it.sub||'';
       b.addEventListener('click',()=>{onPick(it);items=[];render()});list.append(b)})};
   const run=async()=>{const q=input.value.trim();if(q.length<3){if(ctl){ctl.abort();ctl=null}items=[];render();if(status)status.textContent='';return}
     if(ctl)ctl.abort();ctl=new AbortController();if(status)status.textContent='กำลังค้นหา…';
-    try{items=await geoSuggest(q,ctl.signal);active=-1;render();if(status)status.textContent=items.length?'':'ไม่พบที่อยู่นี้ ลองพิมพ์ชื่อถนน ซอย หรือเขต'}
+    try{items=await geoSuggest(q,ctl.signal);active=-1;render();if(status)status.textContent=items.length?'พบ '+items.length+' ที่อยู่ · กดลูกศรลงเพื่อเลือก':'ไม่พบที่อยู่นี้ ลองพิมพ์ชื่อถนน ซอย หรือเขต'}
     catch(e){if(e.name!=='AbortError'&&status)status.textContent='ค้นหาไม่ได้ (ไม่มีสัญญาณ?) ใช้ตำแหน่งตอนนี้ หรือปักหมุดบนแผนที่แทน'}};
   input.addEventListener('input',()=>{clearTimeout(tm);tm=setTimeout(run,350)});
   input.addEventListener('keydown',e=>{if(!items.length)return;
     if(e.key==='ArrowDown'){active=Math.min(items.length-1,active+1);render();e.preventDefault()}
     else if(e.key==='ArrowUp'){active=Math.max(0,active-1);render();e.preventDefault()}
-    else if(e.key==='Enter'){e.preventDefault();const it=items[active<0?0:active];if(it){onPick(it);items=[];render()}}});
+    else if(e.key==='Enter'){e.preventDefault();const it=items[active<0?0:active];if(it){onPick(it);items=[];render()}}
+    else if(e.key==='Escape'){items=[];active=-1;render();e.stopPropagation()}});
   return {clear(){items=[];render()},run};
 }

@@ -31,7 +31,9 @@ const HL_ICON={urgent:'alert',rescue:'ambulance',power:'info',travel:'road',othe
 let hlCat='all';
 function renderHotlineCats(){
   const el=document.getElementById('hotline-cats');
-  el.innerHTML=[['all','ทั้งหมด'],...hotlineGroups.map(g=>[g.id,g.title])].map(([k,t])=>`<button type="button" role="tab" data-cat="${k}" aria-selected="${hlCat===k}">${t}</button>`).join('');
+  const had=el.contains(document.activeElement);
+  el.innerHTML=[['all','ทั้งหมด'],...hotlineGroups.map(g=>[g.id,g.title])].map(([k,t])=>`<button type="button" data-cat="${k}" aria-pressed="${hlCat===k}">${t}</button>`).join('');
+  if(had){const b=el.querySelector(`[data-cat="${hlCat}"]`);b&&b.focus()}
 }
 function renderHotlines(){
   const term=document.getElementById('hotline-search').value.trim().toLowerCase();
@@ -40,7 +42,7 @@ function renderHotlines(){
   hotlineGroups.forEach(g=>{const list=matches.filter(h=>h.group===g.id);if(!list.length)return;
     const h2=document.createElement('h2');h2.textContent=g.title;root.append(h2);
     list.forEach(h=>{const row=document.createElement('article');row.className='hl';
-      row.innerHTML=`<span class="hl-ic">${ic(HL_ICON[h.group]||'phone')}</span><div class="hl-txt"><b><span class="hl-num"></span><button type="button" class="hl-info" aria-label="แหล่งที่มา" aria-expanded="false">${ic('info')}</button></b><small class="hl-name"></small><div class="hl-src" hidden></div></div><a class="hl-call">${ic('phone')}โทร</a>`;
+      row.innerHTML=`<span class="hl-ic">${ic(HL_ICON[h.group]||'phone')}</span><div class="hl-txt"><b><span class="hl-num"></span><button type="button" class="hl-info" aria-label="แหล่งที่มาของเบอร์ ${h.number}" aria-expanded="false">${ic('info')}</button></b><small class="hl-name"></small><div class="hl-src" hidden></div></div><a class="hl-call">${ic('phone')}โทร</a>`;
       row.querySelector('.hl-num').textContent=h.number;row.querySelector('.hl-name').textContent=h.name+' · '+h.agency;
       const call=row.querySelector('.hl-call');call.href='tel:'+h.number;call.setAttribute('aria-label','โทร '+h.number+' '+h.name);
       const src=row.querySelector('.hl-src');src.innerHTML='ที่มา: <a target="_blank" rel="noopener noreferrer"></a>';const a=src.querySelector('a');a.href=h.source;a.textContent=(h.sourceName||'แหล่งข้อมูล')+' ↗';
