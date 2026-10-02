@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="./assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=25">
+<link rel="stylesheet" href="./app.css?v=26">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -91,7 +91,7 @@
             <p class="hint span2" id="ma-tip">พิมพ์แล้วเลือกจากรายการ ระบบเติมเขตและปักหมุดให้</p>
             <label>บ้านเลขที่<input id="ma-no" maxlength="40" autocomplete="off" enterkeyhint="next" placeholder="เช่น 12/3"></label>
             <label>เขต<input id="ma-dist" maxlength="40" autocomplete="off" enterkeyhint="next" list="bkk-districts" placeholder="เช่น บางกะปิ"></label>
-            <label class="span2">จุดสังเกต <small>(ไม่บังคับ)</small><input id="ma-mark" maxlength="80" autocomplete="off" enterkeyhint="done" placeholder="เช่น ตรงข้ามเซเว่น บ้านประตูสีฟ้า"></label>
+            <label class="span2"><span>จุดสังเกต <small>(ไม่บังคับ)</small></span><input id="ma-mark" maxlength="80" autocomplete="off" enterkeyhint="done" placeholder="เช่น ตรงข้ามเซเว่น บ้านประตูสีฟ้า"></label>
           </div>
           <datalist id="bkk-districts"></datalist>
           <div class="addr-preview" id="ma-preview" aria-live="polite" hidden><small>ที่อยู่ที่จะส่ง</small><b id="ma-preview-text"></b></div>
@@ -214,11 +214,11 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=25"></script>
-<script src="./geocode.js?v=25"></script>
-<script src="./location.js?v=25"></script>
-<script src="./hotlines.js?v=25"></script>
-<script src="./script.js?v=25"></script>
+<script src="./icons.js?v=26"></script>
+<script src="./geocode.js?v=26"></script>
+<script src="./location.js?v=26"></script>
+<script src="./hotlines.js?v=26"></script>
+<script src="./script.js?v=26"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
