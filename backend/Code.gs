@@ -24,6 +24,8 @@ const HEADERS = [
 ];
 const TEAM_HEADERS = ['team', 'lat', 'lng', 'accuracy', 'updatedAt', 'active'];
 const STATUSES = ['open', 'going', 'done'];
+// ในชีตเก็บสถานะเป็นภาษาไทย (เลือกจาก dropdown ได้) แต่ส่งให้แอปเป็นรหัส open/going/done
+const STATUS_TH = { open: 'รอช่วย', going: 'กำลังไป', done: 'ช่วยแล้ว' };
 const LEVELS = ['ankle', 'knee', 'waist', 'chest', 'roof'];
 const MAX = { name: 60, phone: 20, district: 40, address: 300, notes: 800, volunteer: 60, team: 40 };
 const LIST_CACHE_SEC = 20;          // แคชรายการเคส ลดเวลาโหลดเมื่อมีคนเปิดพร้อมกันเยอะ
@@ -31,7 +33,7 @@ const TEAM_FRESH_MIN = 30;          // แสดงทีมที่ส่ง�
 
 /** กด Run ฟังก์ชันนี้ 1 ครั้ง เพื่อสร้างแท็บ Cases/Teams, ขอสิทธิ์ และสร้างรหัสอาสา */
 function setup() {
-  sheet_();
+  formatSheet();
   teamSheet_();
   const props = PropertiesService.getScriptProperties();
   let key = props.getProperty('VOLUNTEER_KEY');
@@ -115,7 +117,7 @@ function createCase_(b) {
              Math.random().toString(36).slice(2, 6).toUpperCase();
   const token = Utilities.getUuid().replace(/-/g, '').slice(0, 16);
   const row = {
-    id: id, createdAt: now, status: 'open', urgency: urgency_(c),
+    id: id, createdAt: now, status: STATUS_TH.open, urgency: urgency_(c),
     name: c.name, phone: c.phone, district: c.district, people: c.people,
     address: c.address, lat: c.lat, lng: c.lng, level: c.level,
     needs: c.needs.join(', '), vulnerable: c.vulnerable.join(', '),
@@ -147,7 +149,7 @@ function updateCase_(b) {
     const r = findRow_(sh, b.id);
     if (!r) return { ok: false, error: 'not_found' };
     const col = function (name) { return HEADERS.indexOf(name) + 1; };
-    sh.getRange(r, col('status')).setValue(b.status);
+    sh.getRange(r, col('status')).setValue(STATUS_TH[b.status]);
     if (b.status === 'open') sh.getRange(r, col('volunteer')).setValue('');
     else if (b.volunteer) sh.getRange(r, col('volunteer')).setValue(safeCell_(clean_(b.volunteer, MAX.volunteer)));
     sh.getRange(r, col('updatedAt')).setValue(new Date());
@@ -169,6 +171,7 @@ function trackCase_(b) {
   const o = {};
   HEADERS.forEach(function (h, i) { o[h] = v[i] instanceof Date ? v[i].getTime() : v[i]; });
   if (!o.token || String(o.token) !== token) return { ok: false, error: 'not_found' };
+  o.status = statusCode_(o.status);
   return { ok: true, id: o.id, status: o.status, volunteer: o.status === 'open' ? '' : o.volunteer, urgency: o.urgency, updatedAt: o.updatedAt };
 }
 
@@ -198,6 +201,7 @@ function listCases_(full, since) {
     const o = {};
     HEADERS.forEach(function (h, i) { o[h] = v[i] instanceof Date ? v[i].getTime() : v[i]; });
     delete o.token;                                   // ไม่ส่ง token ออกไปเด็ดขาด
+    o.status = statusCode_(o.status);
     o.needs = o.needs ? String(o.needs).split(/\s*,\s*/) : [];
     o.vulnerable = o.vulnerable ? String(o.vulnerable).split(/\s*,\s*/) : [];
     if (!full) {
@@ -283,6 +287,65 @@ function sheet_() {
     cache.put('hdr:' + HEADERS.length, '1', 21600);
   }
   return sh;
+}
+
+/** รหัสสถานะจากค่าในชีต (รับได้ทั้งไทยและอังกฤษ) */
+function statusCode_(v) {
+  const s = String(v || '').trim();
+  if (STATUSES.indexOf(s) >= 0) return s;
+  for (const k in STATUS_TH) if (STATUS_TH[k] === s) return k;
+  return s ? 'open' : '';
+}
+
+/**
+ * จัดรูปแบบแท็บ Cases: สถานะเป็นภาษาไทย + dropdown, ระบายสีทั้งแถวตามสถานะ, หัวตารางสีธีม
+ * กด Run ฟังก์ชัน formatSheet 1 ครั้ง (setup() ก็เรียกให้) · รันซ้ำได้ไม่เสียหาย
+ */
+function formatSheet() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);                 // กันชนกับอาสาที่กำลังเปลี่ยนสถานะพร้อมกัน
+  try { formatSheet_(sheet_()); } finally { lock.releaseLock(); }
+}
+function formatSheet_(sh) {
+  const lastCol = HEADERS.length, colStatus = HEADERS.indexOf('status') + 1, colUrg = HEADERS.indexOf('urgency') + 1;
+  const maxRows = Math.max(sh.getMaxRows(), 2000);
+  if (sh.getMaxRows() < maxRows) sh.insertRowsAfter(sh.getMaxRows(), maxRows - sh.getMaxRows());
+  // 1) แปลงสถานะเดิม open/going/done -> ไทย
+  const n = sh.getLastRow() - 1;
+  if (n > 0) {
+    const rng = sh.getRange(2, colStatus, n, 1);
+    rng.setValues(rng.getValues().map(function (r) { const c = statusCode_(r[0]); return [c ? STATUS_TH[c] : r[0]]; }));
+  }
+  // 2) dropdown สถานะ
+  const rule = SpreadsheetApp.newDataValidation()
+    .requireValueInList([STATUS_TH.open, STATUS_TH.going, STATUS_TH.done], true)
+    .setAllowInvalid(false).setHelpText('เลือก: รอช่วย / กำลังไป / ช่วยแล้ว').build();
+  sh.getRange(2, colStatus, maxRows - 1, 1).setDataValidation(rule);
+  // 3) สีทั้งแถวตามสถานะ (ด่วน = สถานะยังไม่เสร็จและ urgency 3)
+  const L = function (c) { return String.fromCharCode(64 + c); };
+  const S = '$' + L(colStatus) + '2', U = '$' + L(colUrg) + '2';
+  const area = sh.getRange(2, 1, maxRows - 1, lastCol);
+  const cf = function (formula, bg, font) {
+    const b = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(formula).setBackground(bg).setRanges([area]);
+    if (font) b.setFontColor(font);
+    return b.build();
+  };
+  sh.setConditionalFormatRules([
+    cf('=AND(' + S + '<>"' + STATUS_TH.done + '",' + S + '<>"",' + U + '=3)', '#FDE2E2', '#8E1B1B'),   // ด่วน
+    cf('=' + S + '="' + STATUS_TH.open + '"', '#FFF6D6'),                                              // รอช่วย
+    cf('=' + S + '="' + STATUS_TH.going + '"', '#DCE3FF', '#0F2188'),                                  // กำลังไป
+    cf('=' + S + '="' + STATUS_TH.done + '"', '#DFF8E7', '#1B5E20')                                   // ช่วยแล้ว
+  ]);
+  // 4) หัวตาราง + ตรึงแถว/คอลัมน์ + ความกว้าง
+  sh.getRange(1, 1, 1, lastCol).setValues([HEADERS]).setFontWeight('bold').setBackground('#0F2188').setFontColor('#FFFFFF');
+  sh.setFrozenRows(1);
+  sh.setFrozenColumns(3);
+  sh.getRange(2, colStatus, maxRows - 1, 1).setFontWeight('bold').setHorizontalAlignment('center');
+  sh.setColumnWidth(colStatus, 90);
+  sh.setColumnWidth(HEADERS.indexOf('address') + 1, 260);
+  sh.setColumnWidth(HEADERS.indexOf('needs') + 1, 200);
+  if (!sh.getFilter()) sh.getRange(1, 1, sh.getMaxRows(), lastCol).createFilter();
+  clearListCache_();
 }
 
 function teamSheet_() {
