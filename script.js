@@ -104,7 +104,7 @@ function drawPins(which){
   const list=which==='home'?S.cases.filter(c=>c.status!=='done'):filteredCases();
   const pts=[];
   list.filter(hasPin).forEach(c=>{const k=pinKind(c);pts.push([+c.lat,+c.lng]);
-    L.marker([+c.lat,+c.lng],{icon:pinIcon(k),zIndexOffset:k==='danger'?1000:k==='open'?500:0,title:(c.needs||[]).join(', ')}).bindPopup(()=>popupHtml(c)).addTo(lg)});
+    L.marker([+c.lat,+c.lng],{icon:pinIcon(k),zIndexOffset:k==='danger'?1000:k==='open'?500:0,title:[k==='danger'?'ด่วน':STATUS_TH[c.status]||'รอช่วย',((c.needs||[]).join(', ')||'ขอความช่วยเหลือ'),(c.people||1)+' คน'].join(' · ')}).bindPopup(()=>popupHtml(c)).addTo(lg)});
   if(!fitted[which]&&pts.length){  /* เว้นที่ให้แผงล่าง/แถบค้นหาบนมือถือ ไม่ให้หมุดไปซ่อนใต้แผง */
     const sh=which==='home'&&!isDesktop()?($('#view-home .home-sheet')||{}).offsetHeight||0:0;
     /* ตัดจุดที่อยู่ไกลจากกลุ่มหลักมาก (>40 กม. จากค่ามัธยฐาน) เพื่อไม่ให้แผนที่ซูมออกทั้งภาค */
@@ -164,7 +164,7 @@ async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams
   try{const p={action:'teams'};if(S.volunteer)p.key=volKey();const r=await apiGet(p);if(gen!==teamsGen)return;
     if(!r||!Array.isArray(r.teams)){toast('ชั้นทีมกู้ภัยยังไม่เปิดใช้งานบนเซิร์ฟเวอร์');store.set('uh_lay_teams','');$('#lay-teams').checked=false;return}
     S.teams=r.teams;
-    Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams)m._teams.remove();m._teams=L.layerGroup(S.teams.filter(t=>t.lat&&t.lng).map(t=>L.marker([+t.lat,+t.lng],{icon:L.divIcon({className:'team-pin',html:'<span>'+ic('shield')+'</span>'+(t.team?'<em>'+esc(t.team)+'</em>':''),iconSize:[30,30],iconAnchor:[15,15]})}))).addTo(m)});
+    Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams)m._teams.remove();m._teams=L.layerGroup(S.teams.filter(t=>t.lat&&t.lng).map(t=>L.marker([+t.lat,+t.lng],{icon:L.divIcon({className:'team-pin',html:'<span>'+ic('shield')+'</span>'+(t.team?'<em>'+esc(t.team)+'</em>':''),iconSize:[30,30],iconAnchor:[15,15]}),title:'ทีม '+(t.team||'กู้ภัย')}))).addTo(m)});
     if(!S.teams.length)toast('ยังไม่มีทีมที่แชร์ตำแหน่ง');
   }catch(e){toast('โหลดตำแหน่งทีมไม่สำเร็จ')}}
 $('#lay-teams').addEventListener('change',e=>toggleTeams(e.target.checked));
@@ -263,7 +263,7 @@ async function setPin(lat,lng,pan=true,reverse=true){
   F.pinSeq=(F.pinSeq||0)+1;F.lat=+lat;F.lng=+lng;markOk('loc');
   $('#pin-status').textContent='ปักหมุดแล้ว · ลากหมุดเพื่อปรับให้ตรง';
   const m=await ensureFormMap();
-  if(m){if(F.marker)F.marker.setLatLng([F.lat,F.lng]);else{F.marker=L.marker([F.lat,F.lng],{draggable:true,icon:L.divIcon({className:'form-pin',html:'<span></span>',iconSize:[34,40],iconAnchor:[17,40]})}).addTo(m);
+  if(m){if(F.marker)F.marker.setLatLng([F.lat,F.lng]);else{F.marker=L.marker([F.lat,F.lng],{draggable:true,title:'หมุดตำแหน่งของคุณ · ลากเพื่อปรับ',icon:L.divIcon({className:'form-pin',html:'<span></span>',iconSize:[34,40],iconAnchor:[17,40]})}).addTo(m);
       F.marker.on('dragend',()=>{const p=F.marker.getLatLng();setPin(p.lat,p.lng,false,true)})}
     if(pan)m.setView([F.lat,F.lng],Math.max(m.getZoom(),16))}
   if(reverse&&!F.addrDirty){const t=await geoReverse(F.lat,F.lng);if(t&&!F.addrDirty){$('#addr-input').value=t;$('#addr-status').textContent='เติมที่อยู่จากหมุดให้แล้ว · แก้ได้'}}
@@ -493,7 +493,7 @@ function renderDetail(full){
   }else act.insertAdjacentHTML('afterend','<p class="hint">ทีมอาสาที่มีรหัสจะเห็นเบอร์โทรและรับเคสได้ในหน้าแผนที่</p>');
   const cp=$('#copy-coord');if(cp)cp.onclick=()=>{const t=(+c.lat).toFixed(6)+','+(+c.lng).toFixed(6);(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('คัดลอกพิกัดแล้ว',{ok:true})).catch(()=>prompt('คัดลอกพิกัด',t))};
   if(hasPin(c))loadLeaflet().then(()=>{const mel=$('#detail-map');if(!mel)return;if(S.detailMap){S.detailMap.remove()}
-    S.detailMap=makeMap(mel,{center:[+c.lat,+c.lng],zoom:16});L.marker([+c.lat,+c.lng],{icon:pinIcon(pinKind(c))}).addTo(S.detailMap);setTimeout(()=>S.detailMap&&S.detailMap.invalidateSize(),250)}).catch(()=>{});
+    S.detailMap=makeMap(mel,{center:[+c.lat,+c.lng],zoom:16});L.marker([+c.lat,+c.lng],{icon:pinIcon(pinKind(c)),interactive:false,keyboard:false}).addTo(S.detailMap);setTimeout(()=>S.detailMap&&S.detailMap.invalidateSize(),250)}).catch(()=>{});
 }
 
 /* ---------- แผนการเดินทาง (ทีมอาสา): เคสหนักก่อน · ใกล้สุดก่อน · จัดอัตโนมัติ · นำทาง Google Maps ---------- */
