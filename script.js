@@ -169,7 +169,7 @@ async function toggleFlood(on){store.set('uh_lay_flood',on?'1':'0');$('#lay-floo
   Object.values(S.maps).forEach(m=>{if(m&&m._flood){m._flood.remove();m._flood=null}});if(!on)return;
   try{if(!S.flood){S.floodP=S.floodP||fetch('https://www.floodboard.org/api/export/roads.geojson').then(r=>r.json()).then(j=>{j.features=(j.features||[]).filter(f=>{const p=f.properties||{};return !p.cleared&&FLOOD_COL[floodV(p)]});return j}).finally(()=>{S.floodP=null});S.flood=await S.floodP}
     if(gen!==floodGen)return;  /* มีการเรียกใหม่กว่าแล้ว */
-    Object.values(S.maps).forEach(m=>{if(!m)return;if(m._flood)m._flood.remove();m._flood=L.geoJSON(S.flood,{interactive:false,attribution:'น้ำท่วมถนน © <a href="https://www.floodboard.org/about" target="_blank" rel="noopener">Floodboard</a> (CC BY 4.0)',style:f=>({color:FLOOD_COL[floodV(f.properties)],weight:5,opacity:.85,lineCap:'round'}),pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:4,color:FLOOD_COL[floodV(f.properties)],weight:2})}).addTo(m)});
+    Object.values(S.maps).forEach(m=>{if(!m)return;if(m._flood)m._flood.remove();m._flood=L.geoJSON(S.flood,{interactive:false,attribution:'ข้อมูลน้ำท่วม © <a href="https://www.floodboard.org/about" target="_blank" rel="noopener">Floodboard</a>',style:f=>({color:FLOOD_COL[floodV(f.properties)],weight:5,opacity:.85,lineCap:'round'}),pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:4,color:FLOOD_COL[floodV(f.properties)],weight:2})}).addTo(m)});
   }catch(e){toast('โหลดข้อมูลน้ำท่วมไม่สำเร็จ')}}
 $('#lay-flood').addEventListener('change',e=>toggleFlood(e.target.checked));
 /* ชั้นทีมกู้ภัย (ตำแหน่งปัดเศษสำหรับคนทั่วไป) */
@@ -529,7 +529,7 @@ function renderDetail(full){
     <div class="actions" id="d-actions"></div></section></div>`;
   iconify(el);
   const act=$('#d-actions');
-  if(hasPin(c))act.insertAdjacentHTML('beforeend',`<a class="pill pill-blue full" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}">${ic('nav')}นำทางด้วย Google Maps</a>`);
+  if(hasPin(c))act.insertAdjacentHTML('beforeend',`<a class="pill pill-blue full" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}">${ic('nav')}นำทางไปที่นี่</a>`);
   if(S.volunteer&&tel.length>=9)act.insertAdjacentHTML('beforeend',`<a class="pill pill-green full" href="tel:${esc(tel)}">${ic('phone')}โทรหาผู้แจ้ง</a>`);
   const ti=S.volunteer?tripIndex(c.id):-1;
   if(ti>=0){const nav=document.createElement('div');nav.className='trip-nav';const n=TRIP.ids.length;
@@ -629,7 +629,7 @@ function renderTrip(){
     const tt=li.querySelector('.trip-txt');tt.setAttribute('aria-label',`จุดที่ ${i+1}: ดูรายละเอียดเคส`);tt.onclick=()=>{if(!c.missing)openCase(c.id)};ol.append(li)});
   const legs=tripLegs(),few=tripPts(list).length<2;
   el.insertAdjacentHTML('beforeend',(legs.length>1?legs.map((g,i)=>`<a class="pill pill-blue full" style="margin-top:${i?6:10}px" href="${g.url}" target="_blank" rel="noopener">${ic('nav')}นำทางช่วงที่ ${i+1} (จุด ${g.from}–${g.to})</a>`).join(''):
-    `<a class="pill pill-blue full" style="margin-top:10px" ${legs.length?`href="${legs[0].url}" target="_blank" rel="noopener"`:'aria-disabled="true"'}>${ic('nav')}นำทางทั้งเส้นใน Google Maps</a>`)+`
+    `<a class="pill pill-blue full" style="margin-top:10px" ${legs.length?`href="${legs[0].url}" target="_blank" rel="noopener"`:'aria-disabled="true"'}>${ic('nav')}เริ่มนำทางทั้งเส้น</a>`)+`
     <div class="trip-btns"><button type="button" class="pill pill-green small" data-t="heavy" ${few?'disabled':''}>${ic('alert')}เคสหนักก่อน</button><button type="button" class="pill pill-ghost small" data-t="near" ${few?'disabled':''}>${ic('pin')}ใกล้สุดก่อน</button>
     <button type="button" class="pill pill-ghost small" data-t="auto">${ic('route')}จัดอัตโนมัติ</button><button type="button" class="pill pill-line small" data-t="clear">ล้างแผน</button></div>`);
   el.querySelector('[data-t=heavy]').onclick=()=>tripSort(true);el.querySelector('[data-t=near]').onclick=()=>tripSort(false);

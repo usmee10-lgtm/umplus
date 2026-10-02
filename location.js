@@ -12,15 +12,15 @@ function loadLeaflet(){
   return leafletLoading;
 }
 const ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/';
-const ESRI_ATTR='Tiles &copy; Esri';
-const OSM_ATTR='&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+const ESRI_ATTR='แผนที่ &copy; Esri';
+const OSM_ATTR='แผนที่ &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
 const BASES={road:'ถนน',sat:'ดาวเทียม',dark:'มืด'};
 const isDesktop=()=>matchMedia('(min-width:1024px)').matches;
 function makeMap(el,opt={}){
   const map=L.map(el,{zoomControl:false,attributionControl:true,preferCanvas:true,tap:true,...(opt.leaflet||{})}).setView(opt.center||[13.7563,100.5018],opt.zoom||12);
   if(isDesktop()||opt.zoom===true)L.control.zoom({position:'topleft'}).addTo(map);
   L.control.scale({metric:true,imperial:false,position:'bottomleft'}).addTo(map);
-  map.attributionControl.setPrefix('<a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>');
+  map.attributionControl.setPrefix(false);
   let base=null,fellBack=0;
   const layer=(u,a,o={})=>L.tileLayer(u,{maxZoom:19,attribution:a,crossOrigin:true,...o});
   map.setBase=name=>{

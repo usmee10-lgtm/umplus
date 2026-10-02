@@ -15,17 +15,26 @@
  */
 
 const SHEET_ID = '1GkGL0PrjuADwMmuSSj0KjW9WLH180eATD1RkmzEqGMs'; // Google Sheet "UM+ - เคสน้ำท่วม"
-const SHEET_NAME = 'Cases';
-const TEAM_SHEET = 'Teams';
+const SHEET_NAME = 'เคส';             // ชื่อแท็บ (เดิมชื่อ Cases ระบบเปลี่ยนชื่อให้เอง)
+const LEGACY_NAMES = { 'เคส': 'Cases', 'ทีม': 'Teams' };
+const TEAM_SHEET = 'ทีม';
 const HEADERS = [
   'id', 'createdAt', 'status', 'urgency', 'name', 'phone', 'district', 'people',
   'address', 'lat', 'lng', 'level', 'needs', 'vulnerable', 'notes',
   'volunteer', 'updatedAt', 'token'
 ];
 const TEAM_HEADERS = ['team', 'lat', 'lng', 'accuracy', 'updatedAt', 'active'];
+// หัวตารางภาษาไทยที่แสดงในชีต (ลำดับต้องตรงกับ HEADERS / TEAM_HEADERS)
+const HEADERS_TH = ['รหัสเคส', 'เวลาแจ้ง', 'สถานะ', 'ความเร่งด่วน', 'ชื่อ', 'เบอร์โทร', 'เขต', 'จำนวนคน',
+  'ที่อยู่', 'ละติจูด', 'ลองจิจูด', 'ระดับน้ำ', 'ต้องการ', 'กลุ่มเปราะบาง', 'รายละเอียด',
+  'ทีมอาสา', 'อัปเดตล่าสุด', 'รหัสติดตาม (ห้ามแก้)'];
+const TEAM_HEADERS_TH = ['ทีม', 'ละติจูด', 'ลองจิจูด', 'ความแม่นยำ (ม.)', 'อัปเดตล่าสุด', 'กำลังแชร์'];
 const STATUSES = ['open', 'going', 'done'];
 // ในชีตเก็บสถานะเป็นภาษาไทย (เลือกจาก dropdown ได้) แต่ส่งให้แอปเป็นรหัส open/going/done
 const STATUS_TH = { open: 'รอช่วย', going: 'กำลังไป', done: 'ช่วยแล้ว' };
+const LEVEL_TH = { ankle: 'ข้อเท้า', knee: 'เข่า', waist: 'เอว', chest: 'อก', roof: 'มิดหัว' };
+const URG_TH = { 1: 'ทั่วไป', 2: 'เร่งด่วน', 3: 'ด่วนมาก' };
+const YES = 'ใช่', NO = 'ไม่';
 const LEVELS = ['ankle', 'knee', 'waist', 'chest', 'roof'];
 const MAX = { name: 60, phone: 20, district: 40, address: 300, notes: 800, volunteer: 60, team: 40 };
 const LIST_CACHE_SEC = 20;          // แคชรายการเคส ลดเวลาโหลดเมื่อมีคนเปิดพร้อมกันเยอะ
@@ -117,9 +126,9 @@ function createCase_(b) {
              Math.random().toString(36).slice(2, 6).toUpperCase();
   const token = Utilities.getUuid().replace(/-/g, '').slice(0, 16);
   const row = {
-    id: id, createdAt: now, status: STATUS_TH.open, urgency: urgency_(c),
+    id: id, createdAt: now, status: STATUS_TH.open, urgency: URG_TH[urgency_(c)],
     name: c.name, phone: c.phone, district: c.district, people: c.people,
-    address: c.address, lat: c.lat, lng: c.lng, level: c.level,
+    address: c.address, lat: c.lat, lng: c.lng, level: LEVEL_TH[c.level] || '',
     needs: c.needs.join(', '), vulnerable: c.vulnerable.join(', '),
     notes: c.notes, volunteer: '', updatedAt: now, token: token
   };
@@ -137,7 +146,7 @@ function createCase_(b) {
   }
   if (cid) cache.put('cid:' + cid, id + '|' + token, 21600);
   clearListCache_();
-  return { ok: true, id: id, token: token, urgency: row.urgency };
+  return { ok: true, id: id, token: token, urgency: urgency_(c) };
 }
 
 function updateCase_(b) {
@@ -171,7 +180,7 @@ function trackCase_(b) {
   const o = {};
   HEADERS.forEach(function (h, i) { o[h] = v[i] instanceof Date ? v[i].getTime() : v[i]; });
   if (!o.token || String(o.token) !== token) return { ok: false, error: 'not_found' };
-  o.status = statusCode_(o.status);
+  o.status = statusCode_(o.status); o.level = levelCode_(o.level); o.urgency = urgCode_(o.urgency);
   return { ok: true, id: o.id, status: o.status, volunteer: o.status === 'open' ? '' : o.volunteer, urgency: o.urgency, updatedAt: o.updatedAt };
 }
 
@@ -201,7 +210,7 @@ function listCases_(full, since) {
     const o = {};
     HEADERS.forEach(function (h, i) { o[h] = v[i] instanceof Date ? v[i].getTime() : v[i]; });
     delete o.token;                                   // ไม่ส่ง token ออกไปเด็ดขาด
-    o.status = statusCode_(o.status);
+    o.status = statusCode_(o.status); o.level = levelCode_(o.level); o.urgency = urgCode_(o.urgency);
     o.needs = o.needs ? String(o.needs).split(/\s*,\s*/) : [];
     o.vulnerable = o.vulnerable ? String(o.vulnerable).split(/\s*,\s*/) : [];
     if (!full) {
@@ -236,10 +245,10 @@ function pingTeam_(b) {
     }
     const now = new Date();
     if (stop) {
-      if (r) sh.getRange(r, 5, 1, 2).setValues([[now, false]]);
+      if (r) sh.getRange(r, 5, 1, 2).setValues([[now, NO]]);
       return { ok: true, stopped: true };
     }
-    const row = [safeCell_(team), lat, lng, clampInt_(b.accuracy, 0, 100000, 0), now, true];
+    const row = [safeCell_(team), lat, lng, clampInt_(b.accuracy, 0, 100000, 0), now, YES];
     if (r) sh.getRange(r, 1, 1, row.length).setValues([row]);
     else sh.appendRow(row);
     return { ok: true };
@@ -257,7 +266,7 @@ function listTeams_(full) {
   const teams = sh.getRange(2, 1, n, TEAM_HEADERS.length).getValues()
     .filter(function (v) {
       const t = v[4] instanceof Date ? v[4].getTime() : Number(v[4]);
-      return v[0] && v[5] === true && t >= cutoff && v[1] !== '' && v[2] !== '';
+      return v[0] && (v[5] === true || v[5] === YES) && t >= cutoff && v[1] !== '' && v[2] !== '';
     })
     .map(function (v) {
       const t = v[4] instanceof Date ? v[4].getTime() : Number(v[4]);
@@ -270,12 +279,19 @@ function listTeams_(full) {
 
 /* ---------- helpers ---------- */
 
+/** หาแท็บตามชื่อไทย ถ้ายังเป็นชื่อเดิม (Cases/Teams) เปลี่ยนชื่อให้เอง */
+function getTab_(ss, name) {
+  let sh = ss.getSheetByName(name);
+  if (!sh && LEGACY_NAMES[name]) { sh = ss.getSheetByName(LEGACY_NAMES[name]); if (sh) sh.setName(name); }
+  return sh;
+}
+
 function sheet_() {
   const ss = SpreadsheetApp.openById(SHEET_ID);
-  let sh = ss.getSheetByName(SHEET_NAME);
+  let sh = getTab_(ss, SHEET_NAME);
   if (!sh) {
     sh = ss.insertSheet(SHEET_NAME);
-    sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold');
+    sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS_TH]).setFontWeight('bold');
     sh.setFrozenRows(1);
     return sh;
   }
@@ -283,10 +299,24 @@ function sheet_() {
   const cache = CacheService.getScriptCache();
   if (!cache.get('hdr:' + HEADERS.length)) {
     const cur = sh.getRange(1, 1, 1, HEADERS.length).getValues()[0];
-    if (cur.join('|') !== HEADERS.join('|')) sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold');
+    if (cur.join('|') !== HEADERS_TH.join('|')) sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS_TH]).setFontWeight('bold');
     cache.put('hdr:' + HEADERS.length, '1', 21600);
   }
   return sh;
+}
+
+/** ระดับน้ำ / ความเร่งด่วน: ชีตเก็บเป็นไทย แอปใช้รหัส */
+function levelCode_(v) {
+  const s = String(v || '').trim();
+  if (LEVELS.indexOf(s) >= 0) return s;
+  for (const k in LEVEL_TH) if (LEVEL_TH[k] === s) return k;
+  return '';
+}
+function urgCode_(v) {
+  const n = Number(v);
+  if (n >= 1 && n <= 3) return n;
+  for (const k in URG_TH) if (URG_TH[k] === String(v || '').trim()) return Number(k);
+  return 1;
 }
 
 /** รหัสสถานะจากค่าในชีต (รับได้ทั้งไทยและอังกฤษ) */
@@ -307,7 +337,7 @@ function formatSheet() {
   try { formatSheet_(sheet_()); } finally { lock.releaseLock(); }
 }
 function formatSheet_(sh) {
-  const lastCol = HEADERS.length, colStatus = HEADERS.indexOf('status') + 1, colUrg = HEADERS.indexOf('urgency') + 1;
+  const lastCol = HEADERS.length, colStatus = HEADERS.indexOf('status') + 1, colUrg = HEADERS.indexOf('urgency') + 1, colLevel = HEADERS.indexOf('level') + 1;
   const maxRows = Math.max(sh.getMaxRows(), 2000);
   if (sh.getMaxRows() < maxRows) sh.insertRowsAfter(sh.getMaxRows(), maxRows - sh.getMaxRows());
   // 1) แปลงสถานะเดิม open/going/done -> ไทย
@@ -315,7 +345,14 @@ function formatSheet_(sh) {
   if (n > 0) {
     const rng = sh.getRange(2, colStatus, n, 1);
     rng.setValues(rng.getValues().map(function (r) { const c = statusCode_(r[0]); return [c ? STATUS_TH[c] : r[0]]; }));
+    const ur = sh.getRange(2, colUrg, n, 1);
+    ur.setValues(ur.getValues().map(function (r) { return [r[0] === '' ? '' : URG_TH[urgCode_(r[0])]]; }));
+    const lv = sh.getRange(2, colLevel, n, 1);
+    lv.setValues(lv.getValues().map(function (r) { const c = levelCode_(r[0]); return [c ? LEVEL_TH[c] : r[0]]; }));
   }
+  const list = function (vals) { return SpreadsheetApp.newDataValidation().requireValueInList(vals, true).setAllowInvalid(false).build(); };
+  sh.getRange(2, colUrg, maxRows - 1, 1).setDataValidation(list([URG_TH[1], URG_TH[2], URG_TH[3]]));
+  sh.getRange(2, colLevel, maxRows - 1, 1).setDataValidation(list(Object.keys(LEVEL_TH).map(function (k) { return LEVEL_TH[k]; })));
   // 2) dropdown สถานะ
   const rule = SpreadsheetApp.newDataValidation()
     .requireValueInList([STATUS_TH.open, STATUS_TH.going, STATUS_TH.done], true)
@@ -331,13 +368,13 @@ function formatSheet_(sh) {
     return b.build();
   };
   sh.setConditionalFormatRules([
-    cf('=AND(' + S + '<>"' + STATUS_TH.done + '",' + S + '<>"",' + U + '=3)', '#FDE2E2', '#8E1B1B'),   // ด่วน
+    cf('=AND(' + S + '<>"' + STATUS_TH.done + '",' + S + '<>"",OR(' + U + '="' + URG_TH[3] + '",' + U + '=3))', '#FDE2E2', '#8E1B1B'),   // ด่วนมาก
     cf('=' + S + '="' + STATUS_TH.open + '"', '#FFF6D6'),                                              // รอช่วย
     cf('=' + S + '="' + STATUS_TH.going + '"', '#DCE3FF', '#0F2188'),                                  // กำลังไป
     cf('=' + S + '="' + STATUS_TH.done + '"', '#DFF8E7', '#1B5E20')                                   // ช่วยแล้ว
   ]);
   // 4) หัวตาราง + ตรึงแถว/คอลัมน์ + ความกว้าง
-  sh.getRange(1, 1, 1, lastCol).setValues([HEADERS]).setFontWeight('bold').setBackground('#0F2188').setFontColor('#FFFFFF');
+  sh.getRange(1, 1, 1, lastCol).setValues([HEADERS_TH]).setFontWeight('bold').setBackground('#0F2188').setFontColor('#FFFFFF');
   sh.setFrozenRows(1);
   sh.setFrozenColumns(3);
   sh.getRange(2, colStatus, maxRows - 1, 1).setFontWeight('bold').setHorizontalAlignment('center');
@@ -345,15 +382,22 @@ function formatSheet_(sh) {
   sh.setColumnWidth(HEADERS.indexOf('address') + 1, 260);
   sh.setColumnWidth(HEADERS.indexOf('needs') + 1, 200);
   if (!sh.getFilter()) sh.getRange(1, 1, sh.getMaxRows(), lastCol).createFilter();
+  // แท็บทีม: หัวตารางไทย + แปลงค่า TRUE/FALSE เดิม
+  const tsh = teamSheet_();
+  tsh.getRange(1, 1, 1, TEAM_HEADERS.length).setValues([TEAM_HEADERS_TH]).setFontWeight('bold').setBackground('#0F2188').setFontColor('#FFFFFF');
+  if (tsh.getLastRow() > 1) {
+    const ac = tsh.getRange(2, 6, tsh.getLastRow() - 1, 1);
+    ac.setValues(ac.getValues().map(function (r) { return [r[0] === true || r[0] === YES ? YES : NO]; }));
+  }
   clearListCache_();
 }
 
 function teamSheet_() {
   const ss = SpreadsheetApp.openById(SHEET_ID);
-  let sh = ss.getSheetByName(TEAM_SHEET);
+  let sh = getTab_(ss, TEAM_SHEET);
   if (!sh) {
     sh = ss.insertSheet(TEAM_SHEET);
-    sh.getRange(1, 1, 1, TEAM_HEADERS.length).setValues([TEAM_HEADERS]).setFontWeight('bold');
+    sh.getRange(1, 1, 1, TEAM_HEADERS.length).setValues([TEAM_HEADERS_TH]).setFontWeight('bold');
     sh.setFrozenRows(1);
   }
   return sh;

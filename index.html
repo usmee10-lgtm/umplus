@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="./assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=38">
+<link rel="stylesheet" href="./app.css?v=39">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -23,7 +23,7 @@
     <button type="button" class="icon-btn" id="home-search-btn" aria-label="ค้นหาที่อยู่" aria-haspopup="dialog" data-icon="search"></button>
   </header>
   <button type="button" class="search-card" id="search-card" aria-haspopup="dialog"><i class="dot" aria-hidden="true"></i><span>ต้องการความช่วยเหลือที่ไหน?</span></button>
-  <span class="live-badge" id="live-badge" hidden><i aria-hidden="true"></i>LIVE<span class="sr"> ข้อมูลอัปเดตล่าสุด</span></span>
+  <span class="live-badge" id="live-badge" hidden><i aria-hidden="true"></i>อัปเดตสด</span>
   <div class="map-fabs" id="home-fabs">
     <button type="button" class="fab glass" data-act="layers" aria-label="เปลี่ยนแบบแผนที่" aria-haspopup="dialog" aria-expanded="false" aria-controls="layer-menu" data-icon="layers"></button>
     <button type="button" class="fab glass" data-act="locate" aria-label="ตำแหน่งของฉัน" data-icon="locate"></button>
@@ -51,7 +51,7 @@
     <label class="search-field"><span data-icon="search"></span><input id="search-input" type="search" inputmode="search" enterkeyhint="search" autocomplete="off" placeholder="พิมพ์ที่อยู่ ถนน ซอย หรือสถานที่" aria-label="ที่อยู่"></label>
     <button type="button" class="text-btn" id="search-cancel">ยกเลิก</button>
   </div>
-  <button type="button" class="sug sug-gps" id="search-gps"><span data-icon="gps"></span><span><b>ใช้ตำแหน่งตอนนี้</b><small>ระบบหาตำแหน่งจาก GPS</small></span></button>
+  <button type="button" class="sug sug-gps" id="search-gps"><span data-icon="gps"></span><span><b>ใช้ตำแหน่งตอนนี้</b><small>หาตำแหน่งของคุณให้อัตโนมัติ</small></span></button>
   <p class="search-status" id="search-status" aria-live="polite"></p>
   <div id="search-list" class="sug-list" role="listbox" hidden></div>
 </div>
@@ -101,7 +101,7 @@
       </section>
       <section class="card" id="sec-phone">
         <h2 id="h-phone">เบอร์โทร <em aria-hidden="true">*</em><span class="sr">(จำเป็น)</span></h2>
-        <input id="phone-in" aria-labelledby="h-phone" aria-required="true" aria-describedby="err-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="08X XXX XXXX" maxlength="20">
+        <input id="phone-in" aria-labelledby="h-phone" aria-required="true" aria-describedby="err-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="เช่น 081 234 5678" maxlength="20">
         <p class="err" id="err-phone" role="alert" hidden>ใส่เบอร์โทร 9–10 หลัก</p>
       </section>
       <section class="card">
@@ -214,18 +214,18 @@
   <button type="button" data-base="sat" data-icon="sat">ดาวเทียม</button>
   <button type="button" data-base="dark" data-icon="moon">มืด</button>
   <hr>
-  <label class="tg"><input type="checkbox" id="lay-flood" checked><span>น้ำท่วมถนน (Floodboard)</span></label>
+  <label class="tg"><input type="checkbox" id="lay-flood" checked><span>ถนนน้ำท่วม</span></label>
   <div class="flood-key" aria-label="สีเส้นน้ำท่วม"><span><i style="background:#d32f2f"></i>ผ่านไม่ได้ · ใช้เรือ</span><span><i style="background:#f57c00"></i>เสี่ยง</span><span><i style="background:#fbc02d"></i>น้ำขัง · รถสูงผ่านได้</span></div>
   <label class="tg"><input type="checkbox" id="lay-teams"><span>ทีมกู้ภัย</span></label>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=38"></script>
-<script src="./geocode.js?v=38"></script>
-<script src="./location.js?v=38"></script>
-<script src="./hotlines.js?v=38"></script>
-<script src="./script.js?v=38"></script>
+<script src="./icons.js?v=39"></script>
+<script src="./geocode.js?v=39"></script>
+<script src="./location.js?v=39"></script>
+<script src="./hotlines.js?v=39"></script>
+<script src="./script.js?v=39"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
