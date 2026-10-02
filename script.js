@@ -449,13 +449,51 @@ function tripAuto(){const me=tripOrigin();let pool=S.cases.filter(c=>c.status===
   if(me){pool.forEach(p=>p.km=tripDist(me,p));const near=pool.filter(p=>p.km<=15);if(near.length>=3)pool=near}
   pool.sort((a,b)=>(b.sev-a.sev)||(b.people-a.people)||((a.km||0)-(b.km||0)));const pick=pool.slice(0,8);
   tripApply(tripPriority(pick,me),[],'จัดอัตโนมัติ '+pick.length+' จุด · เคสหนักก่อน')}
-function tripUrl(){const pts=tripCases().filter(c=>!c.missing&&hasPin(c)&&c.status!=='done').map(c=>(+c.lat).toFixed(6)+','+(+c.lng).toFixed(6));if(!pts.length)return '';const use=pts.slice(0,10),dest=use.pop();
-  return 'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+encodeURIComponent(dest)+(use.length?'&waypoints='+encodeURIComponent(use.join('|')):'')}
+/* Google Maps รับได้ครั้งละ 10 จุด → แบ่งเป็นช่วง ช่วงถัดไปเริ่มจากจุดสุดท้ายของช่วงก่อน */
+function tripLegs(){const pts=tripCases().filter(c=>!c.missing&&hasPin(c)&&c.status!=='done').map(c=>(+c.lat).toFixed(6)+','+(+c.lng).toFixed(6));const legs=[];
+  for(let i=0;i<pts.length;i+=10){const use=pts.slice(i,i+10);const origin=i?pts[i-1]:'';const dest=use.pop();
+    legs.push({from:i+1,to:Math.min(i+10,pts.length),url:'https://www.google.com/maps/dir/?api=1&travelmode=driving'+(origin?'&origin='+encodeURIComponent(origin):'')+'&destination='+encodeURIComponent(dest)+(use.length?'&waypoints='+encodeURIComponent(use.join('|')):'')})}
+  return legs}
+function tripUrl(){const l=tripLegs();return l.length?l[0].url:''}
+/* โซนเคสใกล้กัน: รวมเคสที่รอช่วยซึ่งอยู่ห่างกันไม่เกิน ZONE_KM เป็นกลุ่ม ให้ทีมรับทีละโซน */
+const ZONE_KM=2.5,ZONE_MAX=10;
+function zoneArea(list){const cnt={};list.forEach(c=>{const k=c.district?'เขต'+c.district:String(c.address||'').split(/[,·]/)[0].trim().slice(0,28);if(k)cnt[k]=(cnt[k]||0)+1});
+  return Object.entries(cnt).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).slice(0,2).join(' · ')||'ไม่ระบุพื้นที่'}
+function tripZones(){
+  let left=S.cases.filter(c=>c.status==='open'&&hasPin(c)&&tripIndex(c.id)<0).map(c=>({c,lat:+c.lat,lng:+c.lng}));
+  const zones=[];
+  while(left.length){
+    let best=null,bestN=[];
+    left.forEach(p=>{const n=left.filter(q=>tripDist(p,q)<=ZONE_KM);if(n.length>bestN.length){best=p;bestN=n}});
+    if(bestN.length<2)break;
+    const lat=bestN.reduce((a,p)=>a+p.lat,0)/bestN.length,lng=bestN.reduce((a,p)=>a+p.lng,0)/bestN.length;
+    zones.push({cases:bestN.map(p=>p.c),lat,lng,people:bestN.reduce((a,p)=>a+(Number(p.c.people)||1),0),urgent:bestN.filter(p=>isDanger(p.c)).length});
+    left=left.filter(p=>!bestN.includes(p));
+  }
+  const me=S.me||TRIP.lastPos;
+  zones.forEach(z=>{z.area=zoneArea(z.cases);z.km=me?tripDist(me,z):null});
+  return zones.sort((a,b)=>(b.urgent-a.urgent)||(me?a.km-b.km:0)||(b.cases.length-a.cases.length)).slice(0,12);
+}
+function tripPlanZone(z){
+  const me=tripOrigin();const pts=z.cases.map(c=>({id:String(c.id),lat:+c.lat,lng:+c.lng,sev:sevOf(c),people:Number(c.people)||1}));
+  const order=tripNN(pts,me).slice(0,ZONE_MAX);
+  tripApply(order,[],`วางเส้นทางโซน ${z.area} · ${order.length} จุด เรียงใกล้สุดก่อน`);
+  const m=S.maps.map;if(m&&window.L){m.fitBounds(L.latLngBounds(order.map(p=>[p.lat,p.lng])),{padding:[50,50],maxZoom:16})}
+}
+function zoneListHTML(zones){
+  return `<div class="zone-head"><b>${ic('layers')} โซนเคสใกล้กัน</b><small>รัศมี ~${ZONE_KM} กม. · แตะเพื่อวางเส้นทาง</small></div>`+
+    (zones.length?`<div class="zone-list">${zones.map((z,i)=>`<button type="button" class="zone" data-z="${i}"><span class="zone-n">${z.cases.length}</span><span class="zone-t"><b>${esc(z.area)}</b><small>${z.people} คน${z.urgent?` · <em>ด่วน ${z.urgent}</em>`:''}${z.km!=null?` · ห่าง ~${z.km.toFixed(1)} กม.`:''}</small></span>${ic('route')}</button>`).join('')}</div>`
+    :`<p class="hint">ยังไม่มีเคสรอช่วยที่อยู่ใกล้กัน 2 เคสขึ้นไป</p>`);
+}
+function bindZones(el,zones){el.querySelectorAll('[data-z]').forEach(b=>b.onclick=()=>tripPlanZone(zones[+b.dataset.z]))}
 function renderTrip(){
   const el=$('#trip-panel');const list=tripCases();
   if(!S.volunteer||!S.cases.length){el.hidden=true;return}
   el.hidden=false;el.classList.toggle('empty',!list.length);
-  if(!list.length){el.innerHTML=`<button type="button" class="trip-auto" id="trip-auto">${ic('route')}<span><b>จัดเส้นทางอัตโนมัติ</b><small>เลือกเคสหนักและคนเยอะใกล้คุณ แล้วเรียงให้</small></span></button>`;$('#trip-auto').onclick=tripAuto;return}
+  if(!list.length){const zones=tripZones();TRIP.zones=zones;
+    el.innerHTML=zoneListHTML(zones)+`<button type="button" class="trip-auto" id="trip-auto">${ic('route')}<span><b>จัดเส้นทางอัตโนมัติ</b><small>เลือกเคสใกล้คุณ คนเยอะก่อน แล้วเรียงให้</small></span></button>`;
+    $('#trip-auto').onclick=tripAuto;bindZones(el,zones);drawZones();return}
+  TRIP.zones=[];
   let km=0,prev=null;list.forEach(c=>{if(!c.missing&&hasPin(c)){const p={lat:+c.lat,lng:+c.lng};if(prev)km+=tripDist(prev,p);prev=p}});
   el.innerHTML=`<div class="trip-head"><b>${ic('route')} แผนเดินทาง · ${list.length} จุด</b><span class="trip-note" id="trip-note">${km?'ระยะตรงรวม ~'+km.toFixed(1)+' กม.':''}</span></div><ol class="trip-list"></ol>`;
   const ol=el.querySelector('ol');
@@ -464,15 +502,21 @@ function renderTrip(){
       <span class="trip-ctl"><button type="button" aria-label="เลื่อนขึ้น" ${i===0?'disabled':''}>${ic('up')}</button><button type="button" aria-label="เลื่อนลง" ${i===list.length-1?'disabled':''}>${ic('down')}</button><button type="button" aria-label="เอาออก">${ic('close')}</button></span>`;
     const [u,d,x]=li.querySelectorAll('.trip-ctl button');u.onclick=()=>tripMove(i,-1);d.onclick=()=>tripMove(i,1);x.onclick=()=>tripToggle(c.id);
     li.querySelector('.trip-txt').onclick=()=>{if(!c.missing&&hasPin(c)&&S.maps.map){S.maps.map.setView([+c.lat,+c.lng],16);setSheet(false)}};ol.append(li)});
-  const url=tripUrl(),few=tripPts(list).length<2;
-  el.insertAdjacentHTML('beforeend',`<a class="pill pill-blue full" style="margin-top:10px" ${url?`href="${url}" target="_blank" rel="noopener"`:'aria-disabled="true"'}>${ic('nav')}นำทางทั้งเส้นใน Google Maps</a>
+  const legs=tripLegs(),few=tripPts(list).length<2;
+  el.insertAdjacentHTML('beforeend',(legs.length>1?legs.map((g,i)=>`<a class="pill pill-blue full" style="margin-top:${i?6:10}px" href="${g.url}" target="_blank" rel="noopener">${ic('nav')}นำทางช่วงที่ ${i+1} (จุด ${g.from}–${g.to})</a>`).join(''):
+    `<a class="pill pill-blue full" style="margin-top:10px" ${legs.length?`href="${legs[0].url}" target="_blank" rel="noopener"`:'aria-disabled="true"'}>${ic('nav')}นำทางทั้งเส้นใน Google Maps</a>`)+`
     <div class="trip-btns"><button type="button" class="pill pill-green small" data-t="heavy" ${few?'disabled':''}>${ic('alert')}เคสหนักก่อน</button><button type="button" class="pill pill-ghost small" data-t="near" ${few?'disabled':''}>${ic('pin')}ใกล้สุดก่อน</button>
     <button type="button" class="pill pill-ghost small" data-t="auto">${ic('route')}จัดอัตโนมัติ</button><button type="button" class="pill pill-line small" data-t="clear">ล้างแผน</button></div>`);
   el.querySelector('[data-t=heavy]').onclick=()=>tripSort(true);el.querySelector('[data-t=near]').onclick=()=>tripSort(false);
   const au=el.querySelector('[data-t=auto]');au.onclick=()=>{if(!au.dataset.sure){au.dataset.sure='1';au.lastChild.textContent='แทนที่แผนเดิม?';return}tripAuto()};
   const cl=el.querySelector('[data-t=clear]');cl.onclick=()=>{if(!cl.dataset.sure){cl.dataset.sure='1';cl.textContent='กดอีกครั้งเพื่อล้าง';return}TRIP.ids=[];tripSave();tripRefresh()};
 }
-function drawTrip(){const m=S.maps.map;if(!m||!window.L)return;if(!TRIP.layer)TRIP.layer=L.layerGroup().addTo(m);TRIP.layer.clearLayers();if(!S.volunteer)return;
+function drawZones(){const m=S.maps.map;if(!m||!window.L)return;if(!TRIP.zlayer)TRIP.zlayer=L.layerGroup().addTo(m);TRIP.zlayer.clearLayers();
+  if(!S.volunteer||TRIP.ids.length)return;(TRIP.zones||[]).forEach((z,i)=>{
+    L.circle([z.lat,z.lng],{radius:ZONE_KM*500,color:'#0F2188',weight:1.5,opacity:.6,fillColor:'#0F2188',fillOpacity:.06,dashArray:'4 6',interactive:false}).addTo(TRIP.zlayer);
+    L.marker([z.lat,z.lng],{icon:L.divIcon({className:'zone-pin',html:`<span>${z.cases.length}<small>เคส</small></span>`,iconSize:[44,44],iconAnchor:[22,22]}),zIndexOffset:2400,title:'โซน '+z.area})
+      .on('click',()=>tripPlanZone(z)).addTo(TRIP.zlayer)})}
+function drawTrip(){const m=S.maps.map;if(!m||!window.L)return;if(!TRIP.layer)TRIP.layer=L.layerGroup().addTo(m);TRIP.layer.clearLayers();drawZones();if(!S.volunteer)return;
   const pts=[];tripCases().forEach((c,i)=>{if(c.missing||!hasPin(c))return;const p=[+c.lat,+c.lng];pts.push(p);
     L.marker(p,{icon:L.divIcon({className:'trip-pin',html:`<span>${i+1}</span>`,iconSize:[24,24],iconAnchor:[12,48]}),interactive:false,zIndexOffset:2500}).addTo(TRIP.layer)});
   if(pts.length>1)L.polyline(pts,{color:'#0F2188',weight:4,opacity:.8,dashArray:'8 8',interactive:false}).addTo(TRIP.layer)}
