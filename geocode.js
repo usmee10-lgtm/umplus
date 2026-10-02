@@ -39,7 +39,7 @@ function geoAttach(input,list,onPick,opt={}){
       b.addEventListener('click',()=>{onPick(it);items=[];render()});list.append(b)})};
   const run=async()=>{const q=input.value.trim();if(q.length<3){if(ctl){ctl.abort();ctl=null}items=[];render();if(status)status.textContent='';return}
     if(ctl)ctl.abort();ctl=new AbortController();if(status)status.textContent='กำลังค้นหา…';
-    try{items=await geoSuggest(q,ctl.signal);active=-1;render();if(status)status.textContent=items.length?'พบ '+items.length+' ที่อยู่ · กดลูกศรลงเพื่อเลือก':'ไม่พบที่อยู่นี้ ลองพิมพ์ชื่อถนน ซอย หรือเขต'}
+    try{items=await geoSuggest(q,ctl.signal);active=-1;render();if(status)status.textContent=items.length?'พบ '+items.length+' ที่อยู่ · แตะเพื่อเลือก':'ไม่พบที่อยู่นี้ ลองพิมพ์ชื่อถนน ซอย หรือเขต'}
     catch(e){if(e.name!=='AbortError'&&status)status.textContent='ค้นหาไม่ได้ (ไม่มีสัญญาณ?) ใช้ตำแหน่งตอนนี้ หรือปักหมุดบนแผนที่แทน'}};
   input.addEventListener('input',()=>{clearTimeout(tm);tm=setTimeout(run,350)});
   input.addEventListener('keydown',e=>{if(!items.length)return;

@@ -302,7 +302,7 @@ geoAttach($('#ma-street'),$('#ma-list'),it=>{
   const street=it.type==='street'?it.name:(it.street||it.name);$('#ma-street').value=street;
   if(it.type!=='street'&&it.name&&!$('#ma-mark').value.trim())$('#ma-mark').value='ใกล้'+it.name;
   if(it.dist){$('#ma-dist').value=distNorm(it.dist);MA.distOf=distNorm(it.dist)}MA.sub=it.area&&it.area!==it.dist?it.area:'';MA.picked=it;maSync();
-  setPin(it.lat,it.lng,true,false);$('#ma-tip').textContent='ปักหมุดที่'+street+'แล้ว · ลากหมุดให้ตรงบ้าน';
+  setPin(it.lat,it.lng,true,false);$('#ma-tip').textContent='ปักหมุดที่ '+street+' แล้ว · ลากหมุดให้ตรงบ้าน';
   setTimeout(()=>$('#ma-no').focus(),50)},{status:$('#ma-tip')});
 /* เปิดช่องกรอกเอง: ถ้ามีหมุดแล้ว เติมซอย/ถนน เขต แขวง จากหมุดให้ก่อน */
 $('#manual-addr').addEventListener('toggle',async()=>{if(!$('#manual-addr').open)return;
