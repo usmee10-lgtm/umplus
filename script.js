@@ -148,7 +148,9 @@ $('#lay-flood').addEventListener('change',e=>toggleFlood(e.target.checked));
 /* ชั้นทีมกู้ภัย (ตำแหน่งปัดเศษสำหรับคนทั่วไป) */
 async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams').checked=on;const gen=++teamsGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._teams){m._teams.remove();m._teams=null}});if(!on)return;
-  try{const p={action:'teams'};if(S.volunteer)p.key=volKey();const r=await apiGet(p);if(gen!==teamsGen)return;S.teams=(r&&r.teams)||[];
+  try{const p={action:'teams'};if(S.volunteer)p.key=volKey();const r=await apiGet(p);if(gen!==teamsGen)return;
+    if(!r||!Array.isArray(r.teams)){toast('ชั้นทีมกู้ภัยยังไม่เปิดใช้งานบนเซิร์ฟเวอร์');store.set('uh_lay_teams','');$('#lay-teams').checked=false;return}
+    S.teams=r.teams;
     Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams)m._teams.remove();m._teams=L.layerGroup(S.teams.filter(t=>t.lat&&t.lng).map(t=>L.marker([+t.lat,+t.lng],{icon:L.divIcon({className:'team-pin',html:'<span>'+ic('shield')+'</span>'+(t.team?'<em>'+esc(t.team)+'</em>':''),iconSize:[30,30],iconAnchor:[15,15]})}))).addTo(m)});
     if(!S.teams.length)toast('ยังไม่มีทีมที่แชร์ตำแหน่ง');
   }catch(e){toast('โหลดตำแหน่งทีมไม่สำเร็จ')}}
@@ -186,7 +188,8 @@ function reqRow(d,stHtml,id,extra){const row=document.createElement('div');row.c
   row.querySelector('small').textContent=[id?'#'+id:'',extra||'',d.address||''].filter(Boolean).join(' · ');
   if(id){const x=document.createElement('button');x.type='button';x.className='x';x.setAttribute('aria-label','ซ่อนคำขอนี้');x.innerHTML=ic('close');x.onclick=()=>{saveMy(myReqs().filter(m=>m.id!==id));renderMyReq()};row.append(x)}
   return row}
-async function trackMine(){for(const m of myReqs()){if(!m.token)continue;try{const r=await apiPost({action:'track',id:m.id,clientId:m.clientId||'',token:m.token},12000);if(r&&r.ok&&r.status)TRACK[m.id]={status:r.status,volunteer:r.volunteer,urgency:m.urgency}}catch(e){}}renderMyReq()}
+/* เซิร์ฟเวอร์ยังไม่มี action track → ใช้สถานะจากรายการเคสสาธารณะแทน (renderMyReq) และไม่ยิงซ้ำ */
+async function trackMine(){if(store.get('uh_no_track',''))return renderMyReq();for(const m of myReqs()){if(!m.token)continue;try{const r=await apiPost({action:'track',id:m.id,clientId:m.clientId||'',token:m.token},12000);if(r&&r.error==='unknown_action'){store.set('uh_no_track','1');break}if(r&&r.ok&&r.status)TRACK[m.id]={status:r.status,volunteer:r.volunteer,urgency:m.urgency}}catch(e){}}renderMyReq()}
 let flushing=false;
 async function flushQueue(){
   const q=queue();if(!q.length||flushing||!navigator.onLine)return;flushing=true;
@@ -425,7 +428,8 @@ function startShare(){
   toast('เริ่มแชร์ตำแหน่งทีมแล้ว',{ok:true});renderVol();
 }
 async function sendPing(stop){if(!SHARE.pos&&!stop)return;SHARE.last=Date.now();
-  try{await apiPost({action:'ping',key:volKey(),team:store.get('uh_team',''),caseId:'',...(stop?{stop:true}:{lat:SHARE.pos.latitude,lng:SHARE.pos.longitude,accuracy:Math.round(SHARE.pos.accuracy||0)})},12000)}catch(e){}}
+  try{const r=await apiPost({action:'ping',key:volKey(),team:store.get('uh_team',''),caseId:'',...(stop?{stop:true}:{lat:SHARE.pos.latitude,lng:SHARE.pos.longitude,accuracy:Math.round(SHARE.pos.accuracy||0)})},12000);
+    if(r&&r.error==='unknown_action'&&!stop){toast('ระบบแชร์ตำแหน่งทีมยังไม่เปิดใช้งานบนเซิร์ฟเวอร์');stopShare()}}catch(e){}}
 function stopShare(){if(SHARE.watch!=null){navigator.geolocation.clearWatch(SHARE.watch);SHARE.watch=null;sendPing(true)}renderVol()}
 setInterval(()=>{if(SHARE.watch&&SHARE.pos&&Date.now()-SHARE.last>=120000)sendPing()},30000);
 
