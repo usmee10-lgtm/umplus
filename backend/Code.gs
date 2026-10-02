@@ -138,9 +138,10 @@ function createCase_(b) {
   try {
     // ข้อความที่ขึ้นต้นด้วย = + - @ ใส่ ' นำหน้า กันสูตรใน Sheet
     // เบอร์โทรใส่ ' นำหน้าเสมอ ไม่ให้ Sheet ตัดเลข 0 ข้างหน้า
-    sheet_().appendRow(HEADERS.map(function (h) {
-      return h === 'phone' ? "'" + row.phone : safeCell_(row[h]);
-    }));
+    const sh = sheet_(), m = cols_(sh), out = [];
+    for (let i = 0; i < m._width; i++) out.push('');
+    HEADERS.forEach(function (h) { if (m[h]) out[m[h] - 1] = h === 'phone' ? "'" + row.phone : safeCell_(row[h]); });
+    sh.appendRow(out);
   } finally {
     lock.releaseLock();
   }
@@ -157,11 +158,13 @@ function updateCase_(b) {
     const sh = sheet_();
     const r = findRow_(sh, b.id);
     if (!r) return { ok: false, error: 'not_found' };
-    const col = function (name) { return HEADERS.indexOf(name) + 1; };
+    const m = cols_(sh), col = function (name) { return m[name]; };
     sh.getRange(r, col('status')).setValue(STATUS_TH[b.status]);
-    if (b.status === 'open') sh.getRange(r, col('volunteer')).setValue('');
-    else if (b.volunteer) sh.getRange(r, col('volunteer')).setValue(safeCell_(clean_(b.volunteer, MAX.volunteer)));
-    sh.getRange(r, col('updatedAt')).setValue(new Date());
+    if (col('volunteer')) {
+      if (b.status === 'open') sh.getRange(r, col('volunteer')).setValue('');
+      else if (b.volunteer) sh.getRange(r, col('volunteer')).setValue(safeCell_(clean_(b.volunteer, MAX.volunteer)));
+    }
+    if (col('updatedAt')) sh.getRange(r, col('updatedAt')).setValue(new Date());
     clearListCache_();
     return { ok: true };
   } finally {
@@ -176,9 +179,8 @@ function trackCase_(b) {
   const sh = sheet_();
   const r = findRow_(sh, id);
   if (!r) return { ok: false, error: 'not_found' };
-  const v = sh.getRange(r, 1, 1, HEADERS.length).getValues()[0];
-  const o = {};
-  HEADERS.forEach(function (h, i) { o[h] = v[i] instanceof Date ? v[i].getTime() : v[i]; });
+  const m = cols_(sh);
+  const o = rowObj_(sh.getRange(r, 1, 1, m._width).getValues()[0], m);
   if (!o.token || String(o.token) !== token) return { ok: false, error: 'not_found' };
   o.status = statusCode_(o.status); o.level = levelCode_(o.level); o.urgency = urgCode_(o.urgency);
   return { ok: true, id: o.id, status: o.status, volunteer: o.status === 'open' ? '' : o.volunteer, urgency: o.urgency, updatedAt: o.updatedAt };
@@ -204,11 +206,11 @@ function listCases_(full, since) {
   const sh = sheet_();
   const n = sh.getLastRow() - 1;
   if (n < 1) return { ok: true, cases: [], volunteer: full };
-  const values = sh.getRange(2, 1, n, HEADERS.length).getValues();
+  const m = cols_(sh);
+  const values = sh.getRange(2, 1, n, m._width).getValues();
   const sinceMs = since ? Number(since) : 0;
   const cases = values.map(function (v) {
-    const o = {};
-    HEADERS.forEach(function (h, i) { o[h] = v[i] instanceof Date ? v[i].getTime() : v[i]; });
+    const o = rowObj_(v, m);
     delete o.token;                                   // ไม่ส่ง token ออกไปเด็ดขาด
     o.status = statusCode_(o.status); o.level = levelCode_(o.level); o.urgency = urgCode_(o.urgency);
     o.needs = o.needs ? String(o.needs).split(/\s*,\s*/) : [];
@@ -286,6 +288,39 @@ function getTab_(ss, name) {
   return sh;
 }
 
+/* ---------- อ่าน/เขียนตามชื่อหัวคอลัมน์ (ย้าย/แทรกคอลัมน์ในชีตได้ ไม่พัง) ---------- */
+const ALIASES = {
+  id: ['รหัสเคส', 'id'], createdAt: ['เวลาแจ้ง', 'createdAt'], status: ['สถานะ', 'status'],
+  urgency: ['ความเร่งด่วน', 'urgency'], name: ['ชื่อ', 'name'], phone: ['เบอร์โทร', 'phone'],
+  district: ['เขต', 'district'], people: ['จำนวนคน', 'people'], address: ['ที่อยู่', 'address'],
+  lat: ['ละติจูด', 'lat'], lng: ['ลองจิจูด', 'lng'], level: ['ระดับน้ำ', 'level'], needs: ['ต้องการ', 'needs'],
+  vulnerable: ['กลุ่มเปราะบาง', 'vulnerable'], notes: ['รายละเอียด', 'notes'], volunteer: ['ทีมอาสา', 'volunteer'],
+  updatedAt: ['อัปเดตล่าสุด', 'updatedAt'], token: ['รหัสติดตาม (ห้ามแก้)', 'รหัสติดตาม', 'token']
+};
+let COLS_ = null;
+/** {key: เลขคอลัมน์} จากแถวหัวตาราง (ชื่อซ้ำ ใช้คอลัมน์แรก) · คอลัมน์ token ถ้าไม่มี เพิ่มต่อท้ายให้ */
+function cols_(sh) {
+  if (COLS_) return COLS_;
+  const width = Math.max(sh.getLastColumn(), 1);
+  const head = sh.getRange(1, 1, 1, width).getValues()[0].map(function (h) { return String(h).trim(); });
+  const m = { _width: width };
+  Object.keys(ALIASES).forEach(function (k) {
+    for (let i = 0; i < head.length; i++) if (ALIASES[k].indexOf(head[i]) >= 0) { m[k] = i + 1; break; }
+  });
+  if (!m.token) { m.token = width + 1; sh.getRange(1, m.token).setValue(ALIASES.token[0]).setFontWeight('bold'); m._width = m.token; }
+  COLS_ = m;
+  return m;
+}
+/** แถวในชีต -> object ตาม key */
+function rowObj_(v, m) {
+  const o = {};
+  Object.keys(ALIASES).forEach(function (k) {
+    const x = m[k] ? v[m[k] - 1] : '';
+    o[k] = x instanceof Date ? x.getTime() : (x === undefined ? '' : x);
+  });
+  return o;
+}
+
 function sheet_() {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   let sh = getTab_(ss, SHEET_NAME);
@@ -294,13 +329,6 @@ function sheet_() {
     sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS_TH]).setFontWeight('bold');
     sh.setFrozenRows(1);
     return sh;
-  }
-  // เพิ่มหัวคอลัมน์ใหม่ (เช่น token) ให้ชีตเดิม ครั้งเดียว
-  const cache = CacheService.getScriptCache();
-  if (!cache.get('hdr:' + HEADERS.length)) {
-    const cur = sh.getRange(1, 1, 1, HEADERS.length).getValues()[0];
-    if (cur.join('|') !== HEADERS_TH.join('|')) sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS_TH]).setFontWeight('bold');
-    cache.put('hdr:' + HEADERS.length, '1', 21600);
   }
   return sh;
 }
@@ -336,51 +364,76 @@ function formatSheet() {
   lock.waitLock(30000);                 // กันชนกับอาสาที่กำลังเปลี่ยนสถานะพร้อมกัน
   try { formatSheet_(sheet_()); } finally { lock.releaseLock(); }
 }
+/** หัวคอลัมน์ที่ว่าง: เดาจากข้อมูลในคอลัมน์ แล้วใส่ชื่อให้ (เฉพาะคีย์ที่ยังหาไม่เจอ) */
+function fillBlankHeaders_(sh) {
+  const width = sh.getLastColumn(), n = Math.min(sh.getLastRow() - 1, 300);
+  if (n < 1) return [];
+  const head = sh.getRange(1, 1, 1, width).getValues()[0];
+  const data = sh.getRange(2, 1, n, width).getValues();
+  COLS_ = null; const m = cols_(sh); const fixed = [];
+  const need = function (k) { return !m[k]; };
+  for (let c = 0; c < width; c++) {
+    if (String(head[c]).trim()) continue;
+    const vals = data.map(function (r) { return r[c]; }).filter(function (v) { return v !== '' && v != null; });
+    if (!vals.length) continue;
+    const all = function (f) { return vals.filter(f).length >= vals.length * 0.9; };
+    let key = '';
+    if (all(function (v) { return v instanceof Date; })) key = need('createdAt') ? 'createdAt' : (need('updatedAt') ? 'updatedAt' : '');
+    else if (all(function (v) { return typeof v === 'number' && v > 5 && v < 21 && v % 1; })) key = need('lat') ? 'lat' : '';
+    else if (all(function (v) { return typeof v === 'number' && v > 97 && v < 106 && v % 1; })) key = need('lng') ? 'lng' : '';
+    else if (all(function (v) { return typeof v === 'number' && v % 1 === 0 && v >= 1 && v < 5000; })) key = need('people') ? 'people' : '';
+    if (key) { sh.getRange(1, c + 1).setValue(ALIASES[key][0]); m[key] = c + 1; fixed.push(ALIASES[key][0] + '→' + String.fromCharCode(65 + c)); }
+  }
+  COLS_ = null;
+  return fixed;
+}
+
 function formatSheet_(sh) {
-  const lastCol = HEADERS.length, colStatus = HEADERS.indexOf('status') + 1, colUrg = HEADERS.indexOf('urgency') + 1, colLevel = HEADERS.indexOf('level') + 1;
+  const fixed = fillBlankHeaders_(sh);
+  if (fixed.length) Logger.log('เติมหัวคอลัมน์: ' + fixed.join(', '));
+  const m = cols_(sh), lastCol = Math.max(sh.getLastColumn(), m._width);
+  const colStatus = m.status, colUrg = m.urgency, colLevel = m.level;
   const maxRows = Math.max(sh.getMaxRows(), 2000);
   if (sh.getMaxRows() < maxRows) sh.insertRowsAfter(sh.getMaxRows(), maxRows - sh.getMaxRows());
-  // 1) แปลงสถานะเดิม open/going/done -> ไทย
   const n = sh.getLastRow() - 1;
-  if (n > 0) {
-    const rng = sh.getRange(2, colStatus, n, 1);
-    rng.setValues(rng.getValues().map(function (r) { const c = statusCode_(r[0]); return [c ? STATUS_TH[c] : r[0]]; }));
-    const ur = sh.getRange(2, colUrg, n, 1);
-    ur.setValues(ur.getValues().map(function (r) { return [r[0] === '' ? '' : URG_TH[urgCode_(r[0])]]; }));
-    const lv = sh.getRange(2, colLevel, n, 1);
-    lv.setValues(lv.getValues().map(function (r) { const c = levelCode_(r[0]); return [c ? LEVEL_TH[c] : r[0]]; }));
+  const list = function (vals, help) { const b = SpreadsheetApp.newDataValidation().requireValueInList(vals, true).setAllowInvalid(false); if (help) b.setHelpText(help); return b.build(); };
+  // 1) แปลงค่าเดิมเป็นไทย + dropdown (เฉพาะคอลัมน์ที่มีอยู่)
+  if (colStatus) {
+    if (n > 0) { const rng = sh.getRange(2, colStatus, n, 1); rng.setValues(rng.getValues().map(function (r) { const c = statusCode_(r[0]); return [c ? STATUS_TH[c] : r[0]]; })); }
+    sh.getRange(2, colStatus, maxRows - 1, 1).setDataValidation(list([STATUS_TH.open, STATUS_TH.going, STATUS_TH.done], 'เลือก: รอช่วย / กำลังไป / ช่วยแล้ว'))
+      .setFontWeight('bold').setHorizontalAlignment('center');
+    sh.setColumnWidth(colStatus, 90);
   }
-  const list = function (vals) { return SpreadsheetApp.newDataValidation().requireValueInList(vals, true).setAllowInvalid(false).build(); };
-  sh.getRange(2, colUrg, maxRows - 1, 1).setDataValidation(list([URG_TH[1], URG_TH[2], URG_TH[3]]));
-  sh.getRange(2, colLevel, maxRows - 1, 1).setDataValidation(list(Object.keys(LEVEL_TH).map(function (k) { return LEVEL_TH[k]; })));
-  // 2) dropdown สถานะ
-  const rule = SpreadsheetApp.newDataValidation()
-    .requireValueInList([STATUS_TH.open, STATUS_TH.going, STATUS_TH.done], true)
-    .setAllowInvalid(false).setHelpText('เลือก: รอช่วย / กำลังไป / ช่วยแล้ว').build();
-  sh.getRange(2, colStatus, maxRows - 1, 1).setDataValidation(rule);
-  // 3) สีทั้งแถวตามสถานะ (ด่วน = สถานะยังไม่เสร็จและ urgency 3)
-  const L = function (c) { return String.fromCharCode(64 + c); };
-  const S = '$' + L(colStatus) + '2', U = '$' + L(colUrg) + '2';
-  const area = sh.getRange(2, 1, maxRows - 1, lastCol);
-  const cf = function (formula, bg, font) {
-    const b = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(formula).setBackground(bg).setRanges([area]);
-    if (font) b.setFontColor(font);
-    return b.build();
-  };
-  sh.setConditionalFormatRules([
-    cf('=AND(' + S + '<>"' + STATUS_TH.done + '",' + S + '<>"",OR(' + U + '="' + URG_TH[3] + '",' + U + '=3))', '#FDE2E2', '#8E1B1B'),   // ด่วนมาก
-    cf('=' + S + '="' + STATUS_TH.open + '"', '#FFF6D6'),                                              // รอช่วย
-    cf('=' + S + '="' + STATUS_TH.going + '"', '#DCE3FF', '#0F2188'),                                  // กำลังไป
-    cf('=' + S + '="' + STATUS_TH.done + '"', '#DFF8E7', '#1B5E20')                                   // ช่วยแล้ว
-  ]);
-  // 4) หัวตาราง + ตรึงแถว/คอลัมน์ + ความกว้าง
-  sh.getRange(1, 1, 1, lastCol).setValues([HEADERS_TH]).setFontWeight('bold').setBackground('#0F2188').setFontColor('#FFFFFF');
+  if (colUrg) {
+    if (n > 0) { const ur = sh.getRange(2, colUrg, n, 1); ur.setValues(ur.getValues().map(function (r) { return [r[0] === '' ? '' : URG_TH[urgCode_(r[0])]]; })); }
+    sh.getRange(2, colUrg, maxRows - 1, 1).setDataValidation(list([URG_TH[1], URG_TH[2], URG_TH[3]]));
+  }
+  if (colLevel) {
+    if (n > 0) { const lv = sh.getRange(2, colLevel, n, 1); lv.setValues(lv.getValues().map(function (r) { const c = levelCode_(r[0]); return [c ? LEVEL_TH[c] : r[0]]; })); }
+    sh.getRange(2, colLevel, maxRows - 1, 1).setDataValidation(list(Object.keys(LEVEL_TH).map(function (k) { return LEVEL_TH[k]; })));
+  }
+  // 2) สีทั้งแถวตามสถานะ (ด่วนมาก = ยังไม่เสร็จ + ความเร่งด่วนสูงสุด)
+  if (colStatus) {
+    const L = function (c) { return c > 26 ? String.fromCharCode(64 + Math.floor((c - 1) / 26)) + String.fromCharCode(65 + (c - 1) % 26) : String.fromCharCode(64 + c); };
+    const S = '$' + L(colStatus) + '2', U = colUrg ? '$' + L(colUrg) + '2' : '""';
+    const area = sh.getRange(2, 1, maxRows - 1, lastCol);
+    const cf = function (formula, bg, font) {
+      const b = SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied(formula).setBackground(bg).setRanges([area]);
+      if (font) b.setFontColor(font);
+      return b.build();
+    };
+    sh.setConditionalFormatRules([
+      cf('=AND(' + S + '<>"' + STATUS_TH.done + '",' + S + '<>"",OR(' + U + '="' + URG_TH[3] + '",' + U + '=3))', '#FDE2E2', '#8E1B1B'),
+      cf('=' + S + '="' + STATUS_TH.open + '"', '#FFF6D6'),
+      cf('=' + S + '="' + STATUS_TH.going + '"', '#DCE3FF', '#0F2188'),
+      cf('=' + S + '="' + STATUS_TH.done + '"', '#DFF8E7', '#1B5E20')
+    ]);
+  }
+  // 3) หัวตาราง (ไม่เปลี่ยนชื่อที่ผู้ใช้ตั้ง) + ตรึงแถว
+  sh.getRange(1, 1, 1, lastCol).setFontWeight('bold').setBackground('#0F2188').setFontColor('#FFFFFF');
   sh.setFrozenRows(1);
-  sh.setFrozenColumns(3);
-  sh.getRange(2, colStatus, maxRows - 1, 1).setFontWeight('bold').setHorizontalAlignment('center');
-  sh.setColumnWidth(colStatus, 90);
-  sh.setColumnWidth(HEADERS.indexOf('address') + 1, 260);
-  sh.setColumnWidth(HEADERS.indexOf('needs') + 1, 200);
+  if (m.address) sh.setColumnWidth(m.address, 260);
+  if (m.needs) sh.setColumnWidth(m.needs, 200);
   if (!sh.getFilter()) sh.getRange(1, 1, sh.getMaxRows(), lastCol).createFilter();
   // แท็บทีม: หัวตารางไทย + แปลงค่า TRUE/FALSE เดิม
   const tsh = teamSheet_();
@@ -406,7 +459,7 @@ function teamSheet_() {
 /** หาแถวของเคสจาก id (เร็วกว่าวนทุกแถว) */
 function findRow_(sh, id) {
   if (!id || sh.getLastRow() < 2) return 0;
-  const hit = sh.getRange(2, 1, sh.getLastRow() - 1, 1).createTextFinder(String(id)).matchEntireCell(true).findNext();
+  const hit = sh.getRange(2, cols_(sh).id || 1, sh.getLastRow() - 1, 1).createTextFinder(String(id)).matchEntireCell(true).findNext();
   return hit ? hit.getRow() : 0;
 }
 
