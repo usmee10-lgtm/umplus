@@ -15,11 +15,11 @@ function toast(msg,opt={}){const t=document.createElement('div');t.className='to
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 function ago(ts){const t=Number(ts)||Date.parse(ts);if(!t)return '';const m=Math.round((Date.now()-t)/60000);if(m<1)return 'เมื่อสักครู่';if(m<60)return m+' นาทีที่แล้ว';const h=Math.round(m/60);if(h<24)return h+' ชั่วโมงที่แล้ว';return new Date(t).toLocaleDateString('th-TH',{day:'numeric',month:'short'})+' '+new Date(t).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}
 const hasPin=c=>c&&c.lat!==''&&c.lat!=null&&c.lng!==''&&c.lng!=null&&!isNaN(+c.lat)&&!isNaN(+c.lng);
-const isDanger=c=>Number(c.urgency)===3&&c.status!=='done';
+const isDanger=c=>Number(c.urgency)>=3&&c.status!=='done';  /* ด่วนมาก + วิกฤต */
 const pinKind=c=>c.status==='done'?'done':c.status==='going'?'going':isDanger(c)?'danger':'open';
-const sevOf=c=>Math.min(3,Math.max(1,Number(c.urgency)||1));
+const sevOf=c=>Math.min(4,Math.max(1,Number(c.urgency)||1));
 /* ความเร่งด่วน 3 ระดับ: ทั่วไป · ปานกลาง · ด่วน (ค่าที่ส่งเข้าชีตยังเป็นข้อความเดิม เพื่อให้ Code.gs ใช้ได้เหมือนเดิม) */
-const URG_TH={1:'ทั่วไป',2:'ปานกลาง',3:'ด่วน'};
+const URG_TH={1:'ทั่วไป',2:'เร่งด่วน',3:'ด่วนมาก',4:'วิกฤต'};
 const URG_BY_LABEL={'รอได้':1,'ด่วน ต้องการเร็ว':2,'อันตรายถึงชีวิต ด่วนมาก':3};
 function urgChip(c){const v=sevOf(c);return `<span class="urg urg-${v}"><i></i>${URG_TH[v]}</span>`}
 function statusChip(c){const k=pinKind(c);const txt=STATUS_TH[c.status]||'รอช่วย';return `<span class="st st-${k}">${esc(txt)}</span>`}
@@ -564,7 +564,7 @@ function tripToggle(id){id=String(id);const i=tripIndex(id);if(i>=0)TRIP.ids.spl
 function tripMove(i,d){const j=i+d;if(j<0||j>=TRIP.ids.length)return;[TRIP.ids[i],TRIP.ids[j]]=[TRIP.ids[j],TRIP.ids[i]];tripSave();tripRefresh()}
 function tripOrigin(){const me=S.me||TRIP.lastPos;if(!S.me&&navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>{TRIP.lastPos={lat:p.coords.latitude,lng:p.coords.longitude}},()=>{},{timeout:10000,maximumAge:120000});return me}
 function tripNN(pts,start){const left=pts.slice(),out=[];let cur=start;if(!cur&&left.length){cur=left.shift();out.push(cur)}while(left.length){let bi=0,bd=Infinity;left.forEach((p,i)=>{const d=tripDist(cur,p);if(d<bd){bd=d;bi=i}});cur=left.splice(bi,1)[0];out.push(cur)}return out}
-function tripPriority(pts,start){let cur=start,out=[];[3,2,1].forEach(s=>{const tier=pts.filter(p=>p.sev===s);if(!tier.length)return;const o=tripNN(tier,cur);out=out.concat(o);cur=o[o.length-1]});return out}
+function tripPriority(pts,start){let cur=start,out=[];[4,3,2,1].forEach(s=>{const tier=pts.filter(p=>p.sev===s);if(!tier.length)return;const o=tripNN(tier,cur);out=out.concat(o);cur=o[o.length-1]});return out}
 const tripPts=list=>list.filter(c=>!c.missing&&hasPin(c)).map(c=>({id:String(c.id),lat:+c.lat,lng:+c.lng,sev:sevOf(c),people:Number(c.people)||1}));
 function tripApply(order,rest,msg){TRIP.ids=[...order.map(p=>p.id),...rest];tripSave();tripRefresh();const n=$('#trip-note');if(n&&msg){n.textContent='✓ '+msg;n.classList.add('flash')}}
 function tripSort(heavy){const list=tripCases(),pts=tripPts(list),rest=list.filter(c=>c.missing||!hasPin(c)).map(c=>String(c.id));if(pts.length<2)return;const me=tripOrigin();

@@ -613,3 +613,8 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .search-field input,.search-field input:focus,.search-field input:focus-visible{border:0!important;background:transparent!important;box-shadow:none!important;outline:none!important;padding-left:0!important;min-height:48px}
 .sug-free b{color:#0F2188}.sug-free .ic{color:#11723A}
 .sug-free{border-bottom:1px solid var(--line)}
+
+/* ความเร่งด่วน 4 ระดับ: วิกฤต (แดงเข้ม) */
+.urg-4{background:#7F1D1D;color:#fff}.urg-4 i{background:#fff}
+.case.u4{box-shadow:inset 6px 0 0 #7F1D1D,0 1px 3px rgba(22,27,61,.06)}
+.case.u4 .case-ics{background:#FDECEC}.case.u4 .case-ics .ic{color:#7F1D1D}

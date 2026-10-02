@@ -33,7 +33,7 @@ const STATUSES = ['open', 'going', 'done'];
 // ในชีตเก็บสถานะเป็นภาษาไทย (เลือกจาก dropdown ได้) แต่ส่งให้แอปเป็นรหัส open/going/done
 const STATUS_TH = { open: 'รอช่วย', going: 'กำลังไป', done: 'ช่วยแล้ว' };
 const LEVEL_TH = { ankle: 'ข้อเท้า', knee: 'เข่า', waist: 'เอว', chest: 'อก', roof: 'มิดหัว' };
-const URG_TH = { 1: 'ทั่วไป', 2: 'เร่งด่วน', 3: 'ด่วนมาก' };
+const URG_TH = { 1: 'ทั่วไป', 2: 'เร่งด่วน', 3: 'ด่วนมาก', 4: 'วิกฤต' };
 const YES = 'ใช่', NO = 'ไม่';
 const LEVELS = ['ankle', 'knee', 'waist', 'chest', 'roof'];
 const MAX = { name: 60, phone: 20, district: 40, address: 300, notes: 800, volunteer: 60, team: 40 };
@@ -342,7 +342,7 @@ function levelCode_(v) {
 }
 function urgCode_(v) {
   const n = Number(v);
-  if (n >= 1 && n <= 3) return n;
+  if (n >= 1 && n <= 4) return n;
   for (const k in URG_TH) if (URG_TH[k] === String(v || '').trim()) return Number(k);
   return 1;
 }
@@ -406,7 +406,7 @@ function formatSheet_(sh) {
   }
   if (colUrg) {
     if (n > 0) { const ur = sh.getRange(2, colUrg, n, 1); ur.setValues(ur.getValues().map(function (r) { return [r[0] === '' ? '' : URG_TH[urgCode_(r[0])]]; })); }
-    sh.getRange(2, colUrg, maxRows - 1, 1).setDataValidation(list([URG_TH[1], URG_TH[2], URG_TH[3]]));
+    sh.getRange(2, colUrg, maxRows - 1, 1).setDataValidation(list([URG_TH[4], URG_TH[3], URG_TH[2], URG_TH[1]], 'เลือก: วิกฤต / ด่วนมาก / เร่งด่วน / ทั่วไป'));
   }
   if (colLevel) {
     if (n > 0) { const lv = sh.getRange(2, colLevel, n, 1); lv.setValues(lv.getValues().map(function (r) { const c = levelCode_(r[0]); return [c ? LEVEL_TH[c] : r[0]]; })); }
@@ -422,11 +422,17 @@ function formatSheet_(sh) {
       if (font) b.setFontColor(font);
       return b.build();
     };
+    const notDone = S + '<>"' + STATUS_TH.done + '",' + S + '<>""';
+    const urg = function (n) { return 'AND(' + notDone + ',OR(' + U + '="' + URG_TH[n] + '",' + U + '=' + n + '))'; };
+    const stArea = sh.getRange(2, colStatus, maxRows - 1, 1);
     sh.setConditionalFormatRules([
-      cf('=AND(' + S + '<>"' + STATUS_TH.done + '",' + S + '<>"",OR(' + U + '="' + URG_TH[3] + '",' + U + '=3))', '#FDE2E2', '#8E1B1B'),
-      cf('=' + S + '="' + STATUS_TH.open + '"', '#FFF6D6'),
-      cf('=' + S + '="' + STATUS_TH.going + '"', '#DCE3FF', '#0F2188'),
-      cf('=' + S + '="' + STATUS_TH.done + '"', '#DFF8E7', '#1B5E20')
+      // ช่องสถานะ "กำลังไป" = ฟ้า (ให้เห็นว่ามีทีมรับแล้ว)
+      SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=' + S + '="' + STATUS_TH.going + '"').setBackground('#0F2188').setFontColor('#FFFFFF').setRanges([stArea]).build(),
+      cf('=' + S + '="' + STATUS_TH.done + '"', '#DFF8E7', '#1B5E20'),          // ช่วยแล้ว = เขียว
+      cf('=' + urg(4), '#B91C1C', '#FFFFFF'),                                   // วิกฤต = แดงเข้ม
+      cf('=' + urg(3), '#FCA5A5', '#7F1D1D'),                                   // ด่วนมาก = แดง
+      cf('=' + urg(2), '#FED7AA', '#7C2D12'),                                   // เร่งด่วน = ส้ม
+      cf('=' + urg(1), '#FEF3C7', '#713F12')                                    // ทั่วไป = เหลือง
     ]);
   }
   // 3) หัวตาราง (ไม่เปลี่ยนชื่อที่ผู้ใช้ตั้ง) + ตรึงแถว
@@ -468,13 +474,14 @@ function isVolunteer_(key) {
   return !!real && !!key && String(key) === real;
 }
 
-// 3 = วิกฤต/เสี่ยงต่อชีวิต, 2 = เร่งด่วน, 1 = ทั่วไป
 function urgency_(c) {
+  // 4 = วิกฤต (เสี่ยงชีวิต), 3 = ด่วนมาก, 2 = เร่งด่วน, 1 = ทั่วไป
   const label = String(c.urgencyLabel || '');
   const needs = c.needs.join(' ');
-  if (label.indexOf('ด่วนมาก') >= 0 || label.indexOf('ชีวิต') >= 0 ||
-      c.level === 'chest' || c.level === 'roof' ||
-      c.vulnerable.indexOf('bedridden') >= 0 || c.vulnerable.indexOf('oxygen') >= 0) return 3;
+  if (label.indexOf('ชีวิต') >= 0 || label.indexOf('วิกฤต') >= 0 || c.level === 'roof' ||
+      c.vulnerable.indexOf('oxygen') >= 0) return 4;
+  if (label.indexOf('ด่วนมาก') >= 0 || c.level === 'chest' || c.vulnerable.indexOf('bedridden') >= 0 ||
+      needs.indexOf('รถพยาบาล') >= 0) return 3;
   if (label.indexOf('เร็ว') >= 0 || c.level === 'waist' || c.vulnerable.length ||
       needs.indexOf('ผู้ป่วย') >= 0 || needs.indexOf('อพยพ') >= 0) return 2;
   return 1;
