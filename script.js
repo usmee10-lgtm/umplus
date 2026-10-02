@@ -70,7 +70,7 @@ function go(view,push=true){
   if(push&&location.hash!=='#'+view)history.pushState({view},'', '#'+view);
   if(view==='home')ensureMap('home');
   if(view==='map')ensureMap('map');
-  if(view==='form')ensureFormMap();
+  if(view==='form'){if(F.done)resetForm();showStep(F.step||1);ensureFormMap()}
   if(view!=='detail'&&S.detailMap){S.detailMap.remove();S.detailMap=null}
   window.scrollTo(0,0);
   setTimeout(()=>Object.values(S.maps).forEach(m=>m&&m.invalidateSize()),60);
@@ -93,7 +93,9 @@ async function ensureMap(which){
 }
 let fitted={};
 function drawPins(which){
-  const m=S.maps[which],lg=PIN_LAYER[which];if(!m||!lg)return;lg.clearLayers();
+  const m=S.maps[which],lg=PIN_LAYER[which];if(!m||!lg)return;
+  if(m._popup&&m.hasLayer(m._popup)){m._pinsStale=true;if(!m._pinsHook){m._pinsHook=1;m.on('popupclose',()=>{if(m._pinsStale){m._pinsStale=false;setTimeout(()=>drawPins(which),0)}})}return}  /* อาสากำลังอ่าน popup อยู่ → ค่อยวาดใหม่ตอนปิด */
+  lg.clearLayers();
   const list=which==='home'?S.cases.filter(c=>c.status!=='done'):filteredCases();
   const pts=[];
   list.filter(hasPin).forEach(c=>{const k=pinKind(c);pts.push([+c.lat,+c.lng]);
@@ -135,17 +137,19 @@ async function locateMe(which,btn){
 /* ชั้นน้ำท่วมถนนจาก Floodboard */
 const FLOOD_COL={blocked:'#d32f2f',risky:'#f57c00',caution:'#fbc02d'};   /* สีแบบ floodboard: ผ่านไม่ได้ / เสี่ยง / น้ำขังผ่านได้ (คิดจากรถสูง) */
 const floodV=p=>{const v=(p||{}).verdict;return typeof v==='string'?v:(v&&(v.truck||v.pickup))||(p||{}).status};
-async function toggleFlood(on){store.set('uh_lay_flood',on?'1':'0');$('#lay-flood').checked=on;
+let floodGen=0,teamsGen=0;
+async function toggleFlood(on){store.set('uh_lay_flood',on?'1':'0');$('#lay-flood').checked=on;const gen=++floodGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._flood){m._flood.remove();m._flood=null}});if(!on)return;
-  try{if(!S.flood){const r=await fetch('https://www.floodboard.org/api/export/roads.geojson');const j=await r.json();j.features=(j.features||[]).filter(f=>{const p=f.properties||{};return !p.cleared&&FLOOD_COL[floodV(p)]});S.flood=j}
-    Object.values(S.maps).forEach(m=>{if(!m)return;m._flood=L.geoJSON(S.flood,{interactive:false,attribution:'น้ำท่วมถนน © <a href="https://www.floodboard.org/about" target="_blank" rel="noopener">Floodboard</a> (CC BY 4.0)',style:f=>({color:FLOOD_COL[floodV(f.properties)],weight:5,opacity:.85,lineCap:'round'}),pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:4,color:FLOOD_COL[floodV(f.properties)],weight:2})}).addTo(m)});
+  try{if(!S.flood){S.floodP=S.floodP||fetch('https://www.floodboard.org/api/export/roads.geojson').then(r=>r.json()).then(j=>{j.features=(j.features||[]).filter(f=>{const p=f.properties||{};return !p.cleared&&FLOOD_COL[floodV(p)]});return j}).finally(()=>{S.floodP=null});S.flood=await S.floodP}
+    if(gen!==floodGen)return;  /* มีการเรียกใหม่กว่าแล้ว */
+    Object.values(S.maps).forEach(m=>{if(!m)return;if(m._flood)m._flood.remove();m._flood=L.geoJSON(S.flood,{interactive:false,attribution:'น้ำท่วมถนน © <a href="https://www.floodboard.org/about" target="_blank" rel="noopener">Floodboard</a> (CC BY 4.0)',style:f=>({color:FLOOD_COL[floodV(f.properties)],weight:5,opacity:.85,lineCap:'round'}),pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:4,color:FLOOD_COL[floodV(f.properties)],weight:2})}).addTo(m)});
   }catch(e){toast('โหลดข้อมูลน้ำท่วมไม่สำเร็จ')}}
 $('#lay-flood').addEventListener('change',e=>toggleFlood(e.target.checked));
 /* ชั้นทีมกู้ภัย (ตำแหน่งปัดเศษสำหรับคนทั่วไป) */
-async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams').checked=on;
+async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams').checked=on;const gen=++teamsGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._teams){m._teams.remove();m._teams=null}});if(!on)return;
-  try{const p={action:'teams'};if(S.volunteer)p.key=volKey();const r=await apiGet(p);S.teams=(r&&r.teams)||[];
-    Object.values(S.maps).forEach(m=>{if(!m)return;m._teams=L.layerGroup(S.teams.filter(t=>t.lat&&t.lng).map(t=>L.marker([+t.lat,+t.lng],{icon:L.divIcon({className:'team-pin',html:'<span>'+ic('shield')+'</span>'+(t.team?'<em>'+esc(t.team)+'</em>':''),iconSize:[30,30],iconAnchor:[15,15]})}))).addTo(m)});
+  try{const p={action:'teams'};if(S.volunteer)p.key=volKey();const r=await apiGet(p);if(gen!==teamsGen)return;S.teams=(r&&r.teams)||[];
+    Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams)m._teams.remove();m._teams=L.layerGroup(S.teams.filter(t=>t.lat&&t.lng).map(t=>L.marker([+t.lat,+t.lng],{icon:L.divIcon({className:'team-pin',html:'<span>'+ic('shield')+'</span>'+(t.team?'<em>'+esc(t.team)+'</em>':''),iconSize:[30,30],iconAnchor:[15,15]})}))).addTo(m)});
     if(!S.teams.length)toast('ยังไม่มีทีมที่แชร์ตำแหน่ง');
   }catch(e){toast('โหลดตำแหน่งทีมไม่สำเร็จ')}}
 $('#lay-teams').addEventListener('change',e=>toggleTeams(e.target.checked));
@@ -189,7 +193,9 @@ async function flushQueue(){
   try{for(const item of q){
       try{const r=await apiPost({action:'create',clientId:item.clientId,...item.data},20000);
         if(r&&r.ok){saveQueue(queue().filter(x=>x.clientId!==item.clientId));saveMy([...myReqs(),{id:r.id,token:r.token,clientId:item.clientId,urgency:r.urgency,needs:item.data.needs,address:item.data.address,at:Date.now()}]);toast('ส่งคำขอที่ค้างไว้แล้ว #'+r.id,{ok:true})}
-        else if(r&&r.error==='missing'){saveQueue(queue().filter(x=>x.clientId!==item.clientId))}
+        else{const tries=(item.tries||0)+1;  /* เซิร์ฟเวอร์ไม่รับ: ลองใหม่ไม่เกิน 5 ครั้ง แล้วแจ้งผู้ใช้ */
+          if(r&&r.error==='missing'||tries>=5){saveQueue(queue().filter(x=>x.clientId!==item.clientId));toast('คำขอที่ค้างไว้ส่งไม่สำเร็จ กรุณาส่งใหม่')}
+          else saveQueue(queue().map(x=>x.clientId===item.clientId?{...x,tries}:x))}
       }catch(e){break}}
   }finally{flushing=false;renderMyReq();loadCases()}
 }
@@ -212,7 +218,7 @@ function startForm(opt={}){
   if(opt.gps)useGPS();
 }
 function resetForm(){
-  F.needs.clear();F.lat=F.lng=null;F.addrDirty=false;F.people=1;F.step=1;
+  F.needs.clear();F.lat=F.lng=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
   $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
   ['#addr-input','#phone-in','#name-in','#details-in','#ma-no','#ma-vil','#ma-soi','#ma-road','#ma-sub','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');$('#manual-addr').open=false;
   $('#ppl-out').textContent='1';$$('input[name=level]').forEach(i=>i.checked=false);
@@ -223,7 +229,7 @@ function resetForm(){
 }
 async function ensureFormMap(){
   if(S.formMap){setTimeout(()=>S.formMap.invalidateSize(),60);return S.formMap}
-  try{await loadLeaflet()}catch(e){$('#form-map').innerHTML='<p class="empty">โหลดแผนที่ไม่ได้ · ใช้ช่องค้นหาที่อยู่หรือกรอกพิกัดเองได้</p>';return null}
+  try{await loadLeaflet()}catch(e){$('#form-map').innerHTML='<p class="empty">โหลดแผนที่ไม่ได้ · ค้นหาที่อยู่ หรือกด "กรอกที่อยู่เอง" ได้</p>';return null}
   if(S.formMap)return S.formMap;
   S.formMap=makeMap($('#form-map'),{zoom:12});
   S.formMap.on('click',e=>setPin(e.latlng.lat,e.latlng.lng,false,true));
@@ -231,7 +237,7 @@ async function ensureFormMap(){
   return S.formMap;
 }
 async function setPin(lat,lng,pan=true,reverse=true){
-  F.lat=+lat;F.lng=+lng;markOk('loc');
+  F.pinSeq=(F.pinSeq||0)+1;F.lat=+lat;F.lng=+lng;markOk('loc');
   $('#pin-status').textContent='ปักหมุดแล้ว · ลากหมุดเพื่อปรับให้ตรง';
   const m=await ensureFormMap();
   if(m){if(F.marker)F.marker.setLatLng([F.lat,F.lng]);else{F.marker=L.marker([F.lat,F.lng],{draggable:true,icon:L.divIcon({className:'form-pin',html:'<span></span>',iconSize:[34,40],iconAnchor:[17,40]})}).addTo(m);
@@ -241,7 +247,9 @@ async function setPin(lat,lng,pan=true,reverse=true){
 }
 async function useGPS(){
   const st=$('#addr-status');st.textContent='กำลังหาตำแหน่ง…';
-  try{const p=await getGPS();await setPin(p.lat,p.lng,true,true);st.textContent=F.addrDirty?'พบตำแหน่งแล้ว':st.textContent||'พบตำแหน่งแล้ว'}
+  const seq=F.pinSeq;
+  try{const p=await getGPS();if(F.pinSeq!==seq){st.textContent=st.textContent==='กำลังหาตำแหน่ง…'?'':st.textContent;return}  /* ผู้ใช้เลือกที่อยู่/ปักหมุดเองระหว่างรอ GPS → ไม่ทับ */
+    await setPin(p.lat,p.lng,true,true);st.textContent=F.addrDirty?'พบตำแหน่งแล้ว':st.textContent||'พบตำแหน่งแล้ว'}
   catch(e){st.textContent=e.code===1?'ไม่ได้รับอนุญาตให้ใช้ตำแหน่ง · ค้นหาที่อยู่หรือแตะแผนที่แทน':'หาตำแหน่งไม่สำเร็จ · ค้นหาที่อยู่หรือแตะแผนที่แทน'}
 }
 $('#form-gps').addEventListener('click',useGPS);
@@ -263,7 +271,7 @@ function maQueries(){const bare=(id,pre)=>maVal(id,pre).replace(new RegExp('^'+p
     .filter(([q],i,a)=>q&&a.findIndex(x=>x[0]===q)===i)}
 $('#addr-apply').addEventListener('click',async()=>{
   const a=manualAddr(),st=$('#addr-status');
-  if(!a.text){st.textContent='กรอกอย่างน้อย ซอย ถนน หรือเขต';$('#ma-soi').focus();return}
+  if(!a.queries.length&&!$('#ma-mark').value.trim()){st.textContent='กรอกอย่างน้อย ซอย ถนน หรือเขต';$('#ma-soi').focus();return}
   $('#addr-input').value=a.text;F.addrDirty=true;markOk('loc');$('#manual-addr').open=false;
   $('#addr-input').scrollIntoView({behavior:'smooth',block:'center'});
   if(F.lat!=null){st.textContent='ใช้ที่อยู่นี้แล้ว · หมุดเดิมยังอยู่';return}
@@ -279,11 +287,12 @@ $('#ppl-plus').addEventListener('click',()=>{F.people=Math.min(999,F.people+1);$
 $('#phone-in').addEventListener('input',()=>markOk('phone'));
 function markOk(k){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[k];$(sec).classList.remove('invalid');$('#err-'+k).hidden=true}
 function markBad(k){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[k];$(sec).classList.add('invalid');$('#err-'+k).hidden=false}
+function phoneOk(v){let d=String(v||'').replace(/\D/g,'');if(d.startsWith('66'))d='0'+d.slice(2);return /^0\d{8,9}$/.test(d)}
 function validate(){const bad=[];
   if(!F.needs.size)bad.push('needs');
   else if(F.needs.has('other')&&!$('#other-in').value.trim()){bad.push('needs');$('#err-other').hidden=false}
   if(!$('#addr-input').value.trim()&&F.lat==null)bad.push('loc');
-  const d=$('#phone-in').value.replace(/\D/g,'');if(d.length<9||d.length>12)bad.push('phone');
+  if(!phoneOk($('#phone-in').value))bad.push('phone');
   bad.forEach(markBad);if(F.needs.size)$('#err-needs').hidden=true;
   if(bad.length){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[bad[0]];$(sec).scrollIntoView({behavior:'smooth',block:'center'});const inp=bad[0]==='needs'&&!$('#other-box').hidden?$('#other-in'):$(sec).querySelector('input');if(inp&&(bad[0]!=='needs'||inp.id==='other-in'))setTimeout(()=>inp.focus({preventScroll:true}),400)}
   return !bad.length}
@@ -304,21 +313,25 @@ function renderReview(d){
 $('#req-form').addEventListener('submit',async e=>{
   e.preventDefault();
   if(F.step===1){if(!validate())return;renderReview(formData());showStep(2);return}
-  const d=formData(),clientId=uid(),btn=$('#form-next');btn.disabled=true;btn.textContent='กำลังส่ง…';store.set('uh_phone',d.phone);
-  const queueIt=()=>{saveQueue([...queue(),{clientId,data:d,at:Date.now()}]);sentScreen(null,true)};
+  if(F.sending)return;
+  const d=formData(),clientId=F.clientId||(F.clientId=uid()),btn=$('#form-next');F.sending=true;btn.disabled=true;btn.textContent='กำลังส่ง…';store.set('uh_phone',d.phone);
+  const done=()=>{F.sending=false;F.done=true};
+  const queueIt=()=>{if(!queue().some(x=>x.clientId===clientId))saveQueue([...queue(),{clientId,data:d,at:Date.now(),tries:0}]);done();sentScreen(null,true)};
   if(!navigator.onLine){queueIt();return}
-  try{const r=await apiPost({action:'create',clientId,...d},20000);
-    if(r&&r.ok){saveMy([...myReqs(),{id:r.id,token:r.token,clientId,urgency:r.urgency,needs:d.needs,address:d.address,at:Date.now()}]);sentScreen(r.id,false);loadCases()}
-    else if(r&&r.error==='missing'){btn.disabled=false;btn.textContent='ส่งคำขอ';showStep(1);validate()}
-    else queueIt();
-  }catch(err){queueIt()}
+  let r;
+  try{r=await apiPost({action:'create',clientId,...d},20000)}catch(err){queueIt();return}  /* เน็ตหลุด/หมดเวลา → เก็บไว้ส่งทีหลัง */
+  if(r&&r.ok){saveMy([...myReqs(),{id:r.id,token:r.token,clientId,urgency:r.urgency,needs:d.needs,address:d.address,at:Date.now()}]);done();sentScreen(r.id,false);loadCases();return}
+  F.sending=false;btn.disabled=false;btn.textContent='ส่งคำขอ';
+  if(r&&r.error==='missing'){showStep(1);validate();return}
+  /* เซิร์ฟเวอร์ตอบว่าไม่รับ (ไม่ใช่ปัญหาสัญญาณ) → บอกผู้ใช้ ไม่เข้าคิว */
+  toast(r&&r.error==='rate'?'ส่งถี่เกินไป รอสักครู่แล้วลองใหม่':'ส่งไม่สำเร็จ ลองอีกครั้ง หรือโทรสายด่วน 1669 / 199');
 });
 function sentScreen(id,queued){
   $('#sent-title').textContent=queued?'บันทึกคำขอไว้แล้ว':'ส่งคำขอแล้ว';
   $('#sent-text').textContent=queued?'ตอนนี้ส่งไม่ได้ (สัญญาณไม่ดี) ระบบจะส่งให้เองเมื่อออนไลน์ ดูสถานะได้ที่หน้าแรก':'ทีมอาสาเห็นคำขอของคุณแล้ว ติดตามสถานะได้ที่หน้าแรก';
   $('#sent-id').textContent=id?'เลขคำขอ #'+id:'';renderMyReq();go('sent');
 }
-$('#form-back').addEventListener('click',()=>{if(F.step===2)showStep(1);else go('home')});
+$('#form-back').addEventListener('click',()=>{if(F.sending)return;if(F.step===2)showStep(1);else go('home')});
 
 /* ---------- แผนที่/รายการ ---------- */
 const FL=Object.assign({status:'active',types:[],people:[],level:[],q:''},store.json('uh_filters2',{}),{q:''});
@@ -354,7 +367,7 @@ function filteredCases(){
     if(FL.status==='active'&&c.status==='done')return false;
     if(FL.status==='danger'&&!isDanger(c))return false;
     if(['open','going','done'].includes(FL.status)&&c.status!==FL.status)return false;
-    if(FL.types.length){const n=(c.needs||[]).join(' ');if(!FL.types.some(k=>{const t=NEED_TYPES.find(x=>x.key===k);return n.includes(t.value)||n.includes(t.label)}))return false}
+    if(FL.types.length&&!FL.types.some(k=>(c.needs||[]).some(v=>needKey(v)===k)))return false;
     if(FL.people.length){const p=Number(c.people)||1;if(!FL.people.some(r=>{const [a,b]=r.split('-').map(Number);return p>=a&&p<=b}))return false}
     if(FL.level.length&&!FL.level.includes(c.level||'none'))return false;
     return true}).sort((a,b)=>((a.status==='done')-(b.status==='done'))||(sevOf(b)-sevOf(a))||(rank[a.status]-rank[b.status])||((Number(b.createdAt)||0)-(Number(a.createdAt)||0)));
@@ -401,7 +414,7 @@ function renderVol(forceOpen){
   iconify(p);
   $('#team-in').onchange=e=>{store.set('uh_team',e.target.value.trim());renderVol()};
   $('#share-btn').onclick=()=>{SHARE.watch?stopShare():startShare();p.dataset.mode='';renderVol()};
-  $('#vol-out').onclick=()=>{stopShare();store.set('uh_vol_key','');store.set('uh_vol_ok','');S.volunteer=false;p.hidden=true;p.dataset.mode='';loadCases()};
+  $('#vol-out').onclick=()=>{stopShare();store.set('uh_vol_key','');store.set('uh_vol_ok','');S.volunteer=false;p.hidden=true;p.dataset.mode='';S.cases=(store.json('uh_cases_cache',{})||{}).cases||[];renderAll();if(S.view==='detail')go('map');loadCases()};
 }
 $('#vol-switch').addEventListener('click',()=>{const p=$('#vol-panel');p.hidden=!p.hidden;p.dataset.mode='';renderVol()});
 const SHARE={watch:null,last:0,pos:null};
@@ -443,11 +456,11 @@ function renderDetail(full){
     fs.innerHTML=`<legend>สถานะเคส (ติ๊กเพื่อเปลี่ยน)</legend><div class="status-opts">${[['open','รอช่วย'],['going','กำลังไป · รับเคส'],['done','ช่วยแล้ว · ปิดเคส']].map(([v,t])=>`<label><input type="radio" name="cst" value="${v}" ${c.status===v?'checked':''}><span>${t}</span></label>`).join('')}</div>
       <input id="d-team" placeholder="ชื่อทีม / อาสา" value="${esc(c.volunteer||store.get('uh_team',''))}" maxlength="40" aria-label="ชื่อทีม">`;
     fs.addEventListener('change',async e=>{if(e.target.name!=='cst')return;const v=e.target.value;if(!v||v===c.status)return;const team=$('#d-team').value.trim();
-      if(v==='going'&&!team){toast('ใส่ชื่อทีมก่อนรับเคส');e.target.checked=false;fs.querySelector(`input[value="${c.status}"]`).checked=true;$('#d-team').focus();return}
+      if(v==='going'&&!team){toast('ใส่ชื่อทีมก่อนรับเคส');e.target.checked=false;const o=fs.querySelector(`input[value="${c.status}"]`);if(o)o.checked=true;$('#d-team').focus();return}
       if(team)store.set('uh_team',team);fs.disabled=true;
       try{const r=await apiPost({action:'update',key:volKey(),id:c.id,status:v,volunteer:v==='open'?'':team});if(!r||!r.ok)throw new Error(r&&r.error);
         c.status=v;c.volunteer=v==='open'?'':team||c.volunteer;toast(v==='going'?'รับเคสแล้ว':v==='done'?'ปิดเคสแล้ว':'คืนเคสแล้ว',{ok:true});renderDetail(true);loadCases()}
-      catch(err){toast('อัปเดตไม่สำเร็จ ลองอีกครั้ง');fs.disabled=false;fs.querySelector(`input[value="${c.status}"]`).checked=true}});
+      catch(err){toast('อัปเดตไม่สำเร็จ ลองอีกครั้ง');fs.disabled=false;const o=fs.querySelector(`input[value="${c.status}"]`);if(o)o.checked=true;else e.target.checked=false}});
     act.after(fs);
   }else act.insertAdjacentHTML('afterend','<p class="hint">ทีมอาสาที่มีรหัสจะเห็นเบอร์โทรและรับเคสได้ในหน้าแผนที่</p>');
   const cp=$('#copy-coord');if(cp)cp.onclick=()=>{const t=(+c.lat).toFixed(6)+','+(+c.lng).toFixed(6);(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('คัดลอกพิกัดแล้ว',{ok:true})).catch(()=>prompt('คัดลอกพิกัด',t))};
@@ -476,9 +489,9 @@ function tripAuto(){const me=tripOrigin();let pool=S.cases.filter(c=>c.status===
   pool.sort((a,b)=>(b.sev-a.sev)||(b.people-a.people)||((a.km||0)-(b.km||0)));const pick=pool.slice(0,8);
   tripApply(tripPriority(pick,me),[],'จัดอัตโนมัติ '+pick.length+' จุด · เคสหนักก่อน')}
 /* Google Maps รับได้ครั้งละ 10 จุด → แบ่งเป็นช่วง ช่วงถัดไปเริ่มจากจุดสุดท้ายของช่วงก่อน */
-function tripLegs(){const pts=tripCases().filter(c=>!c.missing&&hasPin(c)&&c.status!=='done').map(c=>(+c.lat).toFixed(6)+','+(+c.lng).toFixed(6));const legs=[];
+function tripLegs(){const all=tripCases(),ok=all.map((c,i)=>({c,n:i+1})).filter(({c})=>!c.missing&&hasPin(c)&&c.status!=='done'),pts=ok.map(({c})=>(+c.lat).toFixed(6)+','+(+c.lng).toFixed(6));const legs=[];
   for(let i=0;i<pts.length;i+=10){const use=pts.slice(i,i+10);const origin=i?pts[i-1]:'';const dest=use.pop();
-    legs.push({from:i+1,to:Math.min(i+10,pts.length),url:'https://www.google.com/maps/dir/?api=1&travelmode=driving'+(origin?'&origin='+encodeURIComponent(origin):'')+'&destination='+encodeURIComponent(dest)+(use.length?'&waypoints='+encodeURIComponent(use.join('|')):'')})}
+    legs.push({from:ok[i].n,to:ok[Math.min(i+10,pts.length)-1].n,url:'https://www.google.com/maps/dir/?api=1&travelmode=driving'+(origin?'&origin='+encodeURIComponent(origin):'')+'&destination='+encodeURIComponent(dest)+(use.length?'&waypoints='+encodeURIComponent(use.join('|')):'')})}
   return legs}
 function tripUrl(){const l=tripLegs();return l.length?l[0].url:''}
 /* โซนเคสใกล้กัน: รวมเคสที่รอช่วยซึ่งอยู่ห่างกันไม่เกิน ZONE_KM เป็นกลุ่ม ให้ทีมรับทีละโซน */
@@ -488,7 +501,7 @@ function zoneArea(list){const cnt={};list.forEach(c=>{const k=c.district?'เข
 function tripZones(){
   let left=S.cases.filter(c=>c.status==='open'&&hasPin(c)&&tripIndex(c.id)<0).map(c=>({c,lat:+c.lat,lng:+c.lng}));
   const zones=[];
-  while(left.length){
+  while(left.length>1&&zones.length<12){
     let best=null,bestN=[];
     left.forEach(p=>{const n=left.filter(q=>tripDist(p,q)<=ZONE_KM);if(n.length>bestN.length){best=p;bestN=n}});
     if(bestN.length<2)break;
@@ -539,7 +552,7 @@ function renderTrip(){
 }
 function drawZones(){const m=S.maps.map;if(!m||!window.L)return;if(!TRIP.zlayer)TRIP.zlayer=L.layerGroup().addTo(m);TRIP.zlayer.clearLayers();
   if(!S.volunteer||TRIP.ids.length)return;(TRIP.zones||[]).forEach((z,i)=>{
-    L.circle([z.lat,z.lng],{radius:ZONE_KM*500,color:'#0F2188',weight:1.5,opacity:.6,fillColor:'#0F2188',fillOpacity:.06,dashArray:'4 6',interactive:false}).addTo(TRIP.zlayer);
+    L.circle([z.lat,z.lng],{radius:Math.max(300,...z.cases.map(c=>tripDist(z,{lat:+c.lat,lng:+c.lng})*1000))+150,color:'#0F2188',weight:1.5,opacity:.6,fillColor:'#0F2188',fillOpacity:.06,dashArray:'4 6',interactive:false}).addTo(TRIP.zlayer);
     L.marker([z.lat,z.lng],{icon:L.divIcon({className:'zone-pin',html:`<span>${z.cases.length}<small>เคส</small></span>`,iconSize:[44,44],iconAnchor:[22,22]}),zIndexOffset:2400,title:'โซน '+z.area})
       .on('click',()=>tripPlanZone(z)).addTo(TRIP.zlayer)})}
 function drawTrip(){const m=S.maps.map;if(!m||!window.L)return;if(!TRIP.layer)TRIP.layer=L.layerGroup().addTo(m);TRIP.layer.clearLayers();drawZones();if(!S.volunteer)return;

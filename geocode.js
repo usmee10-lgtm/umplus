@@ -30,7 +30,7 @@ function geoAttach(input,list,onPick,opt={}){
     items.forEach((it,i)=>{const b=document.createElement('button');b.type='button';b.className='sug'+(i===active?' on':'');b.setAttribute('role','option');
       b.innerHTML=ic('pin')+'<span><b></b><small></small></span>';b.querySelector('b').textContent=it.title;b.querySelector('small').textContent=it.sub||'';
       b.addEventListener('click',()=>{onPick(it);items=[];render()});list.append(b)})};
-  const run=async()=>{const q=input.value.trim();if(q.length<3){items=[];render();if(status)status.textContent='';return}
+  const run=async()=>{const q=input.value.trim();if(q.length<3){if(ctl){ctl.abort();ctl=null}items=[];render();if(status)status.textContent='';return}
     if(ctl)ctl.abort();ctl=new AbortController();if(status)status.textContent='กำลังค้นหา…';
     try{items=await geoSuggest(q,ctl.signal);active=-1;render();if(status)status.textContent=items.length?'':'ไม่พบที่อยู่นี้ ลองพิมพ์ชื่อถนน ซอย หรือเขต'}
     catch(e){if(e.name!=='AbortError'&&status)status.textContent='ค้นหาไม่ได้ (ไม่มีสัญญาณ?) ใช้ตำแหน่งตอนนี้ หรือปักหมุดบนแผนที่แทน'}};

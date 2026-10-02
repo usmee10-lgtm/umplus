@@ -56,4 +56,7 @@ const NEED_TYPES=[
   {key:'patient',label:'ผู้ป่วย',value:'ผู้ป่วย / ผู้สูงอายุ',icon:'patient'},
   {key:'other',label:'อื่น ๆ',value:'อื่น ๆ',icon:'more'}
 ];
-function needIcon(v){const t=NEED_TYPES.find(n=>n.value===v||n.label===v||String(v).startsWith(n.label));return t?t.icon:'more'}
+/* จับคู่ค่าที่เก็บ → ประเภท แบบตรงตัว (กัน "รถ" ไปจับ "รถพยาบาล"/"เรือ / รถสูง") */
+function needKey(v){v=String(v||'').trim();let t=NEED_TYPES.find(n=>n.value===v||n.label===v);
+  if(!t)t=[...NEED_TYPES].sort((a,b)=>b.label.length-a.label.length).find(n=>v.startsWith(n.value)||v.startsWith(n.label));return t?t.key:'other'}
+function needIcon(v){const k=needKey(v);return (NEED_TYPES.find(n=>n.key===k)||{}).icon||'more'}
