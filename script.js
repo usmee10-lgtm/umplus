@@ -458,10 +458,12 @@ function renderVol(forceOpen){
   if(p.dataset.mode===(S.volunteer?'v':'p')&&p.children.length)return;p.dataset.mode=S.volunteer?'v':'p';
   if(!S.volunteer){p.innerHTML='<h3>ใส่รหัสทีมอาสา</h3><p class="hint">เพื่อดูเบอร์โทร รับเคส ปิดเคส หรือคืนเคส</p><div class="row"><input id="vol-key" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="รหัสอาสา" aria-label="รหัสอาสา" aria-describedby="vol-msg"><button type="button" class="pill pill-blue" id="vol-go">เข้า</button></div><p class="err" id="vol-msg" role="alert"></p>';
     /* ตรวจรหัสด้วยคำขอของตัวเอง (ไม่ชนกับการรีเฟรชอัตโนมัติ) ลองซ้ำ 1 ครั้งถ้าเซิร์ฟเวอร์ตอบผิดรูปแบบ แยก "รหัสผิด" กับ "เชื่อมต่อไม่ได้" */
-    const go2=async()=>{const k=$('#vol-key').value.replace(/\u200b/g,'').trim();if(!k)return $('#vol-key').focus();
+    const go2=async()=>{let k=$('#vol-key').value.replace(/\u200b/g,'').trim();if(!k)return $('#vol-key').focus();
       const btn=$('#vol-go'),msg=$('#vol-msg');btn.disabled=true;btn.textContent='กำลังตรวจ…';msg.textContent='';
       let r=null,netErr=false;
       for(let i=0;i<2&&!r;i++){try{const x=await apiGet({action:'list',key:k,t:Date.now()},20000);if(x&&x.ok)r=x;else netErr=true}catch(e){netErr=true;await new Promise(z=>setTimeout(z,800))}}
+      /* มือถือบางรุ่นขึ้นตัวพิมพ์ใหญ่ให้เอง → ลองตัวพิมพ์เล็กอีกครั้ง */
+      if(r&&!r.volunteer&&k!==k.toLowerCase()){try{const x=await apiGet({action:'list',key:k.toLowerCase(),t:Date.now()},20000);if(x&&x.ok&&x.volunteer){r=x;k=k.toLowerCase()}}catch(e){}}
       if($('#vol-go')){btn.disabled=false;btn.textContent='เข้า'}
       if(r&&r.volunteer){store.set('uh_vol_key',k);store.set('uh_vol_ok','1');S.volunteer=true;toast('เข้าโหมดทีมอาสาแล้ว',{ok:true});p.hidden=true;p.dataset.mode='';await loadCases(true);renderAll();return}
       if(r){msg.textContent='รหัสไม่ถูกต้อง ตรวจตัวพิมพ์เล็ก/ใหญ่ แล้วลองใหม่';$('#vol-key').select()}
