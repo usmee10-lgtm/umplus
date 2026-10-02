@@ -603,3 +603,9 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .bars b{text-align:right;font-variant-numeric:tabular-nums}
 @media (max-width:380px){.stiles{grid-template-columns:repeat(2,1fr)}}
 @media (min-width:1024px){.tabbar{width:440px}}
+/* แผนเดินทาง: ไปมาระหว่างจุดในหน้ารายละเอียด */
+.trip-nav{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:8px;margin:0 0 12px;padding:6px;border-radius:16px;background:var(--tint,#E9ECFB)}
+.trip-nav span{display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;color:#0F2188;text-align:center}.trip-nav .ic{width:18px;height:18px}
+.trip-nav button{width:48px;height:48px;border:0;border-radius:12px;background:#fff;color:#0F2188;display:grid;place-items:center}
+.trip-nav button:disabled{opacity:.35}
+.trip-txt{cursor:pointer}
