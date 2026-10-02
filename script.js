@@ -196,7 +196,9 @@ function closeSearch(refocus=true){const o=$('#search-overlay');if(o.hidden)retu
 $('#search-card').addEventListener('click',openSearch);$('#home-search-btn').addEventListener('click',openSearch);
 $('#search-cancel').addEventListener('click',()=>closeSearch());
 $('#search-gps').addEventListener('click',()=>{closeSearch(false);startForm({gps:true})});
-geoAttach($('#search-input'),$('#search-list'),it=>{closeSearch(false);startForm({loc:it})},{status:$('#search-status')});
+geoAttach($('#search-input'),$('#search-list'),it=>{closeSearch(false);startForm({loc:it})},{status:$('#search-status'),
+  onFree:(text,best)=>{closeSearch(false);startForm(best?{loc:{label:text,lat:best.lat,lng:best.lng}}:{});if(!best){$('#addr-input').value=text;F.addrDirty=true}
+    $('#addr-status').textContent=best?'ใช้ที่อยู่ตามที่พิมพ์ · ปักหมุดโดยประมาณ ลากให้ตรงบ้าน':'ใช้ที่อยู่ตามที่พิมพ์ · แตะแผนที่เพื่อปักหมุดได้ (ไม่บังคับ)'}});
 addEventListener('keydown',e=>{
   if(e.key==='Escape'){if(!$('#search-overlay').hidden){closeSearch();return}if(!$('#layer-menu').hidden){closeLayerMenu(true);return}}
   if(e.key==='Tab'){const box=!$('#search-overlay').hidden?$('#search-overlay'):!$('#layer-menu').hidden?$('#layer-menu'):null;if(!box)return;  /* วนโฟกัสอยู่ในกล่องที่เปิดอยู่ */
@@ -291,7 +293,10 @@ async function useGPS(){
 }
 $('#form-gps').addEventListener('click',useGPS);
 $('#addr-input').addEventListener('input',()=>{F.addrDirty=!!$('#addr-input').value.trim();if(F.addrDirty)markOk('loc')});
-geoAttach($('#addr-input'),$('#addr-list'),it=>{$('#addr-input').value=it.label||it.title;F.addrDirty=true;setPin(it.lat,it.lng,true,false);$('#addr-status').textContent='ปักหมุดตามที่อยู่แล้ว · ลากหมุดปรับได้'},{status:$('#addr-status')});
+geoAttach($('#addr-input'),$('#addr-list'),it=>{$('#addr-input').value=it.label||it.title;F.addrDirty=true;setPin(it.lat,it.lng,true,false);$('#addr-status').textContent='ปักหมุดตามที่อยู่แล้ว · ลากหมุดปรับได้'},{status:$('#addr-status'),
+  onFree:(text,best)=>{$('#addr-input').value=text;F.addrDirty=true;markOk('loc');
+    if(best&&F.lat==null){setPin(best.lat,best.lng,true,false);$('#addr-status').textContent='ใช้ที่อยู่ตามที่พิมพ์ · ปักหมุดโดยประมาณที่ '+best.title+' ลากให้ตรงบ้าน';$('#pin-status').textContent='หมุดโดยประมาณ · ลากให้ตรงบ้าน'}
+    else $('#addr-status').textContent=F.lat!=null?'ใช้ที่อยู่ตามที่พิมพ์ · หมุดเดิมยังอยู่':'ใช้ที่อยู่ตามที่พิมพ์ · แตะแผนที่เพื่อปักหมุดได้ (ไม่บังคับ)'}});
 /* กรอกที่อยู่เอง (แทนละติจูด/ลองจิจูด): รวมเป็นข้อความที่อยู่ แล้วลองปักหมุดโดยประมาณ */
 const BKK_DIST='พระนคร ดุสิต หนองจอก บางรัก บางเขน บางกะปิ ปทุมวัน ป้อมปราบศัตรูพ่าย พระโขนง มีนบุรี ลาดกระบัง ยานนาวา สัมพันธวงศ์ พญาไท ธนบุรี บางกอกใหญ่ ห้วยขวาง คลองสาน ตลิ่งชัน บางกอกน้อย บางขุนเทียน ภาษีเจริญ หนองแขม ราษฎร์บูรณะ บางพลัด ดินแดง บึงกุ่ม สาทร บางซื่อ จตุจักร บางคอแหลม ประเวศ คลองเตย สวนหลวง จอมทอง ดอนเมือง ราชเทวี ลาดพร้าว วัฒนา บางแค หลักสี่ สายไหม คันนายาว สะพานสูง วังทองหลาง คลองสามวา บางนา ทวีวัฒนา ทุ่งครุ บางบอน'.split(' ');
 $('#bkk-districts').innerHTML=BKK_DIST.map(d=>`<option value="${d}">`).join('');

@@ -609,3 +609,7 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .trip-nav button{width:48px;height:48px;border:0;border-radius:12px;background:#fff;color:#0F2188;display:grid;place-items:center}
 .trip-nav button:disabled{opacity:.35}
 .trip-txt{cursor:pointer}
+/* ช่องค้นหา: ไม่ให้มีกรอบซ้อนสองชั้น */
+.search-field input,.search-field input:focus,.search-field input:focus-visible{border:0!important;background:transparent!important;box-shadow:none!important;outline:none!important;padding-left:0!important;min-height:48px}
+.sug-free b{color:#0F2188}.sug-free .ic{color:#11723A}
+.sug-free{border-bottom:1px solid var(--line)}
