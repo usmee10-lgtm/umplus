@@ -201,18 +201,21 @@ function netbar(){const n=$('#netbar');if(navigator.onLine){n.hidden=true}else{n
 /* ---------- ฟอร์ม ---------- */
 const F={needs:new Set(),lat:null,lng:null,addrDirty:false,people:1,step:1,marker:null};
 $('#need-grid').innerHTML=NEED_TYPES.map(t=>`<button type="button" class="need-btn" data-need="${t.key}" aria-pressed="false">${ic(t.icon)}<span>${t.label}</span></button>`).join('');
-$('#need-grid').addEventListener('click',e=>{const b=e.target.closest('[data-need]');if(!b)return;const k=b.dataset.need;F.needs.has(k)?F.needs.delete(k):F.needs.add(k);b.setAttribute('aria-pressed',String(F.needs.has(k)));markOk('needs')});
+$('#need-grid').addEventListener('click',e=>{const b=e.target.closest('[data-need]');if(!b)return;const k=b.dataset.need;F.needs.has(k)?F.needs.delete(k):F.needs.add(k);b.setAttribute('aria-pressed',String(F.needs.has(k)));markOk('needs');syncOther(k==='other')});
+/* "อื่น ๆ" → ให้ผู้ใช้พิมพ์เองว่าต้องการอะไร */
+function syncOther(focus){const on=F.needs.has('other');$('#other-box').hidden=!on;if(!on){$('#other-in').value='';$('#err-other').hidden=true}else if(focus)setTimeout(()=>$('#other-in').focus(),80)}
+$('#other-in').addEventListener('input',()=>{if($('#other-in').value.trim()){$('#err-other').hidden=true;$('#sec-needs').classList.remove('invalid')}});
 function startForm(opt={}){
   resetForm();if(opt.type){F.needs.add(opt.type);$(`[data-need="${opt.type}"]`).setAttribute('aria-pressed','true')}
-  go('form');
+  go('form');syncOther(opt.type==='other');
   if(opt.loc){$('#addr-input').value=opt.loc.label||opt.loc.title;F.addrDirty=true;setPin(opt.loc.lat,opt.loc.lng,true,false)}
   if(opt.gps)useGPS();
 }
 function resetForm(){
   F.needs.clear();F.lat=F.lng=null;F.addrDirty=false;F.people=1;F.step=1;
-  $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));
+  $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
   ['#addr-input','#phone-in','#name-in','#details-in','#lat-in','#lng-in'].forEach(s=>$(s).value='');
-  $('#ppl-out').textContent='1';$$('input[name=level]').forEach(i=>i.checked=false);$('input[name=urg][value="รอได้"]').checked=true;
+  $('#ppl-out').textContent='1';$$('input[name=level]').forEach(i=>i.checked=false);
   $('#addr-status').textContent='';$('#pin-status').textContent='แตะแผนที่เพื่อปักหมุด หรือลากหมุดให้ตรง';
   if(F.marker){F.marker.remove();F.marker=null}
   ['needs','loc','phone'].forEach(markOk);showStep(1);
@@ -252,13 +255,15 @@ function markOk(k){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phon
 function markBad(k){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[k];$(sec).classList.add('invalid');$('#err-'+k).hidden=false}
 function validate(){const bad=[];
   if(!F.needs.size)bad.push('needs');
+  else if(F.needs.has('other')&&!$('#other-in').value.trim()){bad.push('needs');$('#err-other').hidden=false}
   if(!$('#addr-input').value.trim()&&F.lat==null)bad.push('loc');
   const d=$('#phone-in').value.replace(/\D/g,'');if(d.length<9||d.length>12)bad.push('phone');
-  bad.forEach(markBad);
-  if(bad.length){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[bad[0]];$(sec).scrollIntoView({behavior:'smooth',block:'center'});const inp=$(sec).querySelector('input');if(inp&&bad[0]!=='needs')setTimeout(()=>inp.focus({preventScroll:true}),400)}
+  bad.forEach(markBad);if(F.needs.size)$('#err-needs').hidden=true;
+  if(bad.length){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[bad[0]];$(sec).scrollIntoView({behavior:'smooth',block:'center'});const inp=bad[0]==='needs'&&!$('#other-box').hidden?$('#other-in'):$(sec).querySelector('input');if(inp&&(bad[0]!=='needs'||inp.id==='other-in'))setTimeout(()=>inp.focus({preventScroll:true}),400)}
   return !bad.length}
 function formData(){
-  return {needs:[...F.needs].map(k=>NEED_TYPES.find(t=>t.key===k).value),urgencyLabel:($('input[name=urg]:checked')||{}).value||'รอได้',
+  const other=$('#other-in').value.trim().replace(/\s+/g,' ');
+  return {needs:[...F.needs].map(k=>k==='other'&&other?'อื่น ๆ: '+other:NEED_TYPES.find(t=>t.key===k).value),urgencyLabel:'รอได้',
     people:F.people,level:($('input[name=level]:checked')||{}).value||'',address:$('#addr-input').value.trim(),
     lat:F.lat!=null?+F.lat.toFixed(6):'',lng:F.lng!=null?+F.lng.toFixed(6):'',phone:$('#phone-in').value.trim(),name:$('#name-in').value.trim(),
     details:$('#details-in').value.trim(),website:$('.hp').value}}
@@ -267,7 +272,7 @@ function showStep(n){F.step=n;$('#step1').hidden=n!==1;$('#step2').hidden=n!==2;
   const b=$('#form-next');b.className='btn '+(n===1?'btn-blue':'btn-green');b.textContent=n===1?'ถัดไป':'ส่งคำขอ';b.disabled=false;window.scrollTo(0,0)}
 function renderReview(d){
   const rows=[['list','ต้องการ',d.needs.join(', ')],['pin','ที่อยู่',[d.address,d.lat!==''?`(${d.lat}, ${d.lng})`:''].filter(Boolean).join(' ')],['phone','เบอร์โทร',d.phone],
-    ['alert','ความเร่งด่วน',URG_TH[URG_BY_LABEL[d.urgencyLabel]||1]],['users','จำนวนคน',d.people+' คน'],['wave','ระดับน้ำ',LEVEL_TH[d.level]||'ไม่ระบุ'],['user','ชื่อ',d.name||'-'],['note','รายละเอียด',d.details||'-']];
+['users','จำนวนคน',d.people+' คน'],['wave','ระดับน้ำ',LEVEL_TH[d.level]||'ไม่ระบุ'],['user','ชื่อ',d.name||'-'],['note','รายละเอียด',d.details||'-']];
   $('#review').innerHTML=rows.map(([i,k,v])=>`<div class="rv">${ic(i)}<span><small>${k}</small><b>${esc(v)}</b></span></div>`).join('');
 }
 $('#req-form').addEventListener('submit',async e=>{

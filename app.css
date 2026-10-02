@@ -500,3 +500,10 @@ a{color:var(--primary)}
   .type-btn{min-height:64px}
   .type-grid{gap:6px}
 }
+
+/* "อื่น ๆ" ให้พิมพ์เอง */
+.other-box{margin-top:12px;display:grid;gap:6px;animation:fadeIn .18s ease}
+.other-box label{font-size:14px;font-weight:700;color:var(--ink)}
+.other-box label em{color:var(--red);font-style:normal}
+.other-box input{width:100%;min-height:52px;font-size:16px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
