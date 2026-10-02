@@ -222,7 +222,7 @@ function reqRow(d,stHtml,id,extra){const row=document.createElement('div');row.c
   if(id){const x=document.createElement('button');x.type='button';x.className='x';x.setAttribute('aria-label','ซ่อนคำขอนี้');x.innerHTML=ic('close');x.onclick=()=>{saveMy(myReqs().filter(m=>m.id!==id));renderMyReq()};row.append(x)}
   return row}
 /* เซิร์ฟเวอร์ยังไม่มี action track → ใช้สถานะจากรายการเคสสาธารณะแทน (renderMyReq) และไม่ยิงซ้ำ */
-async function trackMine(){if(store.get('uh_no_track',''))return renderMyReq();for(const m of myReqs()){if(!m.token)continue;try{const r=await apiPost({action:'track',id:m.id,clientId:m.clientId||'',token:m.token},12000);if(r&&r.error==='unknown_action'){store.set('uh_no_track','1');break}if(r&&r.ok&&r.status)TRACK[m.id]={status:r.status,volunteer:r.volunteer,urgency:m.urgency}}catch(e){}}renderMyReq()}
+async function trackMine(){if(store.get('uh_no_track2',''))return renderMyReq();for(const m of myReqs()){if(!m.token)continue;try{const r=await apiPost({action:'track',id:m.id,clientId:m.clientId||'',token:m.token},12000);if(r&&r.error==='unknown_action'){store.set('uh_no_track2','1');break}if(r&&r.ok&&r.status)TRACK[m.id]={status:r.status,volunteer:r.volunteer,urgency:m.urgency}}catch(e){}}renderMyReq()}
 let flushing=false;
 async function flushQueue(){
   const q=queue();if(!q.length||flushing||!navigator.onLine)return;flushing=true;
@@ -694,6 +694,7 @@ $('#stats').addEventListener('click',e=>{const g=e.target.closest('[data-sgo]'),
   FL.q='';$('#case-search').value='';FL.people=[];FL.level=[];
   if(g){FL.status=g.dataset.sgo;FL.types=[]}else{FL.status='active';FL.types=[n.dataset.sneed]}
   saveFL();renderFilters();applyFilters();go('map');setSheet(true)});
+try{localStorage.removeItem('uh_no_track')}catch(e){}
 const startView=(location.hash||'#home').slice(1);
 go(['home','map','emergency','stats'].includes(startView)?startView:'home',false);
 history.replaceState({view:S.view},'','#'+S.view);
