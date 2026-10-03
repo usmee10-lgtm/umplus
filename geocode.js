@@ -81,19 +81,29 @@ function soiName(n){n=String(n||'').replace(/\s+/g,' ').trim();if(!n)return '';
   if(/^(ซอย|ตรอก|ถนน|ทางหลวง|ถ\.|ซ\.)/.test(n))return geoNorm(n);
   return /\d/.test(n)?'ซอย'+n:n}
 async function geoSoiAt(lat,lng){
-  const esri=fetch(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${lng},${lat}&langCode=TH&forStorage=false&outFields=Address,Neighborhood,District,City,Addr_type`)
+  /* Esri reverse 3 แบบ: ถนนที่ใกล้ที่สุด (วัดจากเส้นถนนจริง), บ้านเลขที่ใกล้ที่สุด, ทางแยกใกล้ที่สุด · แต่ละแบบบอกระยะ (ม.) */
+  const er=ft=>fetch(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${lng},${lat}&langCode=TH&forStorage=false&featureTypes=${ft}&outFields=Address,Addr_type,Distance,Neighborhood,District,City`)
     .then(r=>r.json()).then(j=>j.address||null).catch(()=>null);
   const osmSt=fetch(`${GEO.url}/reverse?lat=${lat}&lon=${lng}&limit=5&layer=street&radius=0.25`).then(r=>r.json()).then(j=>j.features||[]).catch(()=>[]);
-  const osm=geoReverseRaw(lat,lng);
-  const [e,sts,p]=await Promise.all([esri,osmSt,osm]);
-  const sois=[];const add=n=>{n=soiName(n);if(n&&!sois.some(x=>geoKey(x)===geoKey(n)))sois.push(n)};
-  if(e&&e.Address){const m=String(e.Address).match(SOI_RE);if(m)add(m[1]||m[2])}
-  if(p&&p.street)add(p.street);
-  if(p&&p.type==='street'&&p.name)add(p.name);
-  sts.forEach(f=>{const q=f.properties||{};if(q.name)add(q.name)});
+  const [sn,pa,si,sts,p]=await Promise.all([er('StreetName'),er('PointAddress'),er('StreetInt'),osmSt,geoReverseRaw(lat,lng)]);
+  const C=[];const add=(n,d,rank)=>{n=soiName(n);if(!n)return;const k=geoKey(n),o=C.find(x=>geoKey(x.name)===k);
+    if(o){if(d!=null&&(o.d==null||d<o.d))o.d=d;o.rank=Math.min(o.rank,rank)}else C.push({name:n,d:d==null?null:Math.round(d),rank})};
+  const dist=x=>x&&x.Distance!=null?Number(x.Distance):null;
+  const paSoi=pa&&pa.Address?(String(pa.Address).match(SOI_RE)||[])[0]:'';
+  /* บ้านเลขที่อยู่ติดหมุด (≤15 ม.) → ซอยของบ้านนั้นน่าจะใช่ที่สุด (ทางเข้าบ้าน) · ไม่งั้นใช้ถนนที่ใกล้ที่สุด */
+  if(paSoi&&dist(pa)!=null&&dist(pa)<=15)add(paSoi,dist(pa),0);
+  if(sn&&sn.Address)add(sn.Address,dist(sn),1);
+  if(paSoi)add(paSoi,dist(pa),2);
+  if(si&&si.Address)String(si.Address).split('&').forEach(n=>add(n.trim(),dist(si),3));
+  if(p&&p.street)add(p.street,null,4);
+  if(p&&p.type==='street'&&p.name)add(p.name,null,4);
+  sts.forEach(f=>{const q=f.properties||{};if(q.name)add(q.name,null,5)});
+  C.sort((x,y)=>x.rank-y.rank||(x.d??1e9)-(y.d??1e9));
   const clean=v=>String(v||'').replace(/^(แขวง|เขต)\s*/,'').trim();
-  const dist=clean((p&&p.district)||(e&&(e.City||e.District))),area=clean((p&&p.locality)||(e&&e.Neighborhood));
-  return {sois:sois.slice(0,4),area:area!==dist?area:'',dist,bkk:/กรุงเทพ/.test((p&&p.city||'')+(p&&p.state||'')+(e&&e.City||'')+(e&&e.Address||''))||!!dist}}
+  const e=pa||sn||{};
+  const dist2=clean((p&&p.district)||e.City||e.District),area=clean((p&&p.locality)||e.Neighborhood);
+  return {sois:C.slice(0,4).map(x=>x.name),cands:C.slice(0,4),area:area!==dist2?area:'',dist:dist2,
+    bkk:/กรุงเทพ/.test((p&&p.city||'')+(p&&p.state||'')+(e.City||'')+(e.Address||''))||!!dist2}}
 /* ผูกช่องพิมพ์กับรายการแนะนำ: onPick(item) */
 function geoAttach(input,list,onPick,opt={}){
   let tm=null,ctl=null,items=[],active=-1;

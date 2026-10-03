@@ -464,7 +464,8 @@ function pinNote(){const el=$('#pin-status');if(!el)return;const s=F.pinSrc;
 let soiSeq=0;
 function soiAddr(soi,info){return [soi,info.area?'แขวง'+info.area:'',info.dist?'เขต'+info.dist:'',info.dist&&info.bkk?'กรุงเทพฯ':''].filter(Boolean).join(' ')}
 function renderSoi(info,chosen){const box=$('#soi-pick'),row=$('#soi-chips');if(!info||!info.sois.length){box.hidden=true;return}
-  row.innerHTML=info.sois.map((n,i)=>`<button type="button" role="radio" aria-checked="${n===chosen}" data-soi="${i}">${esc(n)}</button>`).join('');box.hidden=false;
+  row.innerHTML=info.sois.map((n,i)=>{const c=(info.cands||[])[i]||{};return `<button type="button" role="radio" aria-checked="${n===chosen}" data-soi="${i}">${esc(n)}${c.d!=null?`<small>${c.d<=5?'ติดหมุด':c.d+' ม.'}</small>`:''}</button>`}).join('');box.hidden=false;
+  $('#soi-pick .soi-tip').textContent=F.pinSrc==='gps'&&F.pinAcc>40?'GPS ยังคลาด ±'+F.pinAcc+' ม. ซอยอาจไม่ตรง · ลากหมุดให้ตรงบ้านก่อน แล้วระบบหาซอยใหม่ให้':'ตัวเลขคือระยะจากหมุดถึงซอย · แตะซอยที่ถูก ระบบใส่ในที่อยู่ให้ · ไม่มีในนี้พิมพ์เองได้';
   row.onclick=e=>{const b=e.target.closest('[data-soi]');if(!b)return;const n=info.sois[+b.dataset.soi];F.soi=n;
     const cur=$('#addr-input').value.trim(),prev=F.soiAuto;
     /* ที่อยู่ที่ระบบเติมเอง → แทนทั้งบรรทัด · ที่อยู่ที่ผู้ใช้พิมพ์ → แทนเฉพาะซอยเดิม หรือเติมซอยไว้หน้า */
