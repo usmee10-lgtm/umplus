@@ -48,20 +48,23 @@ async function geoSuggest(q,signal){
     return {lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],title:L.title,sub:L.sub,label:L.full,bkk:geoIsBkk(p),dist:p.district||'',area:p.locality||'',type:p.type||'',name:p.name||'',street:p.street||'',src:'osm'}}).filter(x=>x&&x.title);
   const qk=geoKey(nq),bk=geoKey(P.base);
   const scored=items.map(x=>{const hay=(x.title+' '+x.sub).replace(/\s+/g,''),hk=geoKey(x.title+x.sub),tk=geoKey(x.title),own=x.title.match(/\d+/g)||[];let sc=0;
-      P.words.forEach(w=>{const wk=geoKey(w);if(hay.includes(w)||hk.includes(wk))sc+=w===P.base?6:2});
+      let hit=0;P.words.forEach(w=>{const wk=geoKey(w);if(hay.includes(w)||hk.includes(wk)){hit++;sc+=w===P.base?6:2}});
+      if(P.words.length>=2)sc+=4*hit-5*(P.words.length-hit);          /* ชื่อหลายคำ: ต้องตรงหลายคำ (ลุมพินี วิลล์ ลาดพร้าว ≠ ถนนลาดพร้าว) */
       P.nums.forEach((n,i)=>{if(own[i]===n)sc+=i===0?5:3;else if(own.includes(n))sc+=1});
       if(P.nums.length&&own.length&&!own.includes(P.nums[0]))sc-=2;   /* เลขซอยไม่ตรง */
-      if(bk&&!hk.includes(bk))sc-=5;                                   /* ไม่มีชื่อหลักเลย */
+      if(bk&&!hk.includes(bk)&&P.words.length<2)sc-=5;                 /* ไม่มีชื่อหลักเลย */
       if(tk===qk)sc+=10;else if(tk.startsWith(qk)||qk.startsWith(tk)&&tk.length>=4)sc+=5;else if(tk.includes(qk))sc+=3;   /* ชื่อตรงกับที่พิมพ์ */
       if(x.src==='esri'&&x.esri>=99)sc+=1;
       if(x.type==='poi'||x.type==='house'||x.type==='pointaddress')sc+=1;
       sc+=x.bkk?3:-3;x.score=sc;return x});
   /* รวมผลซ้ำ: ชื่อเดียวกันห่างกันไม่ถึง ~150 ม. = ที่เดียวกัน (เก็บอันที่คะแนนสูง/ที่อยู่ละเอียดกว่า) */
-  const near=(a,b)=>Math.abs(a.lat-b.lat)<.0014&&Math.abs(a.lng-b.lng)<.0014;
+  const near=(a,b,d=.0014)=>Math.abs(a.lat-b.lat)<d&&Math.abs(a.lng-b.lng)<d;
   const out=[];scored.sort((a,b)=>b.score-a.score||(b.sub||'').length-(a.sub||'').length).forEach(x=>{
-    const k=geoKey(x.title);if(out.some(o=>geoKey(o.title)===k&&near(o,x)))return;
+    const k=geoKey(x.title);if(out.some(o=>geoKey(o.title)===k&&near(o,x,.004)))return;   /* ชื่อเดียวกันใน ~400 ม. = ที่เดียวกัน (ห้าง/หมู่บ้านใหญ่) */
     if(out.some(o=>o.label===x.label&&o.lat.toFixed(3)===x.lat.toFixed(3)))return;out.push(x)});
-  return out.slice(0,8);
+  /* ตัดผลที่ไม่เกี่ยวออก (คะแนนติดลบ หรือห่างจากอันดับ 1 มาก) แต่ถ้าไม่มีอะไรเลยก็ยังแสดงที่ใกล้เคียงที่สุด */
+  const top=out.length?out[0].score:0,good=out.filter(x=>x.score>=0&&x.score>=top-14);
+  return (good.length?good:out).slice(0,8);
 }
 async function geoReverseRaw(lat,lng){
   try{const r=await fetch(`${GEO.url}/reverse?lat=${lat}&lon=${lng}&limit=1`);if(!r.ok)return null;const f=((await r.json()).features||[])[0];return f?f.properties||null:null}catch(e){return null}}
