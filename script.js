@@ -15,6 +15,7 @@ function levelSvg(k){const y=LEVEL_Y[k],c=LEVEL_COLOR[k];
   const wave=`<path class="lv-wv" d="M6 ${y} q4 -2.4 8 0 t8 0 t8 0 t8 0 t8 0 t8 0"/>`;
   return `<svg viewBox="0 0 60 64" aria-hidden="true">${house}<g class="lv-man"><circle cx="30" cy="9" r="5.5"/><rect x="24.5" y="16.5" width="11" height="20" rx="3"/><path d="M22.5 19l-3 13M37.5 19l3 13" class="lv-arm"/><rect x="25.2" y="35" width="4.3" height="25" rx="2"/><rect x="30.5" y="35" width="4.3" height="25" rx="2"/></g><rect class="lv-water" x="6" y="${y}" width="48" height="${62-y}" fill="${c}"/>${wave}</svg>`}
 function levelLabel(k){return LEVEL_TH[k]?LEVEL_TH[k]+' ('+LEVEL_CM[k]+')':'ไม่ระบุ'}
+document.addEventListener('change',e=>{if(e.target.name==='level'&&typeof markOk==='function')markOk('level')});
 (function(){const g=document.getElementById('level-chips');if(!g)return;g.innerHTML=Object.keys(LEVEL_TH).map(k=>`<label style="--lv:${LEVEL_COLOR[k]}"><input type="radio" name="level" value="${k}"><span>${levelSvg(k)}<b>${LEVEL_TH[k]}</b><small>${LEVEL_CM[k]}</small></span></label>`).join('')})();
 const STATUS_TH={open:'รอช่วย',going:'กำลังไป',done:'ช่วยแล้ว'};
 function iconify(root=document){root.querySelectorAll('[data-icon]').forEach(el=>{if(el.dataset.iconDone)return;el.insertAdjacentHTML('afterbegin',ic(el.dataset.icon));el.dataset.iconDone='1'})}
@@ -428,7 +429,7 @@ function resetForm(){
   F.needs.clear();F.photos=[];if($('#photo-row')){renderPhotos();markOk('photos')}F.lat=F.lng=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
   $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
   ['#addr-input','#phone-in','#name-in','#details-in','#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');MA.sub='';MA.picked=null;$('#ma-preview').hidden=true;$('#manual-addr').open=false;
-  $('#ppl-out').textContent='1';$$('input[name=level]').forEach(i=>i.checked=false);
+  $('#ppl-out').value='1';$$('input[name=level]').forEach(i=>i.checked=false);markOk('level');
   $('#addr-status').textContent='';$('#pin-status').textContent='แตะแผนที่เพื่อปักหมุด หรือลากหมุดให้ตรง';
   if(F.marker){F.marker.remove();F.marker=null}
   ['needs','loc','phone'].forEach(markOk);showStep(1);
@@ -511,22 +512,30 @@ $('#addr-apply').addEventListener('click',async()=>{
     else if(F.lat==null)st.textContent='ใช้ที่อยู่นี้แล้ว · แตะแผนที่เพื่อปักหมุดได้ (ไม่บังคับ)'}
   catch(e){st.textContent='ใช้ที่อยู่นี้แล้ว · แตะแผนที่เพื่อปักหมุดได้ (ไม่บังคับ)'}
 });
-$('#ppl-minus').addEventListener('click',()=>{F.people=Math.max(1,F.people-1);$('#ppl-out').textContent=F.people});
-$('#ppl-plus').addEventListener('click',()=>{F.people=Math.min(999,F.people+1);$('#ppl-out').textContent=F.people});
+const pplClamp=v=>Math.min(999,Math.max(1,Math.round(Number(v))||1));
+$('#ppl-minus').addEventListener('click',()=>{F.people=pplClamp(F.people-1);$('#ppl-out').value=F.people});
+$('#ppl-plus').addEventListener('click',()=>{F.people=pplClamp(F.people+1);$('#ppl-out').value=F.people});
+/* พิมพ์จำนวนคนเองได้ · ระหว่างพิมพ์ยอมให้ช่องว่างชั่วคราว ออกจากช่องแล้วค่อยปัดให้อยู่ใน 1–999 */
+$('#ppl-out').addEventListener('input',e=>{const t=e.target,d=t.value.replace(/\D/g,'').slice(0,3);if(t.value!==d)t.value=d;if(d)F.people=pplClamp(d)});
+/* แตะช่องแล้วล้างให้พิมพ์ใหม่ได้ทันที (ค่าเดิมแสดงจาง ๆ) · ไม่พิมพ์อะไรก็กลับเป็นค่าเดิม */
+$('#ppl-out').addEventListener('focus',e=>{const t=e.target;t.placeholder=String(F.people);t.value=''});
+$('#ppl-out').addEventListener('blur',e=>{const t=e.target;if(t.value.trim())F.people=pplClamp(t.value);t.value=F.people;t.placeholder=''});
+$('#ppl-out').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur()}});
 $('#phone-in').addEventListener('input',()=>markOk('phone'));
-const FIELD={needs:'#need-grid',loc:'#addr-input',phone:'#phone-in',photos:'#photo-in'};
-const SECS={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone',photos:'#sec-photos'};
+const FIELD={needs:'#need-grid',loc:'#addr-input',phone:'#phone-in',level:'#level-chips',photos:'#photo-in'};
+const SECS={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone',level:'#sec-level',photos:'#sec-photos'};
 function markOk(k){const sec=SECS[k];$(sec).classList.remove('invalid');$('#err-'+k).hidden=true;$(FIELD[k]).removeAttribute('aria-invalid')}
 function markBad(k){const sec=SECS[k];$(sec).classList.add('invalid');$('#err-'+k).hidden=false;$(FIELD[k]).setAttribute('aria-invalid','true')}
 function phoneOk(v){let d=String(v||'').replace(/\D/g,'');if(d.startsWith('66'))d='0'+d.slice(2);return /^0\d{8,9}$/.test(d)}
-function validate(){const bad=[];
+function validate(){const bad=[];if($('#ppl-out').value.trim())F.people=pplClamp($('#ppl-out').value);$('#ppl-out').value=F.people;
   if(!F.needs.size)bad.push('needs');
   else if(F.needs.has('other')&&!$('#other-in').value.trim()){bad.push('needs');$('#err-other').hidden=false}
   if(!$('#addr-input').value.trim()&&F.lat==null)bad.push('loc');
   if(!phoneOk($('#phone-in').value))bad.push('phone');
+  if(!$('input[name=level]:checked'))bad.push('level');
   if(!F.photos.length)bad.push('photos');
   bad.forEach(markBad);if(F.needs.size)$('#err-needs').hidden=true;
-  if(bad.length){const sec=SECS[bad[0]];$(sec).scrollIntoView({behavior:'smooth',block:'center'});const inp=bad[0]==='needs'&&!$('#other-box').hidden?$('#other-in'):$(sec).querySelector('input');if(inp&&bad[0]!=='photos'&&(bad[0]!=='needs'||inp.id==='other-in'))setTimeout(()=>inp.focus({preventScroll:true}),400)}
+  if(bad.length){const sec=SECS[bad[0]];$(sec).scrollIntoView({behavior:'smooth',block:'center'});const inp=bad[0]==='needs'&&!$('#other-box').hidden?$('#other-in'):$(sec).querySelector('input');if(inp&&bad[0]!=='photos'&&bad[0]!=='level'&&(bad[0]!=='needs'||inp.id==='other-in'))setTimeout(()=>inp.focus({preventScroll:true}),400)}
   return !bad.length}
 function formData(){
   const other=$('#other-in').value.trim().replace(/\s+/g,' ');

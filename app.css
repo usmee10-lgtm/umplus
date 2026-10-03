@@ -760,7 +760,17 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .rain-grad{width:56px!important;height:8px!important;border-radius:4px!important;background:linear-gradient(90deg,#9BE7FF,#3BA4F5,#1F4FD8,#F7D33A,#F2662F,#C8205B)}
 
 /* รูปภาพ (บังคับอย่างน้อย 1 รูป) */
-#sec-photos .req-star{color:var(--red)!important;font-style:normal}
+#sec-photos .req-star,#sec-level .req-star{color:var(--red)!important;font-style:normal}
 .photo-sec{border-radius:14px;transition:box-shadow .15s}
 .photo-sec.invalid .photo-add{box-shadow:0 0 0 2px var(--red);background:#FDECEC}
 .photo-sec .err{margin-top:8px}
+
+/* จำนวนคน: พิมพ์เองได้ */
+.stepper .ppl-in{width:84px;height:48px;box-sizing:border-box;border:1.5px solid var(--line);border-radius:14px;background:#fff;text-align:center;font:700 22px/1 inherit;color:var(--ink);padding:0 6px;-moz-appearance:textfield;appearance:textfield;font-variant-numeric:tabular-nums}
+.stepper .ppl-in::-webkit-outer-spin-button,.stepper .ppl-in::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.stepper .ppl-in:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--tint)}
+.stepper .ppl-unit{font-size:15px;font-weight:600;color:var(--muted);margin-left:-6px}
+/* ระดับน้ำ (บังคับ) */
+.level-sec.invalid .level-grid span{border-color:var(--red)}
+.level-sec .err{margin-top:8px}
+.stepper .ppl-in::placeholder{color:#B4BAD0}
