@@ -51,6 +51,7 @@ function setup() {
   teamSheet_();
   networkSheet_();
   outreachSheet_();
+  photoFolder_();   // ขอสิทธิ์ Google Drive สำหรับเก็บรูปแนบ (ครั้งแรกจะมีหน้าต่างให้กดอนุญาต)
   const props = PropertiesService.getScriptProperties();
   let key = props.getProperty('VOLUNTEER_KEY');
   if (!key) {
