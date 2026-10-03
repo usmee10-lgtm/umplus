@@ -30,7 +30,7 @@ function makeMap(el,opt={}){
     if(name==='sat')base=L.layerGroup([layer(ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',ESRI_ATTR),layer(ESRI+'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',''),layer(ESRI+'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}','')]);
     else if(typeof VEC!=='undefined'&&VEC.ok){
       /* ถนน / มืด: แผนที่เวกเตอร์ OpenFreeMap (ข้อมูล OpenStreetMap · ฟรี ไม่มีลิมิต · ชื่อถนนซอยภาษาไทยละเอียด) */
-      base=L.maplibreGL({style:VEC.styles[name==='dark'?'dark':'road'],attribution:MAPCFG.attr,interactive:false});
+      base=L.maplibreGL({style:VEC.styles[name==='dark'?'dark':'road'],attribution:MAPCFG.attr,attributionControl:false,interactive:false});
     }
     else if(name==='dark')base=L.layerGroup([layer(ESRI+'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',ESRI_ATTR,{maxZoom:16,maxNativeZoom:16}),layer(ESRI+'Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}','',{maxZoom:16,maxNativeZoom:16})]);
     else{
