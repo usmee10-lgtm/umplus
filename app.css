@@ -747,3 +747,14 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .sh-row{display:grid;grid-template-columns:86px minmax(0,1fr);gap:6px;font-size:13px;line-height:1.4}
 .sh-row span{color:var(--muted)}.sh-row .sh-v{color:var(--ink);overflow-wrap:anywhere}
 .sh-upd{color:var(--muted);font-size:12px}
+
+/* เรดาร์ฝน */
+.rain-ctl{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border-radius:999px;background:rgba(255,255,255,.94);box-shadow:0 2px 8px rgba(22,27,61,.22);font-family:inherit;color:var(--ink)}
+.rain-ctl button{display:grid;place-items:center;width:32px;height:32px;border:0;border-radius:50%;background:#2563EB;color:#fff;cursor:pointer;padding:0}
+.rain-ctl button .ic{width:16px;height:16px;fill:currentColor}
+.rain-ctl span{display:grid;line-height:1.15}
+.rain-ctl small{font-size:10.5px;color:var(--muted)}
+.rain-ctl b{font-size:14px;font-variant-numeric:tabular-nums}
+.rain-ctl.past button{background:#F59E0B}
+.rain-scale{gap:8px!important}
+.rain-grad{width:56px!important;height:8px!important;border-radius:4px!important;background:linear-gradient(90deg,#9BE7FF,#3BA4F5,#1F4FD8,#F7D33A,#F2662F,#C8205B)}

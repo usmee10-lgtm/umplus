@@ -132,7 +132,7 @@ async function ensureMap(which){
   if(S.maps[which])return S.maps[which];
   const m=makeMap(el,{zoom:11});S.maps[which]=m;PIN_LAYER[which]=L.layerGroup().addTo(m);
   m.on('baselayerchange',()=>{});
-  drawPins(which);if(store.get('uh_lay_flood','1')!=='0')toggleFlood(true);if(store.get('uh_lay_teams',''))toggleTeams(true);if(store.get('uh_lay_cctv',''))toggleCctv(true);if(store.get('uh_lay_shelter','1')!=='0')toggleShelter(true);
+  drawPins(which);if(store.get('uh_lay_flood','1')!=='0')toggleFlood(true);if(store.get('uh_lay_teams',''))toggleTeams(true);if(store.get('uh_lay_cctv',''))toggleCctv(true);if(store.get('uh_lay_shelter','1')!=='0')toggleShelter(true);if(store.get('uh_lay_rain',''))toggleRain(true);
   if(which==='map'&&typeof drawTrip==='function')drawTrip();
   return m;
 }
@@ -182,7 +182,7 @@ document.addEventListener('click',e=>{
 let layerBtn=null;
 /* รายการชั้นข้อมูลอยู่ในกล่องสีน้ำเงินหน้าแรก · ถ้าเปิดเมนูจากหน้าแผนที่ ยกรายการเดียวกันไปแสดงในเมนูลอยชั่วคราว */
 function layListTo(menu){const l=$('#lay-list');if(!l)return;if(menu){if(l.parentNode!==menu)menu.append(l);l.classList.add('in-menu')}else{const c=$('#lay-card');if(l.parentNode!==c)c.append(l);l.classList.remove('in-menu')}}
-var LAY_NAMES={'lay-shelter':'ศูนย์พักพิง','lay-flood':'น้ำท่วม','lay-teams':'ทีมช่วยเหลือ','lay-cctv':'CCTV'};
+var LAY_NAMES={'lay-shelter':'ศูนย์พักพิง','lay-rain':'เรดาร์ฝน','lay-flood':'น้ำท่วม','lay-teams':'ทีมช่วยเหลือ','lay-cctv':'CCTV'};
 function layCount(){const on=Object.keys(LAY_NAMES).filter(id=>$('#'+id)&&$('#'+id).checked);const s=$('#lay-sum-s');if(s)s.textContent=on.length?'เปิดอยู่: '+on.map(id=>LAY_NAMES[id]).join(' · '):'ยังไม่ได้เปิดชั้นข้อมูล';const c=$('#lay-card');if(c)c.classList.toggle('has-on',on.length>0)}
 (function(){const c=$('#lay-card');if(!c)return;if(store.get('uh_lay_open','')==='1')c.open=true;c.addEventListener('toggle',()=>store.set('uh_lay_open',c.open?'1':''));$$('#lay-list .sw-in').forEach(i=>i.addEventListener('change',layCount));layCount()})();
 function closeLayerMenu(refocus){const m=$('#layer-menu');if(!m)return;const was=!m.hidden;m.hidden=true;layListTo(null);$$('.fab[data-act=layers]').forEach(b=>b.setAttribute('aria-expanded','false'));if(was&&refocus&&layerBtn)layerBtn.focus()}
@@ -270,6 +270,40 @@ async function toggleShelter(on){store.set('uh_lay_shelter',on?'1':'0');$('#lay-
   if(!n&&S.volunteer)toast('ยังไม่มีศูนย์พักพิงบนแผนที่ · เพิ่มได้ในแท็บ "ศูนย์พักพิง" ในชีต',{ms:7000});
   if(S.volunteer&&sr&&sr.noLocation)toast(`มี ${sr.noLocation} จุดในแท็บ "ศูนย์พักพิง" ที่ยังอ่านพิกัดไม่ได้`,{ms:8000})}
 $('#lay-shelter').addEventListener('change',e=>toggleShelter(e.target.checked));
+/* ชั้นเรดาร์ฝน (RainViewer · ฟรี ใช้ภาพย้อนหลัง 2 ชม. ทุก 10 นาที, ซูมจริงสูงสุดระดับ 7) */
+const RAIN_ATTR='Weather data by <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>';
+const RAIN_OP=.62;let rainGen=0,rainRefresh=null,rainAnim=null;
+async function rainMeta(force){if(!force&&S.rain&&Date.now()-S.rainAt<5*60e3)return S.rain;
+  const r=await fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'}).then(r=>r.json());
+  if(!r||!r.host||!r.radar||!(r.radar.past||[]).length)throw new Error('rain');S.rain=r;S.rainAt=Date.now();return r}
+const rainFrames=()=>(S.rain&&S.rain.radar&&S.rain.radar.past)||[];
+const rainTime=f=>new Date(f.time*1000).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+function rainStop(){if(rainAnim){clearInterval(rainAnim);rainAnim=null}const fr=rainFrames();Object.values(S.maps).forEach(m=>m&&rainShow(m,fr.length-1));rainCtlSync()}
+function rainShow(m,i){if(!m||!m._rainL)return;m._rainL.forEach((l,j)=>{if(j===i&&!m.hasLayer(l))l.addTo(m);if(m.hasLayer(l))l.setOpacity(j===i?RAIN_OP:0)});m._rainI=i}
+function rainCtlSync(){const fr=rainFrames();Object.values(S.maps).forEach(m=>{if(!m||!m._rainCtl)return;const el=m._rainCtl.getContainer(),i=m._rainI==null?fr.length-1:m._rainI,f=fr[i];if(!f)return;
+  el.querySelector('button').innerHTML=ic(rainAnim?'pause':'play');el.querySelector('button').setAttribute('aria-label',rainAnim?'หยุดเล่นภาพเรดาร์':'เล่นภาพเรดาร์ย้อนหลัง 2 ชั่วโมง');
+  el.querySelector('b').textContent=rainTime(f);el.querySelector('small').textContent=i===fr.length-1?'ล่าสุด':'ย้อนหลัง';el.classList.toggle('past',i!==fr.length-1)})}
+function rainPlay(){if(rainAnim){rainStop();return}const fr=rainFrames();if(fr.length<2)return;let i=0;
+  Object.values(S.maps).forEach(m=>m&&m._rainL&&m._rainL.forEach(l=>{if(!m.hasLayer(l))l.setOpacity(0).addTo(m)}));
+  const step=()=>{Object.values(S.maps).forEach(m=>rainShow(m,i));rainCtlSync();i++;if(i>=fr.length){clearInterval(rainAnim);rainAnim=null;setTimeout(()=>{if(!rainAnim)rainStop()},1200)}};
+  step();rainAnim=setInterval(step,700);rainCtlSync()}
+function rainClear(m){if(!m)return;if(m._rainL){m._rainL.forEach(l=>m.removeLayer(l));m._rainL=null}if(m._rainCtl){m._rainCtl.remove();m._rainCtl=null}m.attributionControl&&m.attributionControl.removeAttribution(RAIN_ATTR)}
+function drawRain(){if(rainAnim){clearInterval(rainAnim);rainAnim=null}const fr=rainFrames();
+  Object.values(S.maps).forEach(m=>{if(!m)return;rainClear(m);if(store.get('uh_lay_rain','')!=='1'||!fr.length)return;
+    if(!m.getPane('rain')){const p=m.createPane('rain');p.style.zIndex=350;p.style.pointerEvents='none'}
+    m._rainL=fr.map(f=>L.tileLayer(S.rain.host+f.path+'/256/{z}/{x}/{y}/2/1_0.png',{pane:'rain',opacity:0,maxNativeZoom:7,maxZoom:20,tileSize:256}));
+    rainShow(m,fr.length-1);m.attributionControl&&m.attributionControl.addAttribution(RAIN_ATTR);
+    const C=L.Control.extend({onAdd(){const d=L.DomUtil.create('div','rain-ctl');d.innerHTML='<button type="button"></button><span><small></small><b></b></span>';
+      L.DomEvent.disableClickPropagation(d);d.querySelector('button').addEventListener('click',rainPlay);return d}});
+    m._rainCtl=new C({position:'bottomleft'}).addTo(m)});
+  rainCtlSync();const sub=$('#rain-sub');if(sub&&fr.length)sub.textContent='ภาพล่าสุด '+rainTime(fr[fr.length-1])+' น. · อัปเดตทุก 10 นาที'}
+async function toggleRain(on){store.set('uh_lay_rain',on?'1':'');$('#lay-rain').checked=on;layCount();const gen=++rainGen;
+  if(rainRefresh){clearInterval(rainRefresh);rainRefresh=null}
+  if(!on){if(rainAnim){clearInterval(rainAnim);rainAnim=null}Object.values(S.maps).forEach(rainClear);const sub=$('#rain-sub');if(sub)sub.textContent='ฝนตกตรงไหน · ดูย้อนหลัง 2 ชม. ได้';return}
+  try{await rainMeta();if(gen!==rainGen)return;drawRain();
+    rainRefresh=setInterval(async()=>{if(document.hidden||rainAnim)return;const last=(rainFrames().slice(-1)[0]||{}).time;try{await rainMeta(true);if((rainFrames().slice(-1)[0]||{}).time!==last)drawRain()}catch(e){}},5*60e3)}
+  catch(e){if(gen!==rainGen)return;toast('โหลดเรดาร์ฝนไม่สำเร็จ');store.set('uh_lay_rain','');$('#lay-rain').checked=false;layCount()}}
+$('#lay-rain').addEventListener('change',e=>toggleRain(e.target.checked));
 /* ชั้นกล้อง CCTV (ข้อมูล POPNIX Flood) · ซูมเข้า (ระดับ 12 ขึ้นไป) ถึงจะแสดง ไม่ให้จุดรกทั้งเมือง */
 let cctvGen=0;const CCTV_ZOOM=12;
 /* ไอคอนกล้องวงจรปิด วาดลง canvas (เบากว่าใช้ HTML ทีละตัว เพราะมีกล้องหลักพัน) */

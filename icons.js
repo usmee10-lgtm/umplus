@@ -45,6 +45,9 @@ const ICONS={
   moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',
   road:'<path d="M6 21 9 3M18 21 15 3M12 5v2M12 11v2M12 17v2"/>',
   cam:'<path d="M3 7h11a2 2 0 0 1 2 2v1l5-3v10l-5-3v1a2 2 0 0 1-2 2H3z"/><circle cx="8.5" cy="12" r="2"/>',
+  rain:'<path d="M7 15a4.5 4.5 0 1 1 .9-8.9A6 6 0 0 1 19 8.5 3.5 3.5 0 0 1 18 15z"/><path d="M8 18.5 7 21M12.5 18.5l-1 2.5M17 18.5l-1 2.5"/>',
+  play:'<path d="M8 5.5v13l10.5-6.5z"/>',
+  pause:'<path d="M8 5v14M16 5v14"/>',
   chev:'<path d="m6 9 6 6 6-6"/>',
   chart:'<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>'
 };
