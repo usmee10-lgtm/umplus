@@ -1,6 +1,6 @@
 /* Service worker: network-first เก็บหน้าไว้ใช้ตอนสัญญาณแย่ · เปลี่ยน CACHE ทุกครั้งที่แก้ไฟล์ */
-const CACHE='ummatee-v44';
-const SHELL=['./','./index.html','./app.css','./icons.js','./geocode.js','./location.js','./hotlines.js','./script.js','./manifest.webmanifest','./assets/ummatee-logo.png','./assets/helpme-logo.png','./assets/icon-192.png','./assets/icon-512.png'];
+const CACHE='ummatee-v45';
+const SHELL=['./','./index.html','./app.css','./icons.js','./geocode.js','./location.js','./hotlines.js','./script.js','./manifest.webmanifest','./assets/ummatee-logo.png','./assets/helpme-logo.png','./assets/hm-icon-192.png','./assets/hm-icon-512.png'];
 /* ถ้าโหลดไฟล์หลักไม่ครบ ให้ติดตั้งล้มเหลว → SW ตัวเก่า (และแคชเก่า) ยังใช้งานได้ ไม่หายทั้งชุด */
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k!==CACHE+'-ext').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});

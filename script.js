@@ -1,4 +1,4 @@
-/* UMMATEE ช่วยเหลือฉุกเฉิน — แอปหลัก */
+/* Help Me ช่วยด้วย — แอปหลัก */
 const API_URL='https://script.google.com/macros/s/AKfycbyWeVDhToFJntjTGHprDEByEfRFdSbOidlR7QhJ6xG1bz7co2gCRkTGIoKDI9tJqGkWTw/exec';
 const REFRESH_MS=30000,QUEUE_MS=20000;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
