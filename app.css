@@ -774,3 +774,4 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .level-sec.invalid .level-grid span{border-color:var(--red)}
 .level-sec .err{margin-top:8px}
 .stepper .ppl-in::placeholder{color:#B4BAD0}
+.stepper .ppl-in{width:84px!important;flex:0 0 84px!important;min-height:48px;margin:0}
