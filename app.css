@@ -788,3 +788,11 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 @media (prefers-reduced-motion:reduce){#form-gps.busy .ic{animation:none}}
 .form-map{height:280px}
 .pinsrc{display:flex;align-items:center;gap:6px;margin:8px 0 0}.pinsrc .ic{width:16px;height:16px;color:var(--primary)}
+
+/* อยู่ซอยไหน */
+.soi-pick{display:grid;gap:6px;margin-top:8px;padding:10px 12px;border-radius:14px;background:var(--tint)}
+.soi-q{font-size:13.5px;font-weight:700;color:var(--ink)}
+.soi-chips{display:flex;flex-wrap:wrap;gap:6px}
+.soi-chips button{border:1.5px solid var(--tint-2);background:#fff;color:var(--ink);border-radius:999px;padding:7px 12px;font:600 13.5px/1.2 inherit;cursor:pointer;min-height:36px}
+.soi-chips button[aria-checked=true]{background:var(--primary);border-color:var(--primary);color:#fff}
+.soi-tip{font-size:12px;color:var(--muted)}

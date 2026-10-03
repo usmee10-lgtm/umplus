@@ -74,6 +74,26 @@ async function geoReverse(lat,lng){
   try{const r=await fetch(`${GEO.url}/reverse?lat=${lat}&lon=${lng}&limit=1`);if(!r.ok)return '';
     const f=((await r.json()).features||[])[0];if(!f)return '';return geoLabel(f.properties||{}).full}catch(e){return ''}
 }
+/* หาว่าหมุดอยู่ซอยไหน: รวม 2 แหล่ง → {sois:[ชื่อซอย/ถนน เรียงจากน่าจะใช่ที่สุด], area:แขวง, dist:เขต}
+   Esri ให้ที่อยู่ระดับบ้าน (มักบอกซอยย่อย) · OSM ให้ซอยใกล้เคียงหลายเส้น */
+const SOI_RE=/((?:ซอย|ตรอก)\s?[^\s,]+(?:\s\d[\d/-]*)?(?:\s?แยก\s?\d[\d/-]*)*)|(ถนน[^\s,]+(?:\s\d[\d/-]*)?)/;
+function soiName(n){n=String(n||'').replace(/\s+/g,' ').trim();if(!n)return '';
+  if(/^(ซอย|ตรอก|ถนน|ทางหลวง|ถ\.|ซ\.)/.test(n))return geoNorm(n);
+  return /\d/.test(n)?'ซอย'+n:n}
+async function geoSoiAt(lat,lng){
+  const esri=fetch(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${lng},${lat}&langCode=TH&forStorage=false&outFields=Address,Neighborhood,District,City,Addr_type`)
+    .then(r=>r.json()).then(j=>j.address||null).catch(()=>null);
+  const osmSt=fetch(`${GEO.url}/reverse?lat=${lat}&lon=${lng}&limit=5&layer=street&radius=0.25`).then(r=>r.json()).then(j=>j.features||[]).catch(()=>[]);
+  const osm=geoReverseRaw(lat,lng);
+  const [e,sts,p]=await Promise.all([esri,osmSt,osm]);
+  const sois=[];const add=n=>{n=soiName(n);if(n&&!sois.some(x=>geoKey(x)===geoKey(n)))sois.push(n)};
+  if(e&&e.Address){const m=String(e.Address).match(SOI_RE);if(m)add(m[1]||m[2])}
+  if(p&&p.street)add(p.street);
+  if(p&&p.type==='street'&&p.name)add(p.name);
+  sts.forEach(f=>{const q=f.properties||{};if(q.name)add(q.name)});
+  const clean=v=>String(v||'').replace(/^(แขวง|เขต)\s*/,'').trim();
+  const dist=clean((p&&p.district)||(e&&(e.City||e.District))),area=clean((p&&p.locality)||(e&&e.Neighborhood));
+  return {sois:sois.slice(0,4),area:area!==dist?area:'',dist,bkk:/กรุงเทพ/.test((p&&p.city||'')+(p&&p.state||'')+(e&&e.City||'')+(e&&e.Address||''))||!!dist}}
 /* ผูกช่องพิมพ์กับรายการแนะนำ: onPick(item) */
 function geoAttach(input,list,onPick,opt={}){
   let tm=null,ctl=null,items=[],active=-1;

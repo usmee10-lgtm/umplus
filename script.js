@@ -426,7 +426,7 @@ function startForm(opt={}){
   if(opt.gps)useGPS();
 }
 function resetForm(){
-  F.needs.clear();F.photos=[];if($('#photo-row')){renderPhotos();markOk('photos')}F.lat=F.lng=null;F.pinSrc='';F.pinAcc=null;if(F.accCircle){F.accCircle.remove();F.accCircle=null}F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
+  F.needs.clear();F.photos=[];if($('#photo-row')){renderPhotos();markOk('photos')}F.lat=F.lng=null;F.soi='';F.soiAuto='';F.soiPrev='';F.soiInfo=null;soiSeq++;if($('#soi-pick'))$('#soi-pick').hidden=true;F.pinSrc='';F.pinAcc=null;if(F.accCircle){F.accCircle.remove();F.accCircle=null}F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
   $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
   ['#addr-input','#phone-in','#name-in','#details-in','#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');MA.sub='';MA.picked=null;$('#ma-preview').hidden=true;$('#manual-addr').open=false;
   $('#ppl-out').value='1';$$('input[name=level]').forEach(i=>i.checked=false);markOk('level');
@@ -460,6 +460,22 @@ function pinNote(){const el=$('#pin-status');if(!el)return;const s=F.pinSrc;
   else if(s==='link')el.innerHTML='<i class="acc-dot good"></i>ปักตามพิกัดที่วาง · ลากปรับได้';
   else if(s==='addr')el.innerHTML='<i class="acc-dot ok"></i>หมุดโดยประมาณจากที่อยู่ · ลากให้ตรงบ้าน';
   else el.textContent='ปักหมุดแล้ว · ลากหมุดเพื่อปรับให้ตรง'}
+/* ซอยของหมุด: แสดงตัวเลือกซอย แล้วเติมที่อยู่ "ซอย… แขวง… เขต… กรุงเทพฯ" (ถ้าผู้ใช้ยังไม่ได้พิมพ์ที่อยู่เอง) */
+let soiSeq=0;
+function soiAddr(soi,info){return [soi,info.area?'แขวง'+info.area:'',info.dist?'เขต'+info.dist:'',info.dist&&info.bkk?'กรุงเทพฯ':''].filter(Boolean).join(' ')}
+function renderSoi(info,chosen){const box=$('#soi-pick'),row=$('#soi-chips');if(!info||!info.sois.length){box.hidden=true;return}
+  row.innerHTML=info.sois.map((n,i)=>`<button type="button" role="radio" aria-checked="${n===chosen}" data-soi="${i}">${esc(n)}</button>`).join('');box.hidden=false;
+  row.onclick=e=>{const b=e.target.closest('[data-soi]');if(!b)return;const n=info.sois[+b.dataset.soi];F.soi=n;
+    const cur=$('#addr-input').value.trim(),prev=F.soiAuto;
+    /* ที่อยู่ที่ระบบเติมเอง → แทนทั้งบรรทัด · ที่อยู่ที่ผู้ใช้พิมพ์ → แทนเฉพาะซอยเดิม หรือเติมซอยไว้หน้า */
+    let next;if(!F.addrDirty||cur===prev)next=soiAddr(n,info);else if(F.soiPrev&&cur.includes(F.soiPrev))next=cur.replace(F.soiPrev,n);else if(!geoKey(cur).includes(geoKey(n)))next=n+' '+cur;else next=cur;
+    $('#addr-input').value=next;F.soiAuto=next;F.soiPrev=n;F.addrDirty=true;markOk('loc');renderSoi(info,n);$('#addr-status').textContent='ใส่ซอยในที่อยู่แล้ว · แก้ได้'}}
+async function fillSoi(){if(F.lat==null)return;const my=++soiSeq,lat=F.lat,lng=F.lng;
+  const info=await geoSoiAt(lat,lng);if(my!==soiSeq||F.lat!==lat||F.lng!==lng)return;F.soiInfo=info;
+  if(!info.sois.length){renderSoi(null);if(!F.addrDirty&&(info.area||info.dist)){const t=soiAddr('',info);$('#addr-input').value=t;F.soiAuto=t}return}
+  const cur=$('#addr-input').value.trim(),auto=!F.addrDirty||cur===F.soiAuto;
+  if(auto){const t=soiAddr(info.sois[0],info);$('#addr-input').value=t;F.soiAuto=t;F.soiPrev=info.sois[0];F.soi=info.sois[0];$('#addr-status').textContent='เติมที่อยู่จากหมุดให้แล้ว · ถ้าซอยไม่ถูก แตะเลือกด้านล่าง'}
+  renderSoi(info,auto?info.sois[0]:(info.sois.find(n=>geoKey(cur).includes(geoKey(n)))||''))}
 async function setPin(lat,lng,pan=true,reverse=true,src,acc){
   F.pinSeq=(F.pinSeq||0)+1;F.lat=+lat;F.lng=+lng;markOk('loc');
   if(src){F.pinSrc=src;if(acc!=null)F.pinAcc=acc}
@@ -471,7 +487,7 @@ async function setPin(lat,lng,pan=true,reverse=true,src,acc){
     if(F.pinSrc==='gps'&&F.pinAcc)F.accCircle=L.circle([F.lat,F.lng],{radius:F.pinAcc,color:'#2563EB',weight:1.5,fillColor:'#2563EB',fillOpacity:.12,interactive:false}).addTo(m);
     if(pan){const z=F.pinSrc==='gps'?(F.pinAcc<=30?18:F.pinAcc<=100?17:16):F.pinSrc==='addr'?17:18;m.setView([F.lat,F.lng],Math.max(m.getZoom(),z))}}
   pinNote();
-  if(reverse&&!F.addrDirty){const t=await geoReverse(F.lat,F.lng);if(t&&!F.addrDirty){$('#addr-input').value=t;$('#addr-status').textContent='เติมที่อยู่จากหมุดให้แล้ว · แก้ได้'}}
+  if(reverse)fillSoi();else renderSoi(null);
 }
 const IN_LINE=/\bLine\//i.test(navigator.userAgent),IN_FB=/FBAN|FBAV|Instagram/i.test(navigator.userAgent);
 function gpsHelp(code){const os=/iPhone|iPad|iPod/i.test(navigator.userAgent)?'ios':/Android/i.test(navigator.userAgent)?'android':'';
@@ -489,7 +505,7 @@ async function useGPS(){
         st.textContent=f.accuracy>20?'กำลังปรับให้แม่นขึ้น… ±'+f.accuracy+' ม.':'พบตำแหน่งแล้ว'});
     if(mine===null){st.textContent=st.textContent.startsWith('กำลังหาตำแหน่ง')?'':st.textContent;return}
     if(F.pinSeq===mine){st.textContent=p.accuracy<=60?'พบตำแหน่งแล้ว · ±'+p.accuracy+' ม.':'ได้ตำแหน่งคร่าว ๆ ±'+p.accuracy+' ม. · ลากหมุดให้ตรงบ้าน หรือลองกดใหม่ในที่โล่ง';
-      if(!F.addrDirty){const t=await geoReverse(F.lat,F.lng);if(t&&!F.addrDirty){$('#addr-input').value=t;st.textContent+=' · เติมที่อยู่ให้แล้ว (แก้ได้)'}}}}
+      await fillSoi()}}
   catch(e){st.textContent=gpsHelp(e&&e.code)}
   finally{btn.disabled=false;btn.classList.remove('busy')}
 }
