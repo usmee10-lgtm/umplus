@@ -1,6 +1,11 @@
-/* ค้นหาที่อยู่ด้วย Photon (photon.komoot.io) + Esri World Geocoder: แนะนำเมื่อพิมพ์ 3 ตัวอักษรขึ้นไป (หน่วง 350ms)
+/* ค้นหาที่อยู่ด้วย Photon (OpenStreetMap) ผ่าน proxy ของเรา /api/geo (แคชที่ Cloudflare · สลับไป Photon ที่ตั้งเองได้): แนะนำเมื่อพิมพ์ 3 ตัวอักษรขึ้นไป (หน่วง 350ms)
    จำกัดผลในไทย ให้ผลในกรุงเทพฯ ขึ้นก่อน และแปลงพิกัดเป็นที่อยู่ (reverse) */
-const GEO={url:'https://photon.komoot.io',bbox:'97.3,5.6,105.7,20.5',bkk:{lat:13.7563,lng:100.5018}};
+const GEO={proxy:'/api/geo',direct:'https://photon.komoot.io',bbox:'97.3,5.6,105.7,20.5',bkk:{lat:13.7563,lng:100.5018}};
+/* เรียก Photon: ผ่าน proxy ก่อน (แคช + self-hosted) ถ้า proxy ใช้ไม่ได้ (เช่น เปิดไฟล์ในเครื่อง) ค่อยเรียก Photon สาธารณะตรง ๆ */
+let GEO_PROXY_OK=!/^(file:|http:\/\/(localhost|127\.))/.test(location.href);
+async function photonGet(path,signal){
+  if(GEO_PROXY_OK){try{const r=await fetch(GEO.proxy+path,{signal});if(r.ok)return await r.json();if(r.status===404)GEO_PROXY_OK=false}catch(e){if(e.name==='AbortError')throw e}}
+  const r=await fetch(GEO.direct+path,{signal});if(!r.ok)throw new Error('geo '+r.status);return r.json()}
 const GEO_ABBR=[[/(^|\s)ถ\.\s*/g,'$1ถนน'],[/(^|\s)ซ\.\s*/g,'$1ซอย'],[/(^|\s)ต\.\s*/g,'$1ตำบล'],[/(^|\s)อ\.\s*/g,'$1อำเภอ'],[/(^|\s)จ\.\s*/g,'$1จังหวัด'],[/กทม\.?/g,'กรุงเทพมหานคร'],
   [/รพ\.?\s*สต\.\s*/g,'โรงพยาบาลส่งเสริมสุขภาพตำบล'],[/(^|\s)รพ\.\s*/g,'$1โรงพยาบาล'],[/(^|\s)รร\.\s*/g,'$1โรงเรียน'],[/(^|\s)(มบ|หมบ)\.\s*/g,'$1หมู่บ้าน'],
   [/(^|\s)สน\.\s*/g,'$1สถานีตำรวจนครบาล'],[/(^|\s)ม\.ราม(คำแหง)?/g,'$1มหาวิทยาลัยรามคำแหง'],[/(^|\s)ร\.ร\.\s*/g,'$1โรงเรียน'],[/(^|\s)ร\.พ\.\s*/g,'$1โรงพยาบาล']];
@@ -20,28 +25,15 @@ function geoParts(nq){const nums=[],words=[];let prev='';
     const m=w.match(/^(.*?[^\d\s])(\d+)$/);if(m){words.push(m[1]);nums.push(m[2])}else if(!/^\d/.test(w))words.push(w)});
   return {base:words.sort((x,y)=>y.length-x.length)[0]||'',words,nums}}
 async function geoQuery(q,signal,limit=10){
-  const u=`${GEO.url}/api/?limit=${limit}&lang=default&lat=${GEO.bkk.lat}&lon=${GEO.bkk.lng}&location_bias_scale=0.4&bbox=${GEO.bbox}&q=${encodeURIComponent(q)}`;
-  const r=await fetch(u,{signal});if(!r.ok)throw new Error('geo '+r.status);return (await r.json()).features||[]}
+  return (await photonGet(`/api/?limit=${limit}&lang=default&lat=${GEO.bkk.lat}&lon=${GEO.bkk.lng}&location_bias_scale=0.4&bbox=${GEO.bbox}&q=${encodeURIComponent(q)}`,signal)).features||[]}
 /* เทียบชื่อแบบหลวม: ตัดวรรณยุกต์/ไม้ไต่คู้/การันต์ ช่องว่าง และเครื่องหมาย (ดารุ้ล = ดารุล, เดอะมอลล์ บางกะปิ = เดอะมอลล์บางกะปิ) */
 const geoKey=s=>String(s||'').toLowerCase().replace(/[็-๎]/g,'').replace(/[\s.,\-–()'"/]/g,'');
-/* แหล่งที่ 2: Esri World Geocoder (ข้อมูลสถานที่ไทยละเอียด: โรงเรียน มัสยิด หมู่บ้าน ร้านค้า บ้านเลขที่) · ไม่ต้องใช้ key สำหรับการค้นหา */
-const ESRI_GEO='https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates';
-async function esriQuery(q,signal,limit=8){
-  const u=`${ESRI_GEO}?f=json&singleLine=${encodeURIComponent(q)}&countryCode=THA&location=${GEO.bkk.lng},${GEO.bkk.lat}&maxLocations=${limit}&langCode=TH&forStorage=false&outFields=PlaceName,Place_addr,Addr_type,Type,StName,Nbrhd,District,City,Subregion,Region`;
-  const r=await fetch(u,{signal});if(!r.ok)throw new Error('esri '+r.status);const j=await r.json();if(j.error)throw new Error('esri');
-  return (j.candidates||[]).filter(c=>c.location&&c.score>=75).map(c=>{const a=c.attributes||{},addr=String(a.Place_addr||c.address||'');
-    const title=a.PlaceName||addr.split(/\s(?=แขวง|ตำบล|เขต|อำเภอ|อ\.)/)[0]||addr;
-    const parts=addr.split(/\s+/);const sub=addr&&addr!==title?addr.replace(title,'').trim()||addr:[a.Nbrhd,a.City,a.Region].filter(Boolean).join(' ');
-    const dist=String(a.City||a.District||'').replace(/^เขต\s*/,'');
-    return {lat:c.location.y,lng:c.location.x,title,sub,label:[title,sub].filter(Boolean).join(', '),bkk:/กรุงเทพ|bangkok/i.test(addr+' '+(a.Region||'')),
-      dist,area:String(a.Nbrhd||'').replace(/^แขวง\s*/,''),type:a.Addr_type==='StreetName'?'street':(a.Type||a.Addr_type||'').toLowerCase(),name:a.PlaceName||'',street:a.StName||'',src:'esri',esri:c.score}})}
 async function geoSuggest(q,signal){
   const nq=geoNorm(q);if(nq.length<3)return [];
   const P=geoParts(nq),vars=[nq];
   if(P.base){if(P.nums.length)vars.push('ซอย'+P.base+' '+P.nums[0]);vars.push(P.base)}
-  /* ค้นพร้อมกัน 2 แหล่ง: Photon (OpenStreetMap) + Esri แล้วรวม จัดอันดับเอง */
+  /* ค้นหลายแบบพร้อมกัน (ชื่อเต็ม / ซอย+เลข / ชื่อหลัก) แล้วรวม จัดอันดับเอง */
   const jobs=[...new Set(vars)].map(v=>geoQuery(v,signal).then(fs=>fs.map(f=>({f}))));
-  jobs.push(esriQuery(nq,signal).then(xs=>xs.map(x=>({x}))));
   const res=await Promise.allSettled(jobs);
   if(signal&&signal.aborted)throw new DOMException('aborted','AbortError');
   const raw=[].concat(...res.filter(x=>x.status==='fulfilled').map(x=>x.value));
@@ -56,7 +48,6 @@ async function geoSuggest(q,signal){
       if(P.nums.length&&own.length&&!own.includes(P.nums[0]))sc-=2;   /* เลขซอยไม่ตรง */
       if(bk&&!hk.includes(bk)&&P.words.length<2)sc-=5;                 /* ไม่มีชื่อหลักเลย */
       if(tk===qk)sc+=10;else if(tk.startsWith(qk)||qk.startsWith(tk)&&tk.length>=4)sc+=5;else if(tk.includes(qk))sc+=3;   /* ชื่อตรงกับที่พิมพ์ */
-      if(x.src==='esri'&&x.esri>=99)sc+=1;
       if(x.type==='poi'||x.type==='house'||x.type==='pointaddress')sc+=1;
       sc+=x.bkk?3:-3;x.score=sc;return x});
   /* รวมผลซ้ำ: ชื่อเดียวกันห่างกันไม่ถึง ~150 ม. = ที่เดียวกัน (เก็บอันที่คะแนนสูง/ที่อยู่ละเอียดกว่า) */
@@ -69,41 +60,30 @@ async function geoSuggest(q,signal){
   return (good.length?good:out).slice(0,8);
 }
 async function geoReverseRaw(lat,lng){
-  try{const r=await fetch(`${GEO.url}/reverse?lat=${lat}&lon=${lng}&limit=1`);if(!r.ok)return null;const f=((await r.json()).features||[])[0];return f?f.properties||null:null}catch(e){return null}}
+  try{const f=((await photonGet(`/reverse?lat=${(+lat).toFixed(5)}&lon=${(+lng).toFixed(5)}&limit=1`)).features||[])[0];return f?f.properties||null:null}catch(e){return null}}
 async function geoReverse(lat,lng){
-  try{const r=await fetch(`${GEO.url}/reverse?lat=${lat}&lon=${lng}&limit=1`);if(!r.ok)return '';
-    const f=((await r.json()).features||[])[0];if(!f)return '';return geoLabel(f.properties||{}).full}catch(e){return ''}
+  const p=await geoReverseRaw(lat,lng);return p?geoLabel(p).full:''
 }
-/* หาว่าหมุดอยู่ซอยไหน: รวม 2 แหล่ง → {sois:[ชื่อซอย/ถนน เรียงจากน่าจะใช่ที่สุด], area:แขวง, dist:เขต}
-   Esri ให้ที่อยู่ระดับบ้าน (มักบอกซอยย่อย) · OSM ให้ซอยใกล้เคียงหลายเส้น */
-const SOI_RE=/((?:ซอย|ตรอก)\s?[^\s,]+(?:\s\d[\d/-]*)?(?:\s?แยก\s?\d[\d/-]*)*)|(ถนน[^\s,]+(?:\s\d[\d/-]*)?)/;
+/* หาว่าหมุดอยู่ซอยไหน (ข้อมูล OpenStreetMap ล้วน ไม่มี API เสียเงิน)
+   roads = ถนน/ซอยที่มีชื่อใกล้หมุด วัดระยะถึงเส้นถนนจริงจากแผนที่เวกเตอร์ที่โหลดอยู่ (pickmap.nearestRoads)
+   + Photon reverse ให้ แขวง/เขต และ (ถ้าแผนที่ไม่มีข้อมูลถนน เช่น โหมดสำรอง) ชื่อถนนใกล้เคียง
+   คืน {sois:[ชื่อ], cands:[{name,d}], area:แขวง, dist:เขต, bkk} */
 function soiName(n){n=String(n||'').replace(/\s+/g,' ').trim();if(!n)return '';
   if(/^(ซอย|ตรอก|ถนน|ทางหลวง|ถ\.|ซ\.)/.test(n))return geoNorm(n);
   return /\d/.test(n)&&!/(ซอย|ถนน|ตรอก|ซ\.)/.test(n)?'ซอย'+n:n}
-async function geoSoiAt(lat,lng){
-  /* Esri reverse 3 แบบ: ถนนที่ใกล้ที่สุด (วัดจากเส้นถนนจริง), บ้านเลขที่ใกล้ที่สุด, ทางแยกใกล้ที่สุด · แต่ละแบบบอกระยะ (ม.) */
-  const er=ft=>fetch(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${lng},${lat}&langCode=TH&forStorage=false&featureTypes=${ft}&outFields=Address,Addr_type,Distance,Neighborhood,District,City`)
-    .then(r=>r.json()).then(j=>j.address||null).catch(()=>null);
-  const osmSt=fetch(`${GEO.url}/reverse?lat=${lat}&lon=${lng}&limit=5&layer=street&radius=0.25`).then(r=>r.json()).then(j=>j.features||[]).catch(()=>[]);
-  const [sn,pa,si,sts,p]=await Promise.all([er('StreetName'),er('PointAddress'),er('StreetInt'),osmSt,geoReverseRaw(lat,lng)]);
-  const C=[];const add=(n,d,rank)=>{n=soiName(n);if(!n)return;const k=geoKey(n),o=C.find(x=>geoKey(x.name)===k);
-    if(o){if(d!=null&&(o.d==null||d<o.d))o.d=Math.round(d);o.rank=Math.min(o.rank,rank)}else C.push({name:n,d:d==null?null:Math.round(d),rank})};
-  const dist=x=>x&&x.Distance!=null?Number(x.Distance):null;
-  const paSoi=pa&&pa.Address?(String(pa.Address).match(SOI_RE)||[])[0]:'';
-  /* บ้านเลขที่อยู่ติดหมุด (≤15 ม.) → ซอยของบ้านนั้นน่าจะใช่ที่สุด (ทางเข้าบ้าน) · ไม่งั้นใช้ถนนที่ใกล้ที่สุด */
-  if(paSoi&&dist(pa)!=null&&dist(pa)<=15)add(paSoi,dist(pa),0);
-  if(sn&&sn.Address)add(sn.Address,dist(sn),1);
-  if(paSoi)add(paSoi,dist(pa),2);
-  if(si&&si.Address)String(si.Address).split('&').forEach(n=>add(n.trim(),dist(si),3));
-  if(p&&p.street)add(p.street,null,4);
-  if(p&&p.type==='street'&&p.name)add(p.name,null,4);
-  sts.forEach(f=>{const q=f.properties||{};if(q.name)add(q.name,null,5)});
-  C.sort((x,y)=>x.rank-y.rank||(x.d??1e9)-(y.d??1e9));
+async function geoSoiAt(lat,lng,roads=[]){
+  const la=(+lat).toFixed(5),ln=(+lng).toFixed(5);
+  const [p,sts]=await Promise.all([geoReverseRaw(lat,lng),
+    roads.length?Promise.resolve([]):photonGet(`/reverse?lat=${la}&lon=${ln}&limit=5&layer=street&radius=0.25`).then(j=>j.features||[]).catch(()=>[])]);
+  const C=[];const add=(n,d)=>{n=soiName(n);if(!n)return;const k=geoKey(n),o=C.find(x=>geoKey(x.name)===k);
+    if(o){if(d!=null&&(o.d==null||d<o.d))o.d=d}else C.push({name:n,d:d==null?null:Math.round(d)})};
+  roads.forEach(r=>add(r.name,r.d));
+  if(!roads.length){if(p&&p.street)add(p.street,null);if(p&&p.type==='street'&&p.name)add(p.name,null);sts.forEach(f=>{const q=f.properties||{};if(q.name)add(q.name,null)})}
+  C.sort((x,y)=>(x.d??1e9)-(y.d??1e9));
   const clean=v=>String(v||'').replace(/^(แขวง|เขต)\s*/,'').trim();
-  const e=pa||sn||{};
-  const dist2=clean((p&&p.district)||e.City||e.District),area=clean((p&&p.locality)||e.Neighborhood);
-  return {sois:C.slice(0,4).map(x=>x.name),cands:C.slice(0,4),area:area!==dist2?area:'',dist:dist2,
-    bkk:/กรุงเทพ/.test((p&&p.city||'')+(p&&p.state||'')+(e.City||'')+(e.Address||''))||!!dist2}}
+  const dist=clean(p&&(p.district||p.county)),area=clean(p&&p.locality);
+  return {sois:C.slice(0,4).map(x=>x.name),cands:C.slice(0,4),area:area!==dist?area:'',dist,
+    bkk:/กรุงเทพ|bangkok/i.test((p&&p.city||'')+(p&&p.state||''))}}
 /* ผูกช่องพิมพ์กับรายการแนะนำ: onPick(item) */
 function geoAttach(input,list,onPick,opt={}){
   let tm=null,ctl=null,items=[],active=-1;

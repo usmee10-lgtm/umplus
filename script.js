@@ -177,7 +177,7 @@ document.addEventListener('click',e=>{
       const first=menu.querySelector('[aria-pressed=true]')||menu.querySelector('button');if(first)first.focus();}
     else locateMe(which,f);return}
   const bb=e.target.closest('#layer-menu [data-base]');
-  if(bb){Object.values(S.maps).forEach(m=>m&&m.setBase(bb.dataset.base));if(S.formMap)S.formMap.setBase(bb.dataset.base);closeLayerMenu(true);toast('แผนที่แบบ'+bb.textContent.trim());return}
+  if(bb){Object.values(S.maps).forEach(m=>m&&m.setBase(bb.dataset.base));if(S.formMap&&S.formMap.kind==='leaflet')S.formMap.map.setBase(bb.dataset.base);closeLayerMenu(true);toast('แผนที่แบบ'+bb.textContent.trim());return}
   if(!e.target.closest('#layer-menu')&&!$('#layer-menu').hidden)closeLayerMenu(false);
 });
 let layerBtn=null;
@@ -426,40 +426,35 @@ function startForm(opt={}){
   if(opt.gps)useGPS();
 }
 function resetForm(){
-  F.needs.clear();F.photos=[];if($('#photo-row')){renderPhotos();markOk('photos')}F.lat=F.lng=null;F.soi='';F.soiAuto='';F.soiPrev='';F.soiInfo=null;soiSeq++;if($('#soi-pick'))$('#soi-pick').hidden=true;F.pinSrc='';F.pinAcc=null;if(F.accCircle){F.accCircle.remove();F.accCircle=null}F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
+  F.needs.clear();F.photos=[];if($('#photo-row')){renderPhotos();markOk('photos')}F.lat=F.lng=null;F.soi='';F.soiAuto='';F.soiPrev='';F.soiInfo=null;soiSeq++;if($('#soi-pick'))$('#soi-pick').hidden=true;F.pinSrc='';F.pinAcc=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
   $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
   ['#addr-input','#phone-in','#name-in','#details-in','#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');MA.sub='';MA.picked=null;$('#ma-preview').hidden=true;$('#manual-addr').open=false;
   $('#ppl-out').value='1';$$('input[name=level]').forEach(i=>i.checked=false);markOk('level');
   $('#addr-status').textContent='';$('#pin-status').textContent='แตะแผนที่เพื่อปักหมุด หรือลากหมุดให้ตรง';
-  if(F.marker){F.marker.remove();F.marker=null}
+  if(S.formMap){S.formMap.removePin();S.formMap.clearAccuracy()}
   ['needs','loc','phone'].forEach(markOk);showStep(1);
   const last=store.get('uh_phone','');if(last)$('#phone-in').value=last;
 }
+const manualSrc=()=>F.pinSrc==='gps'||F.pinSrc==='gps+drag'?'gps+drag':'manual';
 async function ensureFormMap(){
-  if(S.formMap){setTimeout(()=>S.formMap.invalidateSize(),60);return S.formMap}
-  try{await loadLeaflet()}catch(e){$('#form-map').innerHTML='<p class="empty">โหลดแผนที่ไม่ได้ · ค้นหาที่อยู่ หรือกด "กรอกที่อยู่เอง" ได้</p>';return null}
-  if(S.formMap)return S.formMap;
-  S.formMap=makeMap($('#form-map'),{zoom:12});
-  S.formMap.on('click',e=>setPin(e.latlng.lat,e.latlng.lng,false,true,F.pinSrc==='gps'||F.pinSrc==='gps+drag'?'gps+drag':'manual'));
-  /* ปุ่มสลับภาพดาวเทียม (ดูหลังคาบ้านได้ ปักแม่นขึ้น) · ไม่เปลี่ยนแบบแผนที่หลักของแอป */
-  const SatBtn=L.Control.extend({onAdd(){const b=L.DomUtil.create('button','map-sat-btn');b.type='button';
-    const sync=()=>{const sat=S.formMap.currentBase==='sat';b.innerHTML=ic(sat?'road':'sat')+'<span>'+(sat?'แผนที่':'ดาวเทียม')+'</span>';b.setAttribute('aria-pressed',String(sat))};
-    L.DomEvent.disableClickPropagation(b);b.addEventListener('click',()=>{let keep='road';try{keep=localStorage.getItem('uh_base')||'road'}catch(e){}
-      S.formMap.setBase(S.formMap.currentBase==='sat'?'road':'sat');try{localStorage.setItem('uh_base',keep)}catch(e){}sync()});sync();return b}});
-  new SatBtn({position:'topright'}).addTo(S.formMap);
-  if(F.lat!=null)setPin(F.lat,F.lng,true,false);
-  return S.formMap;
+  if(S.formMap){setTimeout(()=>S.formMap.resize(),60);return S.formMap}
+  if(S.formMapLoading)return S.formMapLoading;
+  S.formMapLoading=(async()=>{
+    try{const pm=await createPickMap($('#form-map'),{
+        /* แตะแผนที่ = ย้ายหมุดมาตรงนั้น (ถ้ายังซูมไกลอยู่ ซูมเข้าให้ปรับต่อได้แม่นขึ้น) */
+        onTap:(la,ln)=>setPin(la,ln,S.formMap&&S.formMap.getZoom()<15,true,manualSrc()),
+        onDragEnd:(la,ln)=>setPin(la,ln,false,true,manualSrc())});
+      S.formMap=pm;addSatButton(pm);
+      if(F.lat!=null)setPin(F.lat,F.lng,true,false);
+      return pm}
+    catch(e){$('#form-map').innerHTML='<p class="empty">โหลดแผนที่ไม่ได้ · ค้นหาที่อยู่ หรือกด "กรอกที่อยู่เอง" ได้</p>';return null}
+    finally{S.formMapLoading=null}})();
+  return S.formMapLoading;
 }
-/* ที่มาของหมุด (ส่งให้ทีมอาสาดูว่าหมุดแม่นแค่ไหน): gps / manual / addr / link · acc = ความแม่นยำ GPS (เมตร) */
-function pinSrcText(){const s=F.pinSrc||'';
-  return s==='gps'?'GPS ±'+F.pinAcc+' ม.':s==='gps+drag'?'GPS ±'+F.pinAcc+' ม. แล้วลากปรับเอง':s==='manual'?'ปักเองบนแผนที่':s==='link'?'จากลิงก์/พิกัดที่วาง':s==='addr'?'จากที่อยู่ (โดยประมาณ)':''}
-function accInfo(a){return a<=20?{cls:'good',txt:'แม่นยำมาก ±'+a+' ม.'}:a<=60?{cls:'ok',txt:'แม่นยำพอใช้ ±'+a+' ม. · ซูมดูว่าตรงบ้านไหม'}:{cls:'bad',txt:'ยังไม่แม่น ±'+a+' ม. · ลากหมุดให้ตรงบ้าน'}}
-function pinNote(){const el=$('#pin-status');if(!el)return;const s=F.pinSrc;
-  if(s==='gps'){const a=accInfo(F.pinAcc);el.innerHTML=`<i class="acc-dot ${a.cls}"></i>ตำแหน่งจาก GPS · ${esc(a.txt)}`}
-  else if(s==='gps+drag'||s==='manual')el.innerHTML='<i class="acc-dot good"></i>ปักหมุดเองแล้ว · ซูมเข้าเพื่อให้ตรงหลังคาบ้าน';
-  else if(s==='link')el.innerHTML='<i class="acc-dot good"></i>ปักตามพิกัดที่วาง · ลากปรับได้';
-  else if(s==='addr')el.innerHTML='<i class="acc-dot ok"></i>หมุดโดยประมาณจากที่อยู่ · ลากให้ตรงบ้าน';
-  else el.textContent='ปักหมุดแล้ว · ลากหมุดเพื่อปรับให้ตรง'}
+/* ปุ่มสลับภาพดาวเทียม (ตัวเลือกเสริม: ดูหลังคาบ้าน ปักแม่นขึ้น) */
+function addSatButton(pm){const b=document.createElement('button');b.type='button';b.className='map-sat-btn map-sat-float';
+  const sync=()=>{const sat=pm.isSat();b.innerHTML=ic(sat?'road':'sat')+'<span>'+(sat?'แผนที่':'ดาวเทียม')+'</span>';b.setAttribute('aria-pressed',String(sat))};
+  b.addEventListener('click',e=>{e.stopPropagation();pm.toggleSat();sync()});sync();$('#form-map').append(b)}
 /* ซอยของหมุด: แสดงตัวเลือกซอย แล้วเติมที่อยู่ "ซอย… แขวง… เขต… กรุงเทพฯ" (ถ้าผู้ใช้ยังไม่ได้พิมพ์ที่อยู่เอง) */
 let soiSeq=0;
 function soiAddr(soi,info){return [soi,info.area?'แขวง'+info.area:'',info.dist?'เขต'+info.dist:'',info.dist&&info.bkk?'กรุงเทพฯ':''].filter(Boolean).join(' ')}
@@ -472,7 +467,10 @@ function renderSoi(info,chosen){const box=$('#soi-pick'),row=$('#soi-chips');if(
     let next;if(!F.addrDirty||cur===prev)next=soiAddr(n,info);else if(F.soiPrev&&cur.includes(F.soiPrev))next=cur.replace(F.soiPrev,n);else if(!geoKey(cur).includes(geoKey(n)))next=n+' '+cur;else next=cur;
     $('#addr-input').value=next;F.soiAuto=next;F.soiPrev=n;F.addrDirty=true;markOk('loc');renderSoi(info,n);$('#addr-status').textContent='ใส่ซอยในที่อยู่แล้ว · แก้ได้'}}
 async function fillSoi(){if(F.lat==null)return;const my=++soiSeq,lat=F.lat,lng=F.lng;
-  const info=await geoSoiAt(lat,lng);if(my!==soiSeq||F.lat!==lat||F.lng!==lng)return;F.soiInfo=info;
+  /* รอให้แผนที่รอบหมุดโหลดเสร็จ แล้ววัดระยะถึงถนน/ซอยจริงจากข้อมูล OSM ในแผนที่ */
+  let roads=[];const pm=await ensureFormMap();
+  if(pm){if(pm.getZoom()<14)pm.view(lat,lng,16);await pm.ready();if(my!==soiSeq)return;roads=pm.nearestRoads(lat,lng)}
+  const info=await geoSoiAt(lat,lng,roads);if(my!==soiSeq||F.lat!==lat||F.lng!==lng)return;F.soiInfo=info;
   if(!info.sois.length){renderSoi(null);if(!F.addrDirty&&(info.area||info.dist)){const t=soiAddr('',info);$('#addr-input').value=t;F.soiAuto=t}return}
   const cur=$('#addr-input').value.trim(),auto=!F.addrDirty||cur===F.soiAuto;
   if(auto){const t=soiAddr(info.sois[0],info);$('#addr-input').value=t;F.soiAuto=t;F.soiPrev=info.sois[0];F.soi=info.sois[0];$('#addr-status').textContent='เติมที่อยู่จากหมุดให้แล้ว · ถ้าซอยไม่ถูก แตะเลือกด้านล่าง'}
@@ -481,12 +479,10 @@ async function setPin(lat,lng,pan=true,reverse=true,src,acc){
   F.pinSeq=(F.pinSeq||0)+1;F.lat=+lat;F.lng=+lng;markOk('loc');
   if(src){F.pinSrc=src;if(acc!=null)F.pinAcc=acc}
   const m=await ensureFormMap();
-  if(m){if(F.marker)F.marker.setLatLng([F.lat,F.lng]);else{F.marker=L.marker([F.lat,F.lng],{draggable:true,autoPan:true,title:'หมุดตำแหน่งของคุณ · ลากเพื่อปรับ',icon:L.divIcon({className:'form-pin',html:'<span></span>',iconSize:[34,40],iconAnchor:[17,40]})}).addTo(m);
-      F.marker.on('dragend',()=>{const p=F.marker.getLatLng();setPin(p.lat,p.lng,false,true,F.pinSrc==='gps'||F.pinSrc==='gps+drag'?'gps+drag':'manual')})}
+  if(m){m.setPin(F.lat,F.lng);
     /* วงความแม่นยำ GPS (หายเมื่อปักเอง) */
-    if(F.accCircle){F.accCircle.remove();F.accCircle=null}
-    if(F.pinSrc==='gps'&&F.pinAcc)F.accCircle=L.circle([F.lat,F.lng],{radius:F.pinAcc,color:'#2563EB',weight:1.5,fillColor:'#2563EB',fillOpacity:.12,interactive:false}).addTo(m);
-    if(pan){const z=F.pinSrc==='gps'?(F.pinAcc<=30?18:F.pinAcc<=100?17:16):F.pinSrc==='addr'?17:18;m.setView([F.lat,F.lng],Math.max(m.getZoom(),z))}}
+    if(F.pinSrc==='gps'&&F.pinAcc)m.setAccuracy(F.lat,F.lng,F.pinAcc);else m.clearAccuracy();
+    if(pan){const z=F.pinSrc==='gps'?(F.pinAcc<=30?18:F.pinAcc<=100?17:16):F.pinSrc==='addr'?17:18;m.view(F.lat,F.lng,z)}}
   pinNote();
   if(reverse)fillSoi();else renderSoi(null);
 }

@@ -1,15 +1,17 @@
 /* แผนที่: Leaflet 1.9.4 + พื้นแผนที่ 3 แบบ (ถนน / ดาวเทียม / มืด) ไม่ต้องใช้ key */
 let leafletLoading=null;
+const withVector=p=>p.then(()=>typeof loadVectorBase==='function'?loadVectorBase():null).then(()=>{});
 function loadLeaflet(){
-  if(window.L)return Promise.resolve();
-  if(leafletLoading)return leafletLoading;
+  if(window.L&&!leafletLoading)return withVector(Promise.resolve());
+  if(leafletLoading)return withVector(leafletLoading);
   leafletLoading=new Promise((resolve,reject)=>{
     const css=document.createElement('link');css.rel='stylesheet';css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';css.integrity='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';css.crossOrigin='';document.head.append(css);
     const s=document.createElement('script');s.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';s.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';s.crossOrigin='';
     const tm=setTimeout(()=>{leafletLoading=null;reject(new Error('timeout'))},15000);
     s.onload=()=>{clearTimeout(tm);resolve()};s.onerror=()=>{clearTimeout(tm);leafletLoading=null;s.remove();reject(new Error('load'))};document.head.append(s);
   });
-  return leafletLoading;
+  /* โหลดพื้นแผนที่เวกเตอร์ OpenFreeMap ด้วย (ถ้าเครื่องรองรับ) · ไม่สำเร็จก็ยังใช้แผนที่ภาพได้ */
+  return withVector(leafletLoading);
 }
 const ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/';
 const ESRI_ATTR='แผนที่ &copy; Esri';
@@ -26,9 +28,13 @@ function makeMap(el,opt={}){
   map.setBase=name=>{
     if(base)base.remove();
     if(name==='sat')base=L.layerGroup([layer(ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',ESRI_ATTR),layer(ESRI+'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',''),layer(ESRI+'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}','')]);
+    else if(typeof VEC!=='undefined'&&VEC.ok){
+      /* ถนน / มืด: แผนที่เวกเตอร์ OpenFreeMap (ข้อมูล OpenStreetMap · ฟรี ไม่มีลิมิต · ชื่อถนนซอยภาษาไทยละเอียด) */
+      base=L.maplibreGL({style:VEC.styles[name==='dark'?'dark':'road'],attribution:MAPCFG.attr,interactive:false});
+    }
     else if(name==='dark')base=L.layerGroup([layer(ESRI+'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',ESRI_ATTR,{maxZoom:16,maxNativeZoom:16}),layer(ESRI+'Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}','',{maxZoom:16,maxNativeZoom:16})]);
     else{
-      /* ถนน: OpenStreetMap แบบ floodboard (ชื่อถนนไทยละเอียด) ถ้าโหลดไม่ได้ → Esri World Street Map อัตโนมัติ
+      /* สำรอง (เครื่องไม่รองรับ WebGL): ถนน OpenStreetMap แบบ floodboard (ชื่อถนนไทยละเอียด) ถ้าโหลดไม่ได้ → Esri World Street Map อัตโนมัติ
          (CARTO ตัดออก: บนโดเมนนี้ส่งภาพ "API KEY REQUIRED" แทนแผนที่) */
       const chain=[['https://tile.openstreetmap.org/{z}/{x}/{y}.png',OSM_ATTR,false],[ESRI+'World_Street_Map/MapServer/tile/{z}/{y}/{x}',ESRI_ATTR,false]];
       const step=Math.min(fellBack,chain.length-1),[u,a,labels]=chain[step];

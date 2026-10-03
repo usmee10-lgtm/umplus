@@ -797,3 +797,12 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .soi-chips button[aria-checked=true]{background:var(--primary);border-color:var(--primary);color:#fff}
 .soi-tip{font-size:12px;color:var(--muted)}
 .soi-chips button small{margin-left:6px;font-size:11.5px;font-weight:500;opacity:.7}
+
+/* แผนที่ปักหมุด MapLibre */
+#form-map.maplibregl-map{position:relative}
+.ml-pin{width:34px;height:40px;cursor:grab;touch-action:none}
+.ml-pin:active{cursor:grabbing}
+.ml-pin span{display:block;width:34px;height:34px;border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--red);box-shadow:0 4px 10px rgba(15,33,136,.4);box-sizing:border-box}
+.map-sat-float{position:absolute;top:10px;right:10px;z-index:5}
+#form-map .maplibregl-ctrl-group button{width:36px;height:36px}
+#form-map .maplibregl-ctrl-attrib{font-size:10px}
