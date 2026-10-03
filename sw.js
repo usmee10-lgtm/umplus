@@ -1,5 +1,5 @@
 /* Service worker: network-first เก็บหน้าไว้ใช้ตอนสัญญาณแย่ · เปลี่ยน CACHE ทุกครั้งที่แก้ไฟล์ */
-const CACHE='ummatee-v48';
+const CACHE='ummatee-v49';
 const SHELL=['./','./index.html','./app.css','./icons.js','./geocode.js','./location.js','./hotlines.js','./script.js','./manifest.webmanifest','./assets/ummatee-logo.png','./assets/helpme-logo.png','./assets/hm-icon-192.png','./assets/hm-icon-512.png'];
 /* ถ้าโหลดไฟล์หลักไม่ครบ ให้ติดตั้งล้มเหลว → SW ตัวเก่า (และแคชเก่า) ยังใช้งานได้ ไม่หายทั้งชุด */
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
@@ -7,6 +7,7 @@ self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.
 self.addEventListener('fetch',e=>{
   const req=e.request;if(req.method!=='GET')return;
   const url=new URL(req.url);
+  if(url.pathname.startsWith('/api/'))return;
   if(url.hostname.includes('script.google')||url.hostname.includes('googleusercontent')||url.hostname.includes('photon.komoot'))return; /* ข้อมูลสดเสมอ */
   if(url.hostname==='unpkg.com'||url.hostname==='fonts.gstatic.com'||url.hostname==='fonts.googleapis.com'){
     e.respondWith(caches.open(CACHE+'-ext').then(async c=>{const hit=await c.match(req);if(hit)return hit;const r=await fetch(req);if(r.ok||r.type==='opaque')c.put(req,r.clone());return r}));return}

@@ -9,6 +9,7 @@
  *   POST {action:"update", key, id, status, volunteer}    -> อาสาเปลี่ยนสถานะ (ต้องมีรหัสอาสา)
  *   POST {action:"track", id, token}                      -> ผู้แจ้งดูสถานะคำขอของตัวเอง
  *   GET  ?action=teams[&key=รหัสอาสา]                     -> ตำแหน่งทีมที่แชร์อยู่ (คนทั่วไปได้พิกัดปัด ~100 ม.)
+ *   GET  ?action=network                                  -> จุดเครือข่ายช่วยเหลือ จากแท็บ "เครือข่าย" (ข้อมูลสาธารณะ)
  *   POST {action:"ping", key, team, lat, lng, accuracy}   -> ทีมอาสาแชร์ตำแหน่ง / {stop:true} หยุดแชร์
  *
  * รหัสอาสา: Project Settings > Script properties > VOLUNTEER_KEY (setup() สร้างให้ครั้งแรก)
@@ -44,6 +45,7 @@ const TEAM_FRESH_MIN = 30;          // แสดงทีมที่ส่ง�
 function setup() {
   formatSheet();
   teamSheet_();
+  networkSheet_();
   const props = PropertiesService.getScriptProperties();
   let key = props.getProperty('VOLUNTEER_KEY');
   if (!key) {
@@ -60,6 +62,7 @@ function doGet(e) {
   try {
     if (p.action === 'list') return json_(listCachedJson_(isVolunteer_(p.key), p.since), true);
     if (p.action === 'teams') return json_(listTeams_(isVolunteer_(p.key)));
+    if (p.action === 'network') return json_(listNetworkCachedJson_(), true);
     return json_({ ok: true, service: 'flood-help', time: new Date().toISOString() });
   } catch (err) {
     return json_({ ok: false, error: String(err.message || err) });
@@ -477,6 +480,57 @@ function teamSheet_() {
     sh.setFrozenRows(1);
   }
   return sh;
+}
+
+/* ---------- เครือข่ายช่วยเหลือ (แท็บ "เครือข่าย": มูลนิธิกรอกเอง ทุกคนเห็น) ---------- */
+const NETWORK_SHEET = 'เครือข่าย';
+const NETWORK_HEADERS_TH = ['ชื่อ', 'ประเภท', 'พิกัด (วางลิงก์ Google Maps หรือ ละติจูด,ลองจิจูด)', 'เบอร์โทร', 'รายละเอียด', 'เวลาทำการ', 'แสดงบนแผนที่'];
+const NETWORK_TYPES = ['ทีมกู้ภัย', 'จุดพักพิง', 'จุดแจกของ', 'จุดแพทย์', 'มูลนิธิ/เครือข่าย', 'อื่น ๆ'];
+
+function networkSheet_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sh = ss.getSheetByName(NETWORK_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(NETWORK_SHEET);
+    sh.getRange(1, 1, 1, NETWORK_HEADERS_TH.length).setValues([NETWORK_HEADERS_TH])
+      .setFontWeight('bold').setBackground('#DE1F26').setFontColor('#FFFFFF').setWrap(true);
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(1, 220); sh.setColumnWidth(2, 130); sh.setColumnWidth(3, 300); sh.setColumnWidth(5, 260);
+    sh.getRange(2, 2, 500, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(NETWORK_TYPES, true).setAllowInvalid(true).build());
+    sh.getRange(2, 7, 500, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList([YES, NO], true).build());
+  }
+  return sh;
+}
+
+/** พิกัดจาก "13.75, 100.5" หรือลิงก์ Google Maps (@lat,lng · q=lat,lng · !3dlat!4dlng) */
+function parseLatLng_(v) {
+  const s = decodeURIComponent(String(v || ''));
+  const m = s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || s.match(/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/) ||
+    s.match(/[?&](?:q|query|ll|destination)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/) || s.match(/(-?\d{1,2}\.\d{3,})\s*,\s*(-?\d{2,3}\.\d{3,})/);
+  if (!m) return null;
+  const lat = Number(m[1]), lng = Number(m[2]);
+  return (lat > 5 && lat < 21 && lng > 97 && lng < 106) ? { lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6 } : null;
+}
+
+function listNetworkCachedJson_() {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('network');
+  if (hit) return hit;
+  const sh = networkSheet_();
+  const n = sh.getLastRow() - 1;
+  let points = [], missing = 0;
+  if (n > 0) {
+    sh.getRange(2, 1, n, NETWORK_HEADERS_TH.length).getDisplayValues().forEach(function (v) {
+      if (!String(v[0]).trim() || v[6] === NO) return;
+      const ll = parseLatLng_(v[2]);
+      if (!ll) { missing++; return; }
+      points.push({ name: clean_(v[0], 80), type: clean_(v[1], 30) || 'อื่น ๆ', lat: ll.lat, lng: ll.lng,
+        phone: clean_(v[3], 40), detail: clean_(v[4], 300), hours: clean_(v[5], 80) });
+    });
+  }
+  const s = JSON.stringify({ ok: true, points: points.slice(0, 500), noLocation: missing });
+  try { cache.put('network', s, 60); } catch (err) {}
+  return s;
 }
 
 /** หาแถวของเคสจาก id (เร็วกว่าวนทุกแถว) */

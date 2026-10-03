@@ -652,3 +652,9 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .sort-lbl{font-size:13px;font-weight:600;color:var(--muted);padding:0 8px 0 12px;flex:none}
 .sort-row button{flex:1 1 auto;min-height:40px;border:0;border-radius:999px;background:none;color:var(--ink);font:inherit;font-weight:600;font-size:14px;padding:0 14px;cursor:pointer;white-space:nowrap}
 .sort-row button[aria-pressed=true]{background:var(--navy,#0F2188);color:#fff}
+/* เครือข่ายช่วยเหลือ + กล้อง CCTV */
+.leaflet-div-icon.net-pin{background:none;border:0}
+.net-pin span{display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:#0E7C66;color:#fff;border:2px solid #fff;box-shadow:var(--shadow)}
+.net-pin span .ic{width:17px;height:17px}
+.net-type{display:inline-block;font-size:12px;font-weight:700;color:#fff;background:#0E7C66;border-radius:6px;padding:2px 7px}
+.cctv-pop img{display:block;width:260px;max-width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:#E5E7EB;margin-bottom:8px}

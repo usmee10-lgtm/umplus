@@ -116,7 +116,7 @@ async function ensureMap(which){
   if(S.maps[which])return S.maps[which];
   const m=makeMap(el,{zoom:11});S.maps[which]=m;PIN_LAYER[which]=L.layerGroup().addTo(m);
   m.on('baselayerchange',()=>{});
-  drawPins(which);if(store.get('uh_lay_flood','1')!=='0')toggleFlood(true);if(store.get('uh_lay_teams',''))toggleTeams(true);
+  drawPins(which);if(store.get('uh_lay_flood','1')!=='0')toggleFlood(true);if(store.get('uh_lay_teams',''))toggleTeams(true);if(store.get('uh_lay_cctv',''))toggleCctv(true);
   if(which==='map'&&typeof drawTrip==='function')drawTrip();
   return m;
 }
@@ -154,7 +154,7 @@ document.addEventListener('click',e=>{
   const f=e.target.closest('.fab[data-act]');
   if(f){const which=S.view==='map'?'map':'home';
     if(f.dataset.act==='layers'){const menu=$('#layer-menu');if(!menu.hidden&&layerFor===which){closeLayerMenu(true);return}layerFor=which;layerBtn=f;const r=f.getBoundingClientRect();
-      menu.style.top=Math.min(r.bottom+8,innerHeight-260)+'px';menu.style.right=(innerWidth-r.right)+'px';menu.hidden=false;f.setAttribute('aria-expanded','true');
+      menu.style.top=Math.max(8,Math.min(r.bottom+8,innerHeight-menu.offsetHeight-12,innerHeight-430))+'px';menu.style.right=(innerWidth-r.right)+'px';menu.hidden=false;f.setAttribute('aria-expanded','true');
       const cur=(S.maps[which]&&S.maps[which].currentBase)||'road';$$('#layer-menu [data-base]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.base===cur)));
       const first=menu.querySelector('[aria-pressed=true]')||menu.querySelector('button');if(first)first.focus();}
     else locateMe(which,f);return}
@@ -183,14 +183,45 @@ async function toggleFlood(on){store.set('uh_lay_flood',on?'1':'0');$('#lay-floo
   }catch(e){toast('โหลดข้อมูลน้ำท่วมไม่สำเร็จ')}}
 $('#lay-flood').addEventListener('change',e=>toggleFlood(e.target.checked));
 /* ชั้นทีมกู้ภัย (ตำแหน่งปัดเศษสำหรับคนทั่วไป) */
+/* ชั้นทีมกู้ภัยและเครือข่ายช่วยเหลือ: ทีมที่แชร์ตำแหน่งสด (ปัดเศษสำหรับคนทั่วไป) + จุดเครือข่ายจากแท็บ "เครือข่าย" ในชีต */
+const NET_STYLE={'ทีมกู้ภัย':'shield','จุดพักพิง':'home','จุดแจกของ':'food','จุดแพทย์':'ambulance','มูลนิธิ/เครือข่าย':'heart'};
+function netPopup(p){const tel=String(p.phone||'').replace(/[^\d+]/g,'');
+  return `<div class="pop"><span class="net-type">${esc(p.type)}</span><br><b>${esc(p.name)}</b>`+(p.detail?`<br>${esc(p.detail)}`:'')+(p.hours?`<br><small>เวลา: ${esc(p.hours)}</small>`:'')+
+    (p.phone?`<br>${tel.length>=3?`<a href="tel:${esc(tel)}">${esc(p.phone)}</a>`:esc(p.phone)}`:'')+
+    `<div class="pop-act"><a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener">นำทาง</a></div></div>`}
 async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams').checked=on;const gen=++teamsGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._teams){m._teams.remove();m._teams=null}});if(!on)return;
-  try{const p={action:'teams'};if(S.volunteer)p.key=volKey();const r=await apiGet(p);if(gen!==teamsGen)return;
-    if(!r||!Array.isArray(r.teams)){toast('ชั้นทีมกู้ภัยยังไม่เปิดใช้งานบนเซิร์ฟเวอร์');store.set('uh_lay_teams','');$('#lay-teams').checked=false;return}
-    S.teams=r.teams;
-    Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams)m._teams.remove();m._teams=L.layerGroup(S.teams.filter(t=>t.lat&&t.lng).map(t=>L.marker([+t.lat,+t.lng],{icon:L.divIcon({className:'team-pin',html:'<span>'+ic('shield')+'</span>'+(t.team?'<em>'+esc(t.team)+'</em>':''),iconSize:[30,30],iconAnchor:[15,15]}),title:'ทีม '+(t.team||'กู้ภัย')}))).addTo(m)});
-    if(!S.teams.length)toast('ยังไม่มีทีมที่แชร์ตำแหน่ง');
-  }catch(e){toast('โหลดตำแหน่งทีมไม่สำเร็จ')}}
+  const p={action:'teams'};if(S.volunteer)p.key=volKey();
+  const [tr,nr]=await Promise.all([apiGet(p).catch(()=>null),apiGet({action:'network',t:Math.floor(Date.now()/60000)}).catch(()=>null)]);
+  if(gen!==teamsGen)return;
+  S.teams=tr&&Array.isArray(tr.teams)?tr.teams:[];S.network=nr&&Array.isArray(nr.points)?nr.points:[];
+  if(!tr&&!nr){toast('โหลดทีมและเครือข่ายไม่สำเร็จ');return}
+  Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams)m._teams.remove();
+    const team=S.teams.filter(t=>t.lat&&t.lng).map(t=>L.marker([+t.lat,+t.lng],{icon:L.divIcon({className:'team-pin',html:'<span>'+ic('shield')+'</span>'+(t.team?'<em>'+esc(t.team)+'</em>':''),iconSize:[30,30],iconAnchor:[15,15]}),title:'ทีม '+(t.team||'กู้ภัย')+' · ตำแหน่งสด',zIndexOffset:1800}));
+    const net=S.network.map(n=>L.marker([n.lat,n.lng],{icon:L.divIcon({className:'net-pin',html:'<span>'+ic(NET_STYLE[n.type]||'pin')+'</span>',iconSize:[30,30],iconAnchor:[15,15]}),title:n.type+' · '+n.name,zIndexOffset:1600}).bindPopup(()=>netPopup(n)));
+    m._teams=L.layerGroup([...net,...team]).addTo(m)});
+  if(!S.teams.length&&!S.network.length)toast('ยังไม่มีทีมที่แชร์ตำแหน่ง หรือจุดเครือข่ายในชีต');
+  else if(S.volunteer&&nr&&nr.noLocation)toast(`มี ${nr.noLocation} จุดในแท็บ "เครือข่าย" ที่ยังอ่านพิกัดไม่ได้ · วางพิกัดแบบ 13.75, 100.6 หรือลิงก์ Google Maps แบบเต็ม`,{ms:9000})}
+/* ชั้นกล้อง CCTV (ข้อมูล POPNIX Flood) · ซูมเข้า (ระดับ 12 ขึ้นไป) ถึงจะแสดง ไม่ให้จุดรกทั้งเมือง */
+let cctvGen=0;const CCTV_ZOOM=12;
+function cctvAgo(t){const m=Math.max(0,Math.round((Date.now()/1000-t)/60));return m<1?'เมื่อสักครู่':m<60?m+' นาทีที่แล้ว':Math.round(m/60)+' ชม. ที่แล้ว'}
+function cctvPopup(c){const f=S.cctv.feeds[c[0]]||{},src=S.cctv.base+f.path+encodeURIComponent(c[1])+'.jpg?t='+c[5];
+  return `<div class="pop cctv-pop"><a href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="ภาพจากกล้อง ${esc(c[2])}" loading="lazy" width="260" height="195"></a><b>${esc(c[2])}</b><br><small>${esc(f.org||'')} · ภาพเมื่อ ${cctvAgo(c[5])}</small>
+    <div class="pop-act"><a href="https://flood.pop.in.th/#cctv" target="_blank" rel="noopener">ดูกล้องทั้งหมดบน POPNIX Flood</a></div></div>`}
+const CCTV_ATTR='กล้อง CCTV © <a href="https://flood.pop.in.th/" target="_blank" rel="noopener">POPNIX Flood</a>';
+function cctvZoomSync(m){if(!m||!m._cctv)return;const show=m.getZoom()>=CCTV_ZOOM,ac=m.attributionControl;
+  if(show&&!m.hasLayer(m._cctv)){m._cctv.addTo(m);ac&&ac.addAttribution(CCTV_ATTR)}else if(!show&&m.hasLayer(m._cctv)){m.removeLayer(m._cctv);ac&&ac.removeAttribution(CCTV_ATTR)}}
+async function toggleCctv(on){store.set('uh_lay_cctv',on?'1':'');$('#lay-cctv').checked=on;const gen=++cctvGen;
+  Object.values(S.maps).forEach(m=>{if(m&&m._cctv){m.removeLayer(m._cctv);m._cctv=null;m.attributionControl&&m.attributionControl.removeAttribution(CCTV_ATTR)}});if(!on)return;
+  try{if(!S.cctv||Date.now()-S.cctvAt>120000){const r=await fetch('/api/cctv').then(r=>r.json());if(!r||!r.ok)throw new Error('cctv');S.cctv=r;S.cctvAt=Date.now()}
+    if(gen!==cctvGen)return;
+    Object.values(S.maps).forEach(m=>{if(!m)return;const rd=m._cctvRd||(m._cctvRd=L.canvas({padding:.3}));
+      m._cctv=L.layerGroup(S.cctv.cams.map(c=>L.circleMarker([c[3],c[4]],{renderer:rd,radius:6,weight:2,color:'#fff',fillColor:'#111827',fillOpacity:.9}).bindPopup(()=>cctvPopup(c),{maxWidth:280,minWidth:260})));
+      if(!m._cctvHook){m._cctvHook=1;m.on('zoomend',()=>cctvZoomSync(m))}
+      cctvZoomSync(m)});
+    const cur=S.maps[S.view==='map'?'map':'home'];if(cur&&cur.getZoom()<CCTV_ZOOM)toast(`ซูมเข้าเพื่อดูกล้อง CCTV (${S.cctv.cams.length.toLocaleString('th-TH')} ตัว)`);
+  }catch(e){toast('โหลดกล้อง CCTV ไม่สำเร็จ');store.set('uh_lay_cctv','');$('#lay-cctv').checked=false}}
+$('#lay-cctv').addEventListener('change',e=>toggleCctv(e.target.checked));
 $('#lay-teams').addEventListener('change',e=>toggleTeams(e.target.checked));
 
 /* ---------- หน้าแรก ---------- */

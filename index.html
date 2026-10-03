@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=48">
+<link rel="stylesheet" href="./app.css?v=49">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -228,16 +228,17 @@
   <hr>
   <label class="tg"><input type="checkbox" id="lay-flood" checked><span>ถนนน้ำท่วม</span></label>
   <div class="flood-key" aria-label="สีเส้นน้ำท่วม"><span><i style="background:#d32f2f"></i>ผ่านไม่ได้ · ใช้เรือ</span><span><i style="background:#f57c00"></i>เสี่ยง</span><span><i style="background:#fbc02d"></i>น้ำขัง · รถสูงผ่านได้</span></div>
-  <label class="tg"><input type="checkbox" id="lay-teams"><span>ทีมกู้ภัย</span></label>
+  <label class="tg"><input type="checkbox" id="lay-teams"><span>ทีมกู้ภัยและเครือข่ายช่วยเหลือ</span></label>
+  <label class="tg"><input type="checkbox" id="lay-cctv"><span>กล้อง CCTV</span></label>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=48"></script>
-<script src="./geocode.js?v=48"></script>
-<script src="./location.js?v=48"></script>
-<script src="./hotlines.js?v=48"></script>
-<script src="./script.js?v=48"></script>
+<script src="./icons.js?v=49"></script>
+<script src="./geocode.js?v=49"></script>
+<script src="./location.js?v=49"></script>
+<script src="./hotlines.js?v=49"></script>
+<script src="./script.js?v=49"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
