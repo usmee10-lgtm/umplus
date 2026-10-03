@@ -147,6 +147,10 @@ function createCase_(b) {
     notes: c.notes, volunteer: '', updatedAt: now, token: token
   };
 
+  // รูปแนบ: บันทึกลง Google Drive ก่อน (ช้า เลยทำนอก lock) · ถ้าบันทึกรูปไม่ได้ ยังรับคำขอตามปกติ
+  let photoLinks = [], photoError = '';
+  try { photoLinks = savePhotos_(b.photos, id); } catch (err) { photoError = String(err && err.message || err).slice(0, 120); }
+
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
   try {
@@ -155,13 +159,14 @@ function createCase_(b) {
     const sh = sheet_(), m = cols_(sh), out = [];
     for (let i = 0; i < m._width; i++) out.push('');
     HEADERS.forEach(function (h) { if (m[h]) out[m[h] - 1] = h === 'phone' ? "'" + row.phone : safeCell_(row[h]); });
+    if (m.photos && photoLinks.length) out[m.photos - 1] = photoLinks.join('\n');
     sh.appendRow(out);
   } finally {
     lock.releaseLock();
   }
   if (cid) cache.put('cid:' + cid, id + '|' + token, 21600);
   clearListCache_();
-  return { ok: true, id: id, token: token, urgency: urgency_(c) };
+  return { ok: true, id: id, token: token, urgency: urgency_(c), photos: photoLinks.length, photoError: photoError || undefined };
 }
 
 function updateCase_(b) {
@@ -233,6 +238,7 @@ function listCases_(full, since) {
     o.status = statusCode_(o.status); o.level = levelCode_(o.level); o.urgency = urgCode_(o.urgency);
     o.needs = o.needs ? String(o.needs).split(/\s*,\s*/) : [];
     o.vulnerable = o.vulnerable ? String(o.vulnerable).split(/\s*,\s*/) : [];
+    o.photos = String(o.photos || '').match(/[-\w]{25,}/g) || [];
     if (!full) return publicCase_(o);
     return o;
   }).filter(function (o) { return o.id && (!sinceMs || o.updatedAt > sinceMs); });
@@ -330,7 +336,7 @@ const ALIASES = {
   district: ['เขต', 'district'], people: ['จำนวนคน', 'people'], address: ['ที่อยู่', 'address'],
   lat: ['ละติจูด', 'lat'], lng: ['ลองจิจูด', 'lng'], level: ['ระดับน้ำ', 'level'], needs: ['ต้องการ', 'needs'],
   vulnerable: ['กลุ่มเปราะบาง', 'vulnerable'], notes: ['รายละเอียด', 'notes'], volunteer: ['ทีมอาสา', 'volunteer'],
-  updatedAt: ['อัปเดตล่าสุด', 'updatedAt'], org: ['หน่วยงาน', 'org'], token: ['รหัสติดตาม (ห้ามแก้)', 'รหัสติดตาม', 'token']
+  updatedAt: ['อัปเดตล่าสุด', 'updatedAt'], org: ['หน่วยงาน', 'org'], photos: ['รูปภาพ', 'photos'], token: ['รหัสติดตาม (ห้ามแก้)', 'รหัสติดตาม', 'token']
 };
 let COLS_ = null;
 /** {key: เลขคอลัมน์} จากแถวหัวตาราง (ชื่อซ้ำ ใช้คอลัมน์แรก) · คอลัมน์ token ถ้าไม่มี เพิ่มต่อท้ายให้ */
@@ -344,6 +350,7 @@ function cols_(sh) {
   });
   if (!m.token) { m.token = m._width + 1; sh.getRange(1, m.token).setValue(ALIASES.token[0]).setFontWeight('bold'); m._width = m.token; }
   if (!m.org) { m.org = m._width + 1; sh.getRange(1, m.org).setValue(ALIASES.org[0]).setFontWeight('bold'); m._width = m.org; }
+  if (!m.photos) { m.photos = m._width + 1; sh.getRange(1, m.photos).setValue(ALIASES.photos[0]).setFontWeight('bold'); m._width = m.photos; }
   COLS_ = m;
   return m;
 }
@@ -633,6 +640,34 @@ function listOutreachCachedJson_() {
   const s = JSON.stringify({ ok: true, points: points.slice(-800), noLocation: missing });
   try { cache.put('outreach', s, 60); } catch (err) {}
   return s;
+}
+
+/* ---------- รูปแนบในคำขอ (เก็บใน Google Drive ของเจ้าของสคริปต์) ---------- */
+const PHOTO_FOLDER = 'Help Me - รูปคำขอความช่วยเหลือ';
+const PHOTO_MAX = 3, PHOTO_BYTES = 4 * 1024 * 1024;
+function photoFolder_() {
+  const it = DriveApp.getFoldersByName(PHOTO_FOLDER);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(PHOTO_FOLDER);
+}
+/** รับ data URL (jpeg/png/webp) สูงสุด 3 รูป · คืนลิงก์ดูรูป (ใครมีลิงก์ดูได้ แต่แอปส่งลิงก์ให้เฉพาะทีมอาสา) */
+function savePhotos_(list, id) {
+  if (!Array.isArray(list) || !list.length) return [];
+  const folder = photoFolder_(), links = [];
+  list.slice(0, PHOTO_MAX).forEach(function (d, i) {
+    const m = String(d || '').match(/^data:(image\/(jpeg|png|webp));base64,([A-Za-z0-9+\/=]+)$/);
+    if (!m) return;
+    const bytes = Utilities.base64Decode(m[3]);
+    if (!bytes.length || bytes.length > PHOTO_BYTES) return;
+    const f = folder.createFile(Utilities.newBlob(bytes, m[1], id + '-' + (i + 1) + '.' + (m[2] === 'jpeg' ? 'jpg' : m[2])));
+    f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    links.push('https://drive.google.com/file/d/' + f.getId() + '/view');
+  });
+  return links;
+}
+/** เรียกครั้งเดียวจากหน้า Apps Script เพื่อกดอนุญาตให้สคริปต์ใช้ Google Drive (สร้างโฟลเดอร์เก็บรูป) */
+function authorizePhotos() {
+  const f = photoFolder_();
+  Logger.log('พร้อมเก็บรูปแล้ว: โฟลเดอร์ "' + PHOTO_FOLDER + '" ' + f.getUrl());
 }
 
 /** หาแถวของเคสจาก id (เร็วกว่าวนทุกแถว) */

@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=54">
+<link rel="stylesheet" href="./app.css?v=55">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -131,6 +131,11 @@
         <input id="name-in" aria-labelledby="h-name" name="name" autocomplete="name" placeholder="ชื่อที่ให้ทีมเรียก" maxlength="60">
         <h2 class="mt" id="h-details">รายละเอียด</h2>
         <textarea id="details-in" aria-labelledby="h-details" name="details" rows="3" maxlength="500" placeholder="เช่น มีผู้สูงอายุติดเตียง ทางเข้าเป็นซอยแคบ"></textarea>
+        <h2 class="mt" id="h-photos">รูปภาพ <small class="opt">(ไม่บังคับ · สูงสุด 3 รูป)</small></h2>
+        <p class="hint" id="photo-hint">ถ่ายสภาพน้ำ ทางเข้าบ้าน หรือจุดสังเกต ช่วยให้ทีมหาเจอเร็วขึ้น · เห็นเฉพาะทีมอาสา</p>
+        <div class="photo-row" id="photo-row" role="group" aria-labelledby="h-photos">
+          <label class="photo-add" id="photo-add"><input type="file" id="photo-in" accept="image/*" multiple aria-describedby="photo-hint"><span data-icon="plus"></span><b>แนบรูป</b></label>
+        </div>
         <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
       </section>
     </div>
@@ -235,11 +240,11 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=54"></script>
-<script src="./geocode.js?v=54"></script>
-<script src="./location.js?v=54"></script>
-<script src="./hotlines.js?v=54"></script>
-<script src="./script.js?v=54"></script>
+<script src="./icons.js?v=55"></script>
+<script src="./geocode.js?v=55"></script>
+<script src="./location.js?v=55"></script>
+<script src="./hotlines.js?v=55"></script>
+<script src="./script.js?v=55"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>

@@ -275,7 +275,9 @@ addEventListener('keydown',e=>{
 
 /* ---------- คำขอของฉัน + คิวส่งตอนไม่มีสัญญาณ ---------- */
 const myReqs=()=>store.json('uh_my_cases',[]);const saveMy=a=>store.put('uh_my_cases',a.slice(-8));
-const queue=()=>store.json('uh_queue',[]);const saveQueue=a=>store.put('uh_queue',a);
+const queue=()=>store.json('uh_queue',[]);
+const saveQueue=a=>{try{localStorage.setItem('uh_queue',JSON.stringify(a))}catch(e){  /* เครื่องเต็ม: เก็บคำขอไว้ก่อน ตัดรูปออก */
+  store.put('uh_queue',a.map(x=>({...x,data:{...x.data,photos:[]}})));toast('เก็บคำขอไว้แล้ว แต่เก็บรูปไว้ไม่ได้ ส่งรูปให้ทีมทางโทรศัพท์แทน')}};
 const TRACK={};
 function renderMyReq(){
   const q=queue(),mine=myReqs();const box=$('#my-req'),list=$('#my-req-list');box.hidden=!q.length&&!mine.length;if(box.hidden)return;
@@ -298,7 +300,7 @@ let flushing=false;
 async function flushQueue(){
   const q=queue();if(!q.length||flushing||!navigator.onLine)return;flushing=true;
   try{for(const item of q){
-      try{const r=await apiPost({action:'create',clientId:item.clientId,...item.data},20000);
+      try{const r=await apiPost({action:'create',clientId:item.clientId,...item.data},(item.data.photos||[]).length?60000:20000);
         if(r&&r.ok){saveQueue(queue().filter(x=>x.clientId!==item.clientId));saveMy([...myReqs(),{id:r.id,token:r.token,clientId:item.clientId,urgency:r.urgency,needs:item.data.needs,address:item.data.address,at:Date.now()}]);toast('ส่งคำขอที่ค้างไว้แล้ว #'+r.id,{ok:true})}
         else{const tries=(item.tries||0)+1;  /* เซิร์ฟเวอร์ไม่รับ: ลองใหม่ไม่เกิน 5 ครั้ง แล้วแจ้งผู้ใช้ */
           if(r&&r.error==='missing'||tries>=5){saveQueue(queue().filter(x=>x.clientId!==item.clientId));toast('คำขอที่ค้างไว้ส่งไม่สำเร็จ กรุณาส่งใหม่')}
@@ -312,12 +314,26 @@ setInterval(flushQueue,QUEUE_MS);
 function netbar(){const n=$('#netbar');if(navigator.onLine){n.hidden=true}else{n.hidden=false;n.innerHTML=ic('wifi')+'ไม่มีสัญญาณ · คำขอจะถูกส่งเองเมื่อออนไลน์'}}
 
 /* ---------- ฟอร์ม ---------- */
-const F={needs:new Set(),lat:null,lng:null,addrDirty:false,people:1,step:1,marker:null};
+const F={needs:new Set(),lat:null,lng:null,addrDirty:false,people:1,step:1,marker:null,photos:[]};
 $('#need-grid').innerHTML=NEED_TYPES.map(t=>`<button type="button" class="need-btn" data-need="${t.key}" aria-pressed="false">${ic(t.icon)}<span>${t.label}</span></button>`).join('');
 $('#need-grid').addEventListener('click',e=>{const b=e.target.closest('[data-need]');if(!b)return;const k=b.dataset.need;F.needs.has(k)?F.needs.delete(k):F.needs.add(k);b.setAttribute('aria-pressed',String(F.needs.has(k)));markOk('needs');syncOther(k==='other')});
 /* "อื่น ๆ" → ให้ผู้ใช้พิมพ์เองว่าต้องการอะไร */
 function syncOther(focus){const on=F.needs.has('other');$('#other-box').hidden=!on;if(!on){$('#other-in').value='';$('#err-other').hidden=true}else if(focus)setTimeout(()=>$('#other-in').focus(),80)}
 $('#other-in').addEventListener('input',()=>{if($('#other-in').value.trim()){$('#err-other').hidden=true;$('#sec-needs').classList.remove('invalid')}});
+/* ---------- รูปแนบ: ย่อเป็น JPEG ด้านยาวไม่เกิน 1280px ก่อนส่ง (เน็ตช้าก็ส่งได้) ---------- */
+const PHOTO_MAX=3;
+function shrinkPhoto(file){return new Promise((ok,bad)=>{const url=URL.createObjectURL(file),img=new Image();
+  img.onload=()=>{try{const k=Math.min(1,1280/Math.max(img.naturalWidth,img.naturalHeight)),w=Math.round(img.naturalWidth*k),h=Math.round(img.naturalHeight*k);
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,w,h);cx.drawImage(img,0,0,w,h);
+      let q=.72,d=cv.toDataURL('image/jpeg',q);while(d.length>900000&&q>.4){q-=.12;d=cv.toDataURL('image/jpeg',q)}ok(d)}catch(e){bad(e)}finally{URL.revokeObjectURL(url)}};
+  img.onerror=()=>{URL.revokeObjectURL(url);bad(new Error('img'))};img.src=url})}
+function renderPhotos(){const row=$('#photo-row'),add=$('#photo-add');row.querySelectorAll('.photo-th').forEach(x=>x.remove());
+  F.photos.forEach((d,i)=>{const t=document.createElement('div');t.className='photo-th';t.innerHTML=`<img src="${d}" alt="รูปที่ ${i+1}"><button type="button" aria-label="ลบรูปที่ ${i+1}">${ic('close')}</button>`;
+    t.querySelector('button').onclick=()=>{F.photos.splice(i,1);renderPhotos()};row.insertBefore(t,add)});
+  add.hidden=F.photos.length>=PHOTO_MAX}
+$('#photo-in').addEventListener('change',async e=>{const files=[...e.target.files].filter(f=>/^image\//.test(f.type)||/\.(heic|heif|jpe?g|png|webp)$/i.test(f.name));e.target.value='';
+  const room=PHOTO_MAX-F.photos.length;if(files.length>room)toast(`แนบได้อีก ${room} รูป`);
+  for(const f of files.slice(0,room)){try{F.photos.push(await shrinkPhoto(f));renderPhotos()}catch(err){toast('เปิดรูปนี้ไม่ได้ ลองรูปอื่น')}}});
 function startForm(opt={}){
   resetForm();if(opt.type){F.needs.add(opt.type);$(`[data-need="${opt.type}"]`).setAttribute('aria-pressed','true')}
   go('form');syncOther(opt.type==='other');
@@ -325,7 +341,7 @@ function startForm(opt={}){
   if(opt.gps)useGPS();
 }
 function resetForm(){
-  F.needs.clear();F.lat=F.lng=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
+  F.needs.clear();F.photos=[];if($('#photo-row'))renderPhotos();F.lat=F.lng=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
   $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
   ['#addr-input','#phone-in','#name-in','#details-in','#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');MA.sub='';MA.picked=null;$('#ma-preview').hidden=true;$('#manual-addr').open=false;
   $('#ppl-out').textContent='1';$$('input[name=level]').forEach(i=>i.checked=false);
@@ -431,7 +447,7 @@ function formData(){
   return {needs:[...F.needs].map(k=>k==='other'&&other?'อื่น ๆ: '+other:NEED_TYPES.find(t=>t.key===k).value),urgencyLabel:'รอได้',
     people:F.people,level:($('input[name=level]:checked')||{}).value||'',address:$('#addr-input').value.trim(),
     lat:F.lat!=null?+F.lat.toFixed(6):'',lng:F.lng!=null?+F.lng.toFixed(6):'',phone:$('#phone-in').value.trim(),name:$('#name-in').value.trim(),
-    details:$('#details-in').value.trim(),website:$('.hp').value}}
+    details:$('#details-in').value.trim(),website:$('.hp').value,photos:F.photos.slice(0,PHOTO_MAX)}}
 function showStep(n){F.step=n;$('#step1').hidden=n!==1;$('#step2').hidden=n!==2;$('#form-step').textContent=n+'/2';
   $('#form-title').textContent=n===1?'ขอความช่วยเหลือ':'ตรวจก่อนส่ง';
   const b=$('#form-next');b.className='btn '+(n===1?'btn-blue':'btn-green');b.textContent=n===1?'ถัดไป':'ส่งคำขอ';b.disabled=false;window.scrollTo(0,0);
@@ -439,6 +455,7 @@ function showStep(n){F.step=n;$('#step1').hidden=n!==1;$('#step2').hidden=n!==2;
 function renderReview(d){
   const rows=[['list','ต้องการ',d.needs.join(', ')],['pin','ที่อยู่',[d.address,d.lat!==''?'· ปักหมุดแล้ว':''].filter(Boolean).join(' ')||'ปักหมุดแล้ว'],['phone','เบอร์โทร',d.phone],
 ['users','จำนวนคน',d.people+' คน'],['wave','ระดับน้ำ',LEVEL_TH[d.level]||'ไม่ระบุ'],['user','ชื่อ',d.name||'-'],['note','รายละเอียด',d.details||'-']];
+  if(d.photos&&d.photos.length)rows.push(['image','รูปภาพ',d.photos.length+' รูป']);
   $('#review').innerHTML=rows.map(([i,k,v])=>`<div class="rv">${ic(i)}<span><small>${k}</small><b>${esc(v)}</b></span></div>`).join('');
 }
 $('#req-form').addEventListener('submit',async e=>{
@@ -450,7 +467,7 @@ $('#req-form').addEventListener('submit',async e=>{
   const queueIt=()=>{if(!queue().some(x=>x.clientId===clientId))saveQueue([...queue(),{clientId,data:d,at:Date.now(),tries:0}]);done();sentScreen(null,true)};
   if(!navigator.onLine){queueIt();return}
   let r;
-  try{r=await apiPost({action:'create',clientId,...d},20000)}catch(err){queueIt();return}  /* เน็ตหลุด/หมดเวลา → เก็บไว้ส่งทีหลัง */
+  try{r=await apiPost({action:'create',clientId,...d},d.photos&&d.photos.length?60000:20000)}catch(err){queueIt();return}  /* เน็ตหลุด/หมดเวลา → เก็บไว้ส่งทีหลัง */
   if(r&&r.ok){saveMy([...myReqs(),{id:r.id,token:r.token,clientId,urgency:r.urgency,needs:d.needs,address:d.address,at:Date.now()}]);done();sentScreen(r.id,false);loadCases();return}
   F.sending=false;btn.disabled=false;btn.textContent='ส่งคำขอ';
   if(r&&r.error==='missing'){showStep(1);validate();return}
@@ -522,7 +539,7 @@ function caseCard(c){
   const b=document.createElement('button');b.type='button';b.className='case'+(c.status!=='done'?' u'+sevOf(c):' is-done')+(isDanger(c)?' danger':'');b.dataset.id=c.id;
   const addr=addrTxt(c);
   const needs=c.needs&&c.needs.length?c.needs:['ขอความช่วยเหลือ'];
-  const facts=[[ 'users',(c.people||1)+' คน'],c.level&&LEVEL_TH[c.level]?['wave','น้ำ'+LEVEL_TH[c.level]]:null].filter(Boolean);
+  const facts=[[ 'users',(c.people||1)+' คน'],c.level&&LEVEL_TH[c.level]?['wave','น้ำ'+LEVEL_TH[c.level]]:null,S.volunteer&&c.photos&&c.photos.length?['image',c.photos.length+' รูป']:null].filter(Boolean);
   b.innerHTML=`<div class="case-top"><span class="case-chips">${c.status!=='done'?urgChip(c):''}${statusChip(c)}</span><span class="case-time">${esc(ago(c.createdAt))}</span></div>
     <div class="case-title"><span class="case-ics">${needs.slice(0,3).map(n=>ic(needIcon(n))).join('')}</span><b>${esc(needs.join(' · '))}</b></div>
     <div class="case-facts">${facts.map(([i,t])=>`<span>${ic(i)}${esc(t)}</span>`).join('')}</div>
@@ -610,6 +627,7 @@ function renderDetail(full){
     <div><div class="detail-head">${statusChip(c)}<h2>${esc((c.needs||[]).join(' · ')||'ขอความช่วยเหลือ')}</h2><span class="case-time">#${esc(c.id)}</span></div>
     <section class="card"><h2>${V?'ที่อยู่':'พื้นที่'}</h2><p>${esc(addr||(V?'ไม่ระบุ':'ไม่ระบุเขต'))}</p>${S.volunteer&&c.notes?`<h2 class="mt">รายละเอียด</h2><p>${esc(c.notes)}</p>`:''}
     <div class="facts">${facts.map(([k,v])=>`<div class="fact"><small>${k}</small><b>${esc(v)}</b></div>`).join('')}</div>
+    ${V&&c.photos&&c.photos.length?`<h2 class="mt">รูปจากผู้แจ้ง</h2><div class="d-photos">${c.photos.map((id,i)=>`<a href="https://drive.google.com/file/d/${encodeURIComponent(id)}/view" target="_blank" rel="noopener"><img src="https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w600" alt="รูปที่ ${i+1} จากผู้แจ้ง" loading="lazy"></a>`).join('')}</div>`:''}
     <div class="actions" id="d-actions"></div></section></div>`;
   iconify(el);
   const act=$('#d-actions');
