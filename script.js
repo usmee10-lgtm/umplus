@@ -245,7 +245,7 @@ let shelterGen=0;
 function shelterList(){const fromNet=(S.network||[]).filter(n=>NET_TO_SHELTER[n.type]).map(n=>({type:NET_TO_SHELTER[n.type],name:n.name,lat:n.lat,lng:n.lng,status:'open',offers:n.detail||'',hours:n.hours||'',phone:n.phone||''}));
   return [...(S.shelters||[]),...fromNet]}
 function shelterPopup(p){const t=SHELTER_T[p.type]||SHELTER_T.supply,st=SHELTER_ST[p.status]||SHELTER_ST.open,tel=String(p.phone||'').replace(/[^\d+]/g,'');
-  const row=(label,v)=>v?`<div class="sh-row"><span>${label}</span><p>${esc(v)}</p></div>`:'';
+  const row=(label,v)=>v?`<div class="sh-row"><span>${label}</span><div class="sh-v">${esc(v)}</div></div>`:'';
   return `<div class="pop sh-pop"><div class="sh-tags"><span class="sh-type" style="background:${t.color}">${esc(t.name)}</span><span class="sh-st ${st.cls}">${esc(st.name)}</span></div>`+
     `<b>${esc(p.name)}</b>`+(p.address?`<small class="sh-addr">${esc(p.address)}</small>`:'')+
     `<div class="sh-rows">${row('รับได้',p.capacity?p.capacity+' คน':'')}${row('มีให้',p.offers)}${row('เวลา',p.hours)}${row('ต้องการรับบริจาค',p.needs)}${row('ติดต่อ',p.phone)}</div>`+

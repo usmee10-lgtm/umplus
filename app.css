@@ -745,5 +745,5 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .sh-addr{color:var(--muted);line-height:1.4}
 .sh-rows{display:grid;gap:3px;margin-top:4px;padding-top:6px;border-top:1px solid var(--line)}
 .sh-row{display:grid;grid-template-columns:86px minmax(0,1fr);gap:6px;font-size:13px;line-height:1.4}
-.sh-row span{color:var(--muted)}.sh-row p{margin:0;color:var(--ink);overflow-wrap:anywhere}
+.sh-row span{color:var(--muted)}.sh-row .sh-v{color:var(--ink);overflow-wrap:anywhere}
 .sh-upd{color:var(--muted);font-size:12px}
