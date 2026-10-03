@@ -5,7 +5,17 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set(k,v){try{v==null||v===''?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}},
   json(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},put(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const LEVEL_TH={ankle:'ข้อเท้า',knee:'เข่า',waist:'เอว',chest:'อก',roof:'มิดหัว'};
+const LEVEL_TH={dry:'แห้ง / ต่ำกว่าข้อเท้า',ankle:'ข้อเท้า–เข่า',knee:'เข่า–เอว',waist:'เอว–อก',chest:'อกขึ้นไป',roof:'มิดหัว / ท่วมหลังคา'};
+const LEVEL_CM={dry:'< 10 ซม.',ankle:'10–50 ซม.',knee:'50–100 ซม.',waist:'100–130 ซม.',chest:'130–180 ซม.',roof:'> 180 ซม.'};
+const LEVEL_COLOR={dry:'#5DBB6C',ankle:'#E2B93B',knee:'#EE8A3C',waist:'#D9534A',chest:'#A3405E',roof:'#5E3BA8'};
+/* รูปคนยืนในน้ำ · ระดับน้ำ (y) ไล่ตามความสูงตัวคน */
+const LEVEL_Y={dry:57,ankle:49,knee:39,waist:29,chest:19,roof:3};
+function levelSvg(k){const y=LEVEL_Y[k],c=LEVEL_COLOR[k];
+  const house=k==='roof'?'<path class="lv-house" d="M8 62V24L30 8l22 16v38z"/>':'';
+  const wave=`<path class="lv-wv" d="M6 ${y} q4 -2.4 8 0 t8 0 t8 0 t8 0 t8 0 t8 0"/>`;
+  return `<svg viewBox="0 0 60 64" aria-hidden="true">${house}<g class="lv-man"><circle cx="30" cy="9" r="5.5"/><rect x="24.5" y="16.5" width="11" height="20" rx="3"/><path d="M22.5 19l-3 13M37.5 19l3 13" class="lv-arm"/><rect x="25.2" y="35" width="4.3" height="25" rx="2"/><rect x="30.5" y="35" width="4.3" height="25" rx="2"/></g><rect class="lv-water" x="6" y="${y}" width="48" height="${62-y}" fill="${c}"/>${wave}</svg>`}
+function levelLabel(k){return LEVEL_TH[k]?LEVEL_TH[k]+' ('+LEVEL_CM[k]+')':'ไม่ระบุ'}
+(function(){const g=document.getElementById('level-chips');if(!g)return;g.innerHTML=Object.keys(LEVEL_TH).map(k=>`<label style="--lv:${LEVEL_COLOR[k]}"><input type="radio" name="level" value="${k}"><span>${levelSvg(k)}<b>${LEVEL_TH[k]}</b><small>${LEVEL_CM[k]}</small></span></label>`).join('')})();
 const STATUS_TH={open:'รอช่วย',going:'กำลังไป',done:'ช่วยแล้ว'};
 function iconify(root=document){root.querySelectorAll('[data-icon]').forEach(el=>{if(el.dataset.iconDone)return;el.insertAdjacentHTML('afterbegin',ic(el.dataset.icon));el.dataset.iconDone='1'})}
 function toast(msg,opt={}){const t=document.createElement('div');t.className='toast'+(opt.ok?' ok':'');t.setAttribute('role','status');
@@ -461,7 +471,7 @@ function showStep(n){F.step=n;$('#step1').hidden=n!==1;$('#step2').hidden=n!==2;
   if(A11Y.ready&&S.view==='form')setTimeout(()=>$('#form-title').focus({preventScroll:true}),0)}
 function renderReview(d){
   const rows=[['list','ต้องการ',d.needs.join(', ')],['pin','ที่อยู่',[d.address,d.lat!==''?'· ปักหมุดแล้ว':''].filter(Boolean).join(' ')||'ปักหมุดแล้ว'],['phone','เบอร์โทร',d.phone],
-['users','จำนวนคน',d.people+' คน'],['wave','ระดับน้ำ',LEVEL_TH[d.level]||'ไม่ระบุ'],['user','ชื่อ',d.name||'-'],['note','รายละเอียด',d.details||'-']];
+['users','จำนวนคน',d.people+' คน'],['wave','ระดับน้ำ',levelLabel(d.level)],['user','ชื่อ',d.name||'-'],['note','รายละเอียด',d.details||'-']];
   if(d.photos&&d.photos.length)rows.push(['image','รูปภาพ',d.photos.length+' รูป']);
   $('#review').innerHTML=rows.map(([i,k,v])=>`<div class="rv">${ic(i)}<span><small>${k}</small><b>${esc(v)}</b></span></div>`).join('');
 }
@@ -628,7 +638,7 @@ function renderDetail(full){
   el.dataset.id=S.detailId;el.dataset.sig=JSON.stringify([c.status,c.volunteer]);
   const addr=addrTxt(c),V=S.volunteer;
   const tel=String(c.phone||'').replace(/[^\d+]/g,'');
-  const facts=[['ความเร่งด่วน',URG_TH[sevOf(c)]],['จำนวนคน',(c.people||1)+' คน'],['ระดับน้ำ',LEVEL_TH[c.level]||'ไม่ระบุ'],['ความต้องการ',(c.needs||[]).join(', ')||'-'],['แจ้งเมื่อ',ago(c.createdAt)]];
+  const facts=[['ความเร่งด่วน',URG_TH[sevOf(c)]],['จำนวนคน',(c.people||1)+' คน'],['ระดับน้ำ',levelLabel(c.level)],['ความต้องการ',(c.needs||[]).join(', ')||'-'],['แจ้งเมื่อ',ago(c.createdAt)]];
   if(V&&c.name)facts.push(['ผู้ติดต่อ',c.name]);if(V&&c.phone)facts.push(['เบอร์โทร',c.phone]);if(c.volunteer&&c.status!=='open')facts.push(['ทีมที่รับเคส',c.volunteer]);if(c.org&&c.status!=='open')facts.push(['หน่วยงาน',c.org]);
   el.innerHTML=`<div class="d-map-col">${hasPin(c)?`<div id="detail-map" class="detail-map"></div>${!V?`<p class="hint">${ic('pin')} ตำแหน่งโดยประมาณ (รัศมีราว 500 ม.) · ที่อยู่เต็มเห็นเฉพาะทีมอาสา</p>`:''}<div class="coord-row" ${V?'':'hidden'}><span>${ic('pin')} ${(+c.lat).toFixed(6)}, ${(+c.lng).toFixed(6)}</span><button type="button" class="pill pill-ghost small" id="copy-coord" data-icon="copy">คัดลอก</button></div>`:'<p class="hint">ผู้แจ้งไม่ได้ปักหมุด</p>'}</div>
     <div><div class="detail-head">${statusChip(c)}<h2>${esc((c.needs||[]).join(' · ')||'ขอความช่วยเหลือ')}</h2><span class="case-time">#${esc(c.id)}</span></div>

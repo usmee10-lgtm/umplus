@@ -509,22 +509,23 @@ a{color:var(--primary)}
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 
 /* ระดับน้ำ: เลือกจากภาพ (คน + ระดับน้ำ) */
-.level-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.level-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .level-grid label{position:relative;cursor:pointer;min-width:0}
 .level-grid input{position:absolute;opacity:0;width:1px;height:1px}
-.level-grid span{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 2px 9px;border-radius:16px;background:var(--bg);transition:background .15s,box-shadow .15s,transform .1s}
-.level-grid svg{width:38px;height:46px;overflow:visible}
-.level-grid .hd,.level-grid .bd{fill:#9aa1c4}
-.level-grid .wt{fill:rgba(15,33,136,.22)}
-.level-grid .wv{fill:none;stroke:rgba(15,33,136,.45);stroke-width:1.5}
-.level-grid b{font-size:13.5px;font-weight:700;color:var(--ink);line-height:1.2;white-space:nowrap}
-.level-grid label:active span{transform:scale(.96)}
-.level-grid input:checked+span{background:var(--primary);box-shadow:0 6px 16px -6px rgba(15,33,136,.6)}
-.level-grid input:checked+span .hd,.level-grid input:checked+span .bd{fill:#fff}
-.level-grid input:checked+span .wt{fill:var(--green);opacity:.85}
-.level-grid input:checked+span .wv{stroke:#fff}
-.level-grid input:checked+span b{color:#fff}
-.level-grid input:focus-visible+span{outline:3px solid var(--green);outline-offset:2px}
+.level-grid span{display:flex;flex-direction:column;align-items:center;gap:2px;height:100%;box-sizing:border-box;padding:12px 6px 10px;border-radius:16px;background:#fff;border:1.5px solid var(--line);transition:border-color .15s,box-shadow .15s,background .15s,transform .1s;text-align:center}
+.level-grid svg{width:64px;height:68px;margin-bottom:4px}
+.level-grid .lv-man{fill:#2E3A55}
+.level-grid .lv-arm{fill:none;stroke:#2E3A55;stroke-width:3.6;stroke-linecap:round}
+.level-grid .lv-water{opacity:.82}
+.level-grid .lv-wv{fill:none;stroke:#fff;stroke-width:1.3;opacity:.9}
+.level-grid .lv-house{fill:#2E3A55;opacity:.14}
+.level-grid b{font-size:14px;font-weight:700;color:var(--ink);line-height:1.25;text-wrap:balance}
+.level-grid small{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.level-grid label:active span{transform:scale(.97)}
+.level-grid input:checked+span{border-color:var(--lv);background:color-mix(in srgb,var(--lv) 10%,#fff);box-shadow:0 0 0 1.5px var(--lv) inset,0 6px 16px -8px var(--lv)}
+.level-grid input:checked+span small{color:var(--ink);font-weight:600}
+.level-grid input:focus-visible+span{outline:2px solid var(--primary);outline-offset:2px}
+@media (max-width:360px){.level-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* โซนเคสใกล้กัน (ทีมอาสา) */
 .zone-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin:2px 2px 8px}
