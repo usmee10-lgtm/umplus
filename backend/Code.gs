@@ -4,7 +4,7 @@
  *
  * API (ใช้ URL เดียวของ Web app):
  *   POST {action:"create", ...ข้อมูลเคส}                 -> สร้างเคสใหม่ (ใครก็ส่งได้) ได้ id + token กลับไป
- *   GET  ?action=list                                     -> รายการเคส (ปิดเบอร์โทร/ชื่อบางส่วน)
+ *   GET  ?action=list                                     -> รายการเคสสำหรับคนทั่วไป: เขต + ตำแหน่งโดยประมาณ ไม่มีชื่อ/เบอร์/ที่อยู่
  *   GET  ?action=list&key=รหัสอาสา                        -> รายการเคสแบบเห็นเบอร์เต็ม
  *   POST {action:"update", key, id, status, volunteer}    -> อาสาเปลี่ยนสถานะ (ต้องมีรหัสอาสา)
  *   POST {action:"track", id, token}                      -> ผู้แจ้งดูสถานะคำขอของตัวเอง
@@ -215,14 +215,31 @@ function listCases_(full, since) {
     o.status = statusCode_(o.status); o.level = levelCode_(o.level); o.urgency = urgCode_(o.urgency);
     o.needs = o.needs ? String(o.needs).split(/\s*,\s*/) : [];
     o.vulnerable = o.vulnerable ? String(o.vulnerable).split(/\s*,\s*/) : [];
-    if (!full) {
-      o.phone = maskPhone_(o.phone);
-      o.name = o.name ? String(o.name).slice(0, 1) + '***' : '';
-      o.notes = '';
-    }
+    if (!full) return publicCase_(o);
     return o;
   }).filter(function (o) { return o.id && (!sinceMs || o.updatedAt > sinceMs); });
   return { ok: true, cases: cases, volunteer: full };
+}
+
+/* คนทั่วไป: เห็นแค่เขต + ตำแหน่งโดยประมาณ (~500 ม.) ไม่มีชื่อ เบอร์ ที่อยู่ รายละเอียด */
+const PUB_GRID = 0.005;
+function publicCase_(o) {
+  const snap = function (v) { return v === '' || v == null || isNaN(Number(v)) ? '' : Math.round(Math.round(Number(v) / PUB_GRID) * PUB_GRID * 1e4) / 1e4; };
+  return {
+    id: o.id, createdAt: o.createdAt, updatedAt: o.updatedAt, status: o.status, urgency: o.urgency,
+    level: o.level, needs: o.needs, people: o.people, district: districtOf_(o),
+    lat: snap(o.lat), lng: snap(o.lng), approx: true
+  };
+}
+const BKK_DISTRICTS = 'พระนคร ดุสิต หนองจอก บางรัก บางเขน บางกะปิ ปทุมวัน ป้อมปราบศัตรูพ่าย พระโขนง มีนบุรี ลาดกระบัง ยานนาวา สัมพันธวงศ์ พญาไท ธนบุรี บางกอกใหญ่ ห้วยขวาง คลองสาน ตลิ่งชัน บางกอกน้อย บางขุนเทียน ภาษีเจริญ หนองแขม ราษฎร์บูรณะ บางพลัด ดินแดง บึงกุ่ม สาทร บางซื่อ จตุจักร บางคอแหลม ประเวศ คลองเตย สวนหลวง จอมทอง ดอนเมือง ราชเทวี ลาดพร้าว วัฒนา บางแค หลักสี่ สายไหม คันนายาว สะพานสูง วังทองหลาง คลองสามวา บางนา ทวีวัฒนา ทุ่งครุ บางบอน'.split(' ');
+function districtOf_(o) {
+  const d = String(o.district || '').replace(/^\s*(เขต|อำเภอ|อ\.)\s*/, '').trim();
+  if (d) return d;
+  const a = String(o.address || '');
+  let m = a.match(/เขต\s*([ก-๙]+)/) || a.match(/(?:อำเภอ|อ\.)\s*([ก-๙]+)/);
+  if (m) return m[1];
+  const hits = BKK_DISTRICTS.filter(function (x) { return a.indexOf(x) >= 0; }).sort(function (x, y) { return y.length - x.length; });
+  return hits[0] || '';
 }
 
 /* ---------- teams (แชร์ตำแหน่งทีม) ---------- */

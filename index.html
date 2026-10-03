@@ -10,8 +10,8 @@
 <link rel="icon" href="./assets/icon-192.png">
 <link rel="apple-touch-icon" href="./assets/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=40">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Poppins:wght@700&display=swap">
+<link rel="stylesheet" href="./app.css?v=41">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -19,7 +19,10 @@
 <main id="view-home" class="view active" aria-label="หน้าแรก">
   <div id="home-map" class="map-full" role="region" aria-label="แผนที่เคสที่ยังไม่เสร็จ"></div>
   <header class="home-top glass">
-    <img class="logo" src="./assets/ummatee-logo.png" alt="UMMATEE" width="96" height="58">
+    <a class="brand" href="#home" data-go="home" aria-label="Help Me ช่วยด้วย · หน้าแรก">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="14" fill="none" stroke="#D62828" stroke-width="10" stroke-dasharray="11 11" stroke-dashoffset="5.5"/><circle cx="20" cy="20" r="19" fill="none" stroke="#D62828" stroke-width="1.6"/><circle cx="20" cy="20" r="9" fill="none" stroke="#D62828" stroke-width="1.6"/></svg>
+      <span class="brand-txt"><span class="brand-en" lang="en">Help Me</span><span class="brand-th">ช่วยด้วย</span></span>
+    </a>
     <button type="button" class="icon-btn" id="home-search-btn" aria-label="ค้นหาที่อยู่" aria-haspopup="dialog" data-icon="search"></button>
   </header>
   <button type="button" class="search-card" id="search-card" aria-haspopup="dialog"><i class="dot" aria-hidden="true"></i><span>ต้องการความช่วยเหลือที่ไหน?</span></button>
@@ -221,11 +224,11 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=40"></script>
-<script src="./geocode.js?v=40"></script>
-<script src="./location.js?v=40"></script>
-<script src="./hotlines.js?v=40"></script>
-<script src="./script.js?v=40"></script>
+<script src="./icons.js?v=41"></script>
+<script src="./geocode.js?v=41"></script>
+<script src="./location.js?v=41"></script>
+<script src="./hotlines.js?v=41"></script>
+<script src="./script.js?v=41"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
