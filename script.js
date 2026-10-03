@@ -494,12 +494,12 @@ async function useGPS(){
   finally{btn.disabled=false;btn.classList.remove('busy')}
 }
 $('#form-gps').addEventListener('click',useGPS);
-$('#addr-input').addEventListener('input',()=>{const v=$('#addr-input').value.trim();
+$('#addr-input').addEventListener('input',e=>{const v=$('#addr-input').value.trim();
   /* วางลิงก์ Google Maps หรือพิกัด → ปักหมุดตรงจุดนั้น แล้วเติมที่อยู่ให้ */
   const ll=parseLatLngText(v);
   if(ll&&(/^https?:\/\//i.test(v)||/^-?\d{1,2}\.\d+\s*[, ]\s*-?\d{2,3}\.\d+$/.test(v))){$('#addr-input').value='';F.addrDirty=false;
-    setPin(ll.lat,ll.lng,true,true,'link');$('#addr-status').textContent='ปักหมุดตามพิกัดที่วางแล้ว · กำลังเติมที่อยู่…';if(typeof geoCtl!=='undefined'&&geoCtl)geoCtl.clear();return}
-  if(isShortMapLink(v)){$('#addr-status').textContent='ลิงก์แบบย่อเปิดในแอปไม่ได้ · ใน Google Maps ให้กดค้างที่บ้านจนมีหมุด แล้วคัดลอกตัวเลขพิกัด (เช่น 13.79, 100.62) มาวางแทน';return}
+    e.stopImmediatePropagation();setPin(ll.lat,ll.lng,true,true,'link');$('#addr-status').textContent='ปักหมุดตามพิกัดที่วางแล้ว · ตรวจว่าหมุดตรงบ้าน';if(typeof geoCtl!=='undefined'&&geoCtl)geoCtl.clear();return}
+  if(isShortMapLink(v)){e.stopImmediatePropagation();if(typeof geoCtl!=='undefined'&&geoCtl)geoCtl.clear();$('#addr-status').textContent='ลิงก์แบบย่อเปิดในแอปไม่ได้ · ใน Google Maps ให้กดค้างที่บ้านจนมีหมุด แล้วคัดลอกตัวเลขพิกัด (เช่น 13.79, 100.62) มาวางแทน';return}
   F.addrDirty=!!v;if(F.addrDirty)markOk('loc')});
 var geoCtl=geoAttach($('#addr-input'),$('#addr-list'),it=>{$('#addr-input').value=it.label||it.title;F.addrDirty=true;setPin(it.lat,it.lng,true,false,'addr');$('#addr-status').textContent='ปักหมุดตามที่อยู่แล้ว · ลากหมุดปรับได้'},{status:$('#addr-status'),
   onFree:(text,best)=>{$('#addr-input').value=text;F.addrDirty=true;markOk('loc');
