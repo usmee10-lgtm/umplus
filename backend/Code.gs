@@ -131,7 +131,9 @@ function createCase_(b) {
     needs: list_(b.needs),
     vulnerable: list_(b.vulnerable),
     notes: clean_(b.notes || b.details, MAX.notes),
-    urgencyLabel: clean_(b.urgencyLabel || b.urgency, 60)
+    urgencyLabel: clean_(b.urgencyLabel || b.urgency, 60),
+    // ที่มาของหมุด (GPS ±x ม. / ปักเอง / จากลิงก์ / จากที่อยู่) ให้ทีมรู้ว่าหมุดแม่นแค่ไหน
+    pinsrc: /^(GPS ±\d{1,5} ม\.( แล้วลากปรับเอง)?|ปักเองบนแผนที่|จากลิงก์\/พิกัดที่วาง|จากที่อยู่ \(โดยประมาณ\))$/.test(String(b.pinSrc || '')) ? String(b.pinSrc) : ''
   };
   const missing = [];
   if (c.phone.replace(/\D/g, '').length < 9) missing.push('phone');
@@ -171,6 +173,7 @@ function createCase_(b) {
     for (let i = 0; i < m._width; i++) out.push('');
     HEADERS.forEach(function (h) { if (m[h]) out[m[h] - 1] = h === 'phone' ? "'" + row.phone : safeCell_(row[h]); });
     if (m.photos && photoLinks.length) out[m.photos - 1] = photoLinks.join('\n');
+    if (m.pinsrc && c.pinsrc && c.lat !== '') out[m.pinsrc - 1] = c.pinsrc;
     sh.appendRow(out);
   } finally {
     lock.releaseLock();
@@ -347,7 +350,7 @@ const ALIASES = {
   district: ['เขต', 'district'], people: ['จำนวนคน', 'people'], address: ['ที่อยู่', 'address'],
   lat: ['ละติจูด', 'lat'], lng: ['ลองจิจูด', 'lng'], level: ['ระดับน้ำ', 'level'], needs: ['ต้องการ', 'needs'],
   vulnerable: ['กลุ่มเปราะบาง', 'vulnerable'], notes: ['รายละเอียด', 'notes'], volunteer: ['ทีมอาสา', 'volunteer'],
-  updatedAt: ['อัปเดตล่าสุด', 'updatedAt'], org: ['หน่วยงาน', 'org'], photos: ['รูปภาพ', 'photos'], token: ['รหัสติดตาม (ห้ามแก้)', 'รหัสติดตาม', 'token']
+  updatedAt: ['อัปเดตล่าสุด', 'updatedAt'], org: ['หน่วยงาน', 'org'], photos: ['รูปภาพ', 'photos'], pinsrc: ['ที่มาของหมุด', 'pinsrc'], token: ['รหัสติดตาม (ห้ามแก้)', 'รหัสติดตาม', 'token']
 };
 let COLS_ = null;
 /** {key: เลขคอลัมน์} จากแถวหัวตาราง (ชื่อซ้ำ ใช้คอลัมน์แรก) · คอลัมน์ token ถ้าไม่มี เพิ่มต่อท้ายให้ */
@@ -362,6 +365,7 @@ function cols_(sh) {
   if (!m.token) { m.token = m._width + 1; sh.getRange(1, m.token).setValue(ALIASES.token[0]).setFontWeight('bold'); m._width = m.token; }
   if (!m.org) { m.org = m._width + 1; sh.getRange(1, m.org).setValue(ALIASES.org[0]).setFontWeight('bold'); m._width = m.org; }
   if (!m.photos) { m.photos = m._width + 1; sh.getRange(1, m.photos).setValue(ALIASES.photos[0]).setFontWeight('bold'); m._width = m.photos; }
+  if (!m.pinsrc) { m.pinsrc = m._width + 1; sh.getRange(1, m.pinsrc).setValue(ALIASES.pinsrc[0]).setFontWeight('bold'); m._width = m.pinsrc; }
   COLS_ = m;
   return m;
 }

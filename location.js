@@ -45,6 +45,26 @@ function makeMap(el,opt={}){
   requestAnimationFrame(()=>map.invalidateSize());
   return map;
 }
+/* GPS แบบแม่นยำ: ฟังตำแหน่งต่อเนื่อง เก็บค่าที่แม่นที่สุด จนแม่นถึง goodM เมตร หรือครบ maxMs
+   onFix({lat,lng,accuracy}) ถูกเรียกทุกครั้งที่ได้ค่าที่แม่นขึ้น · คืน Promise ค่าที่ดีที่สุด */
+function getGPSBest(onFix,{goodM=15,maxMs=15000}={}){
+  return new Promise((res,rej)=>{if(!navigator.geolocation)return rej(new Error('unsupported'));
+    let best=null,done=false,id=null;
+    const finish=err=>{if(done)return;done=true;clearTimeout(tm);if(id!=null)navigator.geolocation.clearWatch(id);best?res(best):rej(err||Object.assign(new Error('timeout'),{code:3}))};
+    const tm=setTimeout(()=>finish(),maxMs);
+    id=navigator.geolocation.watchPosition(p=>{const f={lat:p.coords.latitude,lng:p.coords.longitude,accuracy:Math.round(p.coords.accuracy||9999)};
+        if(!best||f.accuracy<best.accuracy){best=f;try{onFix&&onFix(f)}catch(e){}}if(best.accuracy<=goodM)finish()},
+      e=>{if(e.code===1||!best)finish(e)},{enableHighAccuracy:true,maximumAge:0,timeout:maxMs})});
+}
+/* อ่านพิกัดจากลิงก์ Google Maps / Apple Maps / ข้อความ "13.75, 100.5" · คืน {lat,lng} หรือ null */
+function parseLatLngText(t){const s=decodeURIComponent(String(t||'')).replace(/\s+/g,' ');
+  const ok=(a,b)=>{a=+a;b=+b;return a>5&&a<21&&b>97&&b<106?{lat:a,lng:b}:null};let m;
+  if((m=s.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/)))return ok(m[1],m[2]);
+  if((m=s.match(/[?&](?:q|query|ll|sll|destination|daddr|center)=(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/)))return ok(m[1],m[2]);
+  if((m=s.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/)))return ok(m[1],m[2]);
+  if((m=s.match(/(?:^|[^\d.])(-?\d{1,2}\.\d{3,})\s*[, ]\s*(-?\d{2,3}\.\d{3,})(?!\d)/)))return ok(m[1],m[2]);
+  return null}
+const isShortMapLink=t=>/(maps\.app\.goo\.gl|goo\.gl\/maps|g\.co\/kgs)\//i.test(t||'');
 /* GPS ครั้งเดียว → Promise {lat,lng,accuracy} */
 function getGPS(timeout=12000){
   return new Promise((res,rej)=>{if(!navigator.geolocation)return rej(new Error('unsupported'));
