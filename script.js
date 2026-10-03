@@ -162,6 +162,7 @@ document.addEventListener('click',e=>{
     if(f.dataset.act==='layers'){const menu=$('#layer-menu');if(!menu.hidden&&layerFor===which){closeLayerMenu(true);return}layerFor=which;layerBtn=f;const r=f.getBoundingClientRect();
       menu.style.top=Math.max(8,Math.min(r.bottom+8,innerHeight-menu.offsetHeight-12,innerHeight-430))+'px';menu.style.right=(innerWidth-r.right)+'px';menu.hidden=false;f.setAttribute('aria-expanded','true');
       const cur=(S.maps[which]&&S.maps[which].currentBase)||'road';$$('#layer-menu [data-base]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.base===cur)));
+      layListTo(which==='map'?menu:null);
       const first=menu.querySelector('[aria-pressed=true]')||menu.querySelector('button');if(first)first.focus();}
     else locateMe(which,f);return}
   const bb=e.target.closest('#layer-menu [data-base]');
@@ -169,7 +170,12 @@ document.addEventListener('click',e=>{
   if(!e.target.closest('#layer-menu')&&!$('#layer-menu').hidden)closeLayerMenu(false);
 });
 let layerBtn=null;
-function closeLayerMenu(refocus){const m=$('#layer-menu');if(!m)return;const was=!m.hidden;m.hidden=true;$$('.fab[data-act=layers]').forEach(b=>b.setAttribute('aria-expanded','false'));if(was&&refocus&&layerBtn)layerBtn.focus()}
+/* รายการชั้นข้อมูลอยู่ในกล่องสีน้ำเงินหน้าแรก · ถ้าเปิดเมนูจากหน้าแผนที่ ยกรายการเดียวกันไปแสดงในเมนูลอยชั่วคราว */
+function layListTo(menu){const l=$('#lay-list');if(!l)return;if(menu){if(l.parentNode!==menu)menu.append(l);l.classList.add('in-menu')}else{const c=$('#lay-card');if(l.parentNode!==c)c.append(l);l.classList.remove('in-menu')}}
+var LAY_NAMES={'lay-flood':'น้ำท่วม','lay-teams':'ทีมช่วยเหลือ','lay-cctv':'CCTV'};
+function layCount(){const on=Object.keys(LAY_NAMES).filter(id=>$('#'+id)&&$('#'+id).checked);const s=$('#lay-sum-s');if(s)s.textContent=on.length?'เปิดอยู่: '+on.map(id=>LAY_NAMES[id]).join(' · '):'ยังไม่ได้เปิดชั้นข้อมูล';const c=$('#lay-card');if(c)c.classList.toggle('has-on',on.length>0)}
+(function(){const c=$('#lay-card');if(!c)return;if(store.get('uh_lay_open','')==='1')c.open=true;c.addEventListener('toggle',()=>store.set('uh_lay_open',c.open?'1':''));$$('#lay-list .sw-in').forEach(i=>i.addEventListener('change',layCount));layCount()})();
+function closeLayerMenu(refocus){const m=$('#layer-menu');if(!m)return;const was=!m.hidden;m.hidden=true;layListTo(null);$$('.fab[data-act=layers]').forEach(b=>b.setAttribute('aria-expanded','false'));if(was&&refocus&&layerBtn)layerBtn.focus()}
 async function locateMe(which,btn){
   const m=await ensureMap(which);if(!m)return;btn&&btn.classList.add('on');
   try{const p=await getGPS();S.me=p;
@@ -181,7 +187,7 @@ async function locateMe(which,btn){
 const FLOOD_COL={blocked:'#d32f2f',risky:'#f57c00',caution:'#fbc02d'};   /* สีแบบ floodboard: ผ่านไม่ได้ / เสี่ยง / น้ำขังผ่านได้ (คิดจากรถสูง) */
 const floodV=p=>{const v=(p||{}).verdict;return typeof v==='string'?v:(v&&(v.truck||v.pickup))||(p||{}).status};
 let floodGen=0,teamsGen=0;
-async function toggleFlood(on){store.set('uh_lay_flood',on?'1':'0');$('#lay-flood').checked=on;const gen=++floodGen;
+async function toggleFlood(on){store.set('uh_lay_flood',on?'1':'0');$('#lay-flood').checked=on;layCount&&layCount();const gen=++floodGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._flood){m._flood.remove();m._flood=null}});if(!on)return;
   try{if(!S.flood){S.floodP=S.floodP||fetch('https://www.floodboard.org/api/export/roads.geojson').then(r=>r.json()).then(j=>{j.features=(j.features||[]).filter(f=>{const p=f.properties||{};return !p.cleared&&FLOOD_COL[floodV(p)]});return j}).finally(()=>{S.floodP=null});S.flood=await S.floodP}
     if(gen!==floodGen)return;  /* มีการเรียกใหม่กว่าแล้ว */
@@ -206,7 +212,7 @@ function drawHelped(){Object.values(S.maps).forEach(m=>{if(!m)return;if(m._helpe
   m._helped=L.layerGroup(hs.flatMap(h=>{const o=orgOf(h.org);
     return [L.circle([h.lat,h.lng],{radius:350,color:o.color,weight:1,opacity:.35,fillColor:o.color,fillOpacity:.13,interactive:false}),
       L.marker([h.lat,h.lng],{icon:L.divIcon({className:'org-pin',html:o.logo?`<img src="${esc(o.logo)}" alt="">`:`<span style="background:${o.color}">${esc(o.short)}</span>`,iconSize:[44,20],iconAnchor:[22,10]}),opacity:.88,zIndexOffset:-200,title:o.name+' · '+h.title}).bindPopup(()=>helpedPopup(h))]})).addTo(m)})}
-async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams').checked=on;const gen=++teamsGen;
+async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams').checked=on;layCount&&layCount();const gen=++teamsGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._teams){m._teams.remove();m._teams=null}});drawHelped();if(!on)return;
   const p={action:'teams'};if(S.volunteer)p.key=volKey();
   const tm=Math.floor(Date.now()/60000);
@@ -238,7 +244,7 @@ function cctvPopup(c){const f=S.cctv.feeds[c[0]]||{},src=S.cctv.base+f.path+enco
 const CCTV_ATTR='กล้อง CCTV © <a href="https://flood.pop.in.th/" target="_blank" rel="noopener">POPNIX Flood</a>';
 function cctvZoomSync(m){if(!m||!m._cctv)return;const show=m.getZoom()>=CCTV_ZOOM,ac=m.attributionControl;
   if(show&&!m.hasLayer(m._cctv)){m._cctv.addTo(m);ac&&ac.addAttribution(CCTV_ATTR)}else if(!show&&m.hasLayer(m._cctv)){m.removeLayer(m._cctv);ac&&ac.removeAttribution(CCTV_ATTR)}}
-async function toggleCctv(on){store.set('uh_lay_cctv',on?'1':'');$('#lay-cctv').checked=on;const gen=++cctvGen;
+async function toggleCctv(on){store.set('uh_lay_cctv',on?'1':'');$('#lay-cctv').checked=on;layCount&&layCount();const gen=++cctvGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._cctv){m.removeLayer(m._cctv);m._cctv=null;m.attributionControl&&m.attributionControl.removeAttribution(CCTV_ATTR)}});if(!on)return;
   try{if(!S.cctv||Date.now()-S.cctvAt>120000){const r=await fetch('/api/cctv').then(r=>r.json());if(!r||!r.ok)throw new Error('cctv');S.cctv=r;S.cctvAt=Date.now()}
     if(gen!==cctvGen)return;
@@ -248,7 +254,7 @@ async function toggleCctv(on){store.set('uh_lay_cctv',on?'1':'');$('#lay-cctv').
       if(!m._cctvHook){m._cctvHook=1;m.on('zoomend',()=>cctvZoomSync(m))}
       cctvZoomSync(m)});
     const cur=S.maps[S.view==='map'?'map':'home'];if(cur&&cur.getZoom()<CCTV_ZOOM)toast(`ซูมเข้าเพื่อดูกล้อง CCTV (${S.cctv.cams.length.toLocaleString('th-TH')} ตัว)`);
-  }catch(e){toast('โหลดกล้อง CCTV ไม่สำเร็จ');store.set('uh_lay_cctv','');$('#lay-cctv').checked=false}}
+  }catch(e){toast('โหลดกล้อง CCTV ไม่สำเร็จ');store.set('uh_lay_cctv','');$('#lay-cctv').checked=false;layCount()}}
 $('#lay-cctv').addEventListener('change',e=>toggleCctv(e.target.checked));
 $('#lay-teams').addEventListener('change',e=>toggleTeams(e.target.checked));
 

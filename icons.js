@@ -44,6 +44,8 @@ const ICONS={
   sat:'<path d="m13 7 4 4"/><path d="m4 20 4-4"/><rect x="8.5" y="5.5" width="7" height="7" rx="1" transform="rotate(45 12 9)"/><path d="M15 15a4 4 0 0 0 4-4M15 19a8 8 0 0 0 8-8"/>',
   moon:'<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>',
   road:'<path d="M6 21 9 3M18 21 15 3M12 5v2M12 11v2M12 17v2"/>',
+  cam:'<path d="M3 7h11a2 2 0 0 1 2 2v1l5-3v10l-5-3v1a2 2 0 0 1-2 2H3z"/><circle cx="8.5" cy="12" r="2"/>',
+  chev:'<path d="m6 9 6 6 6-6"/>',
   chart:'<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>'
 };
 function ic(name,cls){return `<svg class="ic${cls?' '+cls:''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`}
