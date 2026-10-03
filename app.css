@@ -645,3 +645,4 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .stable td.is-red{color:#C62828;font-weight:700}
 .stable tbody tr:last-child>*{border-bottom:0}
 .slist .urg{min-width:76px;justify-content:center}
+.stats>*{min-width:0}
