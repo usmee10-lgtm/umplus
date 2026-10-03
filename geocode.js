@@ -31,7 +31,7 @@ const geoKey=s=>String(s||'').toLowerCase().replace(/[็-๎]/g,'').replace(/[\
 async function geoSuggest(q,signal){
   const nq=geoNorm(q);if(nq.length<3)return [];
   const P=geoParts(nq),vars=[nq];
-  if(P.base){if(P.nums.length)vars.push('ซอย'+P.base+' '+P.nums[0]);vars.push(P.base)}
+  if(P.base){if(P.nums.length){vars.push('ซอย'+P.base+' '+P.nums.join(' แยก '));vars.push(P.base+' '+P.nums.join(' แยก '))}vars.push(P.base)}
   /* ค้นหลายแบบพร้อมกัน (ชื่อเต็ม / ซอย+เลข / ชื่อหลัก) แล้วรวม จัดอันดับเอง */
   const jobs=[...new Set(vars)].map(v=>geoQuery(v,signal).then(fs=>fs.map(f=>({f}))));
   const res=await Promise.allSettled(jobs);
@@ -57,8 +57,32 @@ async function geoSuggest(q,signal){
     if(out.some(o=>o.label===x.label&&o.lat.toFixed(3)===x.lat.toFixed(3)))return;out.push(x)});
   /* ตัดผลที่ไม่เกี่ยวออก (คะแนนติดลบ หรือห่างจากอันดับ 1 มาก) แต่ถ้าไม่มีอะไรเลยก็ยังแสดงที่ใกล้เคียงที่สุด */
   const top=out.length?out[0].score:0,good=out.filter(x=>x.score>=0&&x.score>=top-14);
-  return (good.length?good:out).slice(0,8);
+  let final=(good.length?good:out).slice(0,8);
+  /* ซอยที่ยังไม่มีชื่อในแผนที่ OSM (เช่น "กรุงเทพกรีฑา 5"): ปักหมุดโดยประมาณใกล้ซอยข้างเคียง
+     เลขซอยไทยเรียงตามถนน เลขคี่อยู่ฝั่งเดียวกัน เลขคู่อีกฝั่ง → หาซอยเลขใกล้สุดฝั่งเดียวกันก่อน */
+  if(P.base&&P.nums.length===1){const N=+P.nums[0],want=[geoKey('ซอย'+P.base+N),geoKey(P.base+N)];
+    if(N>0&&N<1000&&!final.some(x=>want.includes(geoKey(x.title)))){
+      try{const near=await geoSoiNeighbour(P.base,N,signal);
+        if(near)final=[{lat:near.lat,lng:near.lng,title:'ซอย'+P.base+' '+N,sub:'ยังไม่มีซอยนี้ในแผนที่ · ปักหมุดใกล้'+near.title+'ให้ก่อน แล้วลากให้ตรงบ้าน',
+          label:'ซอย'+P.base+' '+N+(near.dist?' เขต'+near.dist:''),bkk:near.bkk,dist:near.dist,area:near.area,type:'approx',name:'',street:'ซอย'+P.base+' '+N,approx:true,score:99},...final].slice(0,8)}
+      catch(e){if(e.name==='AbortError')throw e}}}
+  return final;
 }
+async function geoSoiNeighbour(base,N,signal){
+  const isSoi=(x,n)=>[geoKey('ซอย'+base+n),geoKey(base+n)].includes(geoKey(x.title));
+  const find=async ns=>{const qs=[];ns.forEach(n=>{if(n>0)qs.push(['ซอย'+base+' '+n,n],[base+' '+n,n])});
+    const res=await Promise.allSettled(qs.map(([q,n])=>geoQuery(q,signal,5).then(fs=>fs.map(f=>{const p=f.properties||{},L=geoLabel(p);
+      return {n,lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],title:L.title,dist:p.district||'',area:p.locality||'',bkk:geoIsBkk(p)}}))));
+    if(signal&&signal.aborted)throw new DOMException('aborted','AbortError');
+    return [].concat(...res.filter(r=>r.status==='fulfilled').map(r=>r.value)).filter(x=>isSoi(x,x.n))};
+  for(const step of [[N-2,N+2],[N-4,N+4],[N-1,N+1]]){const hits=await find(step);if(!hits.length)continue;
+    const lo=hits.find(x=>x.n<N),hi=hits.find(x=>x.n>N);
+    /* มีทั้งซอยก่อนและหลัง → กลางระหว่างสองซอย · มีด้านเดียว → ใกล้ซอยนั้น */
+    if(lo&&hi&&Math.abs(lo.lat-hi.lat)<.02&&Math.abs(lo.lng-hi.lng)<.02)return {...lo,lat:(lo.lat+hi.lat)/2,lng:(lo.lng+hi.lng)/2,title:lo.title+' กับ '+hi.title.replace(/^ซอย/,'')};
+    return lo||hi}
+  /* ไม่เจอซอยข้างเคียงเลย → ปักที่ถนนหลัก */
+  const road=(await geoQuery('ถนน'+base,signal,3).catch(()=>[])).map(f=>{const p=f.properties||{},L=geoLabel(p);return {lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],title:L.title,dist:p.district||'',area:p.locality||'',bkk:geoIsBkk(p)}})[0];
+  return road||null}
 async function geoReverseRaw(lat,lng){
   try{const f=((await photonGet(`/reverse?lat=${(+lat).toFixed(5)}&lon=${(+lng).toFixed(5)}&limit=1`)).features||[])[0];return f?f.properties||null:null}catch(e){return null}}
 async function geoReverse(lat,lng){
