@@ -69,6 +69,7 @@ function doGet(e) {
     if (p.action === 'teams') return json_(listTeams_(isVolunteer_(p.key)));
     if (p.action === 'network') return json_(listNetworkCachedJson_(), true);
     if (p.action === 'outreach') return json_(listOutreachCachedJson_(), true);
+    if (p.action === 'outreach_bot') return json_(botAddOutreach_(p));
     return json_({ ok: true, service: 'flood-help', time: new Date().toISOString() });
   } catch (err) {
     return json_({ ok: false, error: String(err.message || err) });
@@ -586,6 +587,27 @@ function addOutreach_(b) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/** งานค้นโซเชียลอัตโนมัติเพิ่มจุดผ่าน GET (ใช้รหัสบอทแยกจากรหัสอาสา) · ข้ามลิงก์ที่มีอยู่แล้ว */
+function botAddOutreach_(p) {
+  const real = PropertiesService.getScriptProperties().getProperty('OUTREACH_BOT_KEY');
+  if (!real || String(p.bk || '') !== real) return { ok: false, error: 'bad_key' };
+  const link = String(p.link || '').trim();
+  if (!/^https?:\/\//i.test(link)) return { ok: false, error: 'missing_link' };
+  const sh = outreachSheet_();
+  const n = sh.getLastRow() - 1;
+  if (n > 0 && sh.getRange(2, 4, n, 1).createTextFinder(link).matchEntireCell(true).findNext()) return { ok: true, skipped: 'duplicate' };
+  return addOutreach_(p);
+}
+
+/** สร้างรหัสบอท (เรียกครั้งเดียวจากหน้า Apps Script แล้วดูใน Log) */
+function ensureBotKey() {
+  const props = PropertiesService.getScriptProperties();
+  let k = props.getProperty('OUTREACH_BOT_KEY');
+  if (!k) { k = 'BOT-' + Utilities.getUuid().replace(/-/g, '').slice(0, 16); props.setProperty('OUTREACH_BOT_KEY', k); }
+  Logger.log('OUTREACH_BOT_KEY = ' + k);
+  return k;
 }
 
 function listOutreachCachedJson_() {
