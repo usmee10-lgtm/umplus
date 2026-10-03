@@ -26,7 +26,9 @@ function urgChip(c){const v=sevOf(c);return `<span class="urg urg-${v}"><i></i>$
 const PUB_GRID=0.005,snapC=v=>v===''||v==null||isNaN(+v)?'':Math.round(Math.round(+v/PUB_GRID)*PUB_GRID*1e4)/1e4;
 function pubCase(c){return {id:c.id,createdAt:c.createdAt,updatedAt:c.updatedAt,status:c.status,urgency:c.urgency,level:c.level,needs:c.needs,people:c.people,
   district:c.district||((String(c.address||'').match(/เขต\s*([ก-๙]+)/)||[])[1])||'',lat:c.approx?c.lat:snapC(c.lat),lng:c.approx?c.lng:snapC(c.lng),approx:true}}
-const distTxt=c=>{const d=typeof areaOf==='function'?areaOf(c):String(c.district||'').replace(/^เขต/,'');return d?(/^(สมุทร|นนทบุรี|ปทุม)/.test(d)?d:'เขต'+d):''};
+/* ชื่อพื้นที่: เขตในกรุงเทพฯ ใส่ "เขต" นำหน้า · ต่างจังหวัด (ตำบล/อำเภอ/จังหวัด) ใช้ชื่อตามเดิม */
+const areaLabel=d=>!d?'':/^(ตำบล|อำเภอ|แขวง|จังหวัด|ต\.|อ\.|สมุทร|นนทบุรี|ปทุม)/.test(d)?d:'เขต'+d;
+const distTxt=c=>areaLabel(typeof areaOf==='function'?areaOf(c):String(c.district||'').replace(/^เขต/,''));
 /* ที่อยู่ที่แสดง: อาสาเห็นเต็ม · คนทั่วไปเห็นแค่เขต */
 const addrTxt=c=>S.volunteer?[c.address,c.district?'เขต'+String(c.district).replace(/^เขต/,''):''].filter(Boolean).join(' · '):distTxt(c);
 function statusChip(c){const k=pinKind(c);const txt=STATUS_TH[c.status]||'รอช่วย';return `<span class="st st-${k}">${esc(txt)}</span>`}
@@ -699,7 +701,7 @@ function renderStats(soft){
   const lv=cnt(act,c=>c.level||'none');const lvRows=[...Object.keys(LEVEL_TH),'none'].map(k=>({key:k,label:LEVEL_TH[k]||'ไม่ระบุ',n:lv[k]||0})).filter(r=>r.n);
   /* รายเขต: รอ / กำลังไป / ช่วยแล้ว / คนที่รอ / ด่วน */
   const D={};all.forEach(c=>{const k=areaOf(c)||'';const d=D[k]||(D[k]={open:0,going:0,done:0,ppl:0,urg:0});d[c.status==='going'?'going':c.status==='done'?'done':'open']++;if(c.status!=='done'){d.ppl+=P(c);if(isDanger(c))d.urg++}});
-  const dName=k=>!k?'ไม่ทราบเขต':/^(สมุทร|นนทบุรี|ปทุม)/.test(k)?k:'เขต'+k;
+  const dName=k=>areaLabel(k)||'ไม่ทราบเขต';
   const dRows=Object.entries(D).sort((a,b)=>(!a[0])-(!b[0])||(b[1].urg-a[1].urg)||((b[1].open+b[1].going)-(a[1].open+a[1].going))||(b[1].done-a[1].done)).slice(0,15);
   /* ทีมอาสา */
   const T={};all.forEach(c=>{if(c.status==='open'||!c.volunteer)return;const k=String(c.volunteer).trim();const t=T[k]||(T[k]={going:0,done:0,ppl:0});t[c.status]++;if(c.status==='done')t.ppl+=P(c)});
