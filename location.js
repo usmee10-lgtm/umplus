@@ -43,6 +43,8 @@ function makeMap(el,opt={}){
       let bad=0,good=0;t.on('tileload',()=>good++);t.on('tileerror',()=>{bad++;if(!good&&bad>=4&&fellBack===step&&step<chain.length-1){fellBack=step+1;map.setBase('road')}});
     }
     base.addTo(map);if(base.bringToBack)base.bringToBack();map.currentBase=name;
+    /* เครดิต OpenFreeMap / OpenMapTiles / OpenStreetMap (ต้องแสดงเมื่อใช้พื้นแผนที่เวกเตอร์) */
+    if(typeof MAPCFG!=='undefined'&&map.attributionControl){map.attributionControl.removeAttribution(MAPCFG.attr);if(base instanceof L.Layer&&base._glMap!==undefined||(typeof VEC!=='undefined'&&VEC.ok&&name!=='sat'))map.attributionControl.addAttribution(MAPCFG.attr)}
     el.classList.toggle('base-dark',name==='dark'||name==='sat');
     try{localStorage.setItem('uh_base',name)}catch(e){}
   };
