@@ -455,18 +455,19 @@ function formatSheet_(sh) {
   const list = function (vals, help) { const b = SpreadsheetApp.newDataValidation().requireValueInList(vals, true).setAllowInvalid(false); if (help) b.setHelpText(help); return b.build(); };
   // 1) แปลงค่าเดิมเป็นไทย + dropdown (เฉพาะคอลัมน์ที่มีอยู่)
   if (colStatus) {
-    if (n > 0) { const rng = sh.getRange(2, colStatus, n, 1); rng.setValues(rng.getValues().map(function (r) { const c = statusCode_(r[0]); return [c ? STATUS_TH[c] : r[0]]; })); }
     sh.getRange(2, colStatus, maxRows - 1, 1).setDataValidation(list([STATUS_TH.open, STATUS_TH.going, STATUS_TH.done], 'เลือก: รอช่วย / กำลังไป / ช่วยแล้ว'))
       .setFontWeight('bold').setHorizontalAlignment('center');
+    if (n > 0) { const rng = sh.getRange(2, colStatus, n, 1); rng.setValues(rng.getValues().map(function (r) { const c = statusCode_(r[0]); return [c ? STATUS_TH[c] : r[0]]; })); }
     sh.setColumnWidth(colStatus, 90);
   }
   if (colUrg) {
-    if (n > 0) { const ur = sh.getRange(2, colUrg, n, 1); ur.setValues(ur.getValues().map(function (r) { return [r[0] === '' ? '' : URG_TH[urgCode_(r[0])]]; })); }
     sh.getRange(2, colUrg, maxRows - 1, 1).setDataValidation(list([URG_TH[4], URG_TH[3], URG_TH[2], URG_TH[1]], 'เลือก: วิกฤต / ด่วนมาก / เร่งด่วน / ทั่วไป'));
+    if (n > 0) { const ur = sh.getRange(2, colUrg, n, 1); ur.setValues(ur.getValues().map(function (r) { return [r[0] === '' ? '' : URG_TH[urgCode_(r[0])]]; })); }
   }
   if (colLevel) {
-    if (n > 0) { const lv = sh.getRange(2, colLevel, n, 1); lv.setValues(lv.getValues().map(function (r) { const c = levelCode_(r[0]); return [c ? LEVEL_TH[c] : r[0]]; })); }
+    // ตั้ง dropdown ใหม่ก่อน แล้วค่อยแปลงป้ายเดิม (ไม่งั้น dropdown เก่าจะปฏิเสธป้ายใหม่)
     sh.getRange(2, colLevel, maxRows - 1, 1).setDataValidation(list(Object.keys(LEVEL_TH).map(function (k) { return LEVEL_TH[k]; })));
+    if (n > 0) { const lv = sh.getRange(2, colLevel, n, 1); lv.setValues(lv.getValues().map(function (r) { const c = levelCode_(r[0]); return [c ? LEVEL_TH[c] : r[0]]; })); }
   }
   if (m.org) {
     sh.getRange(2, m.org, maxRows - 1, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(ORGS, true).setAllowInvalid(true).setHelpText('หน่วยงานของทีมที่รับเคส').build());
