@@ -204,6 +204,14 @@ async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams
   else if(S.volunteer&&nr&&nr.noLocation)toast(`มี ${nr.noLocation} จุดในแท็บ "เครือข่าย" ที่ยังอ่านพิกัดไม่ได้ · วางพิกัดแบบ 13.75, 100.6 หรือลิงก์ Google Maps แบบเต็ม`,{ms:9000})}
 /* ชั้นกล้อง CCTV (ข้อมูล POPNIX Flood) · ซูมเข้า (ระดับ 12 ขึ้นไป) ถึงจะแสดง ไม่ให้จุดรกทั้งเมือง */
 let cctvGen=0;const CCTV_ZOOM=12;
+/* ไอคอนกล้องวงจรปิด วาดลง canvas (เบากว่าใช้ HTML ทีละตัว เพราะมีกล้องหลักพัน) */
+const CAM_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 32 32"><rect x="1.5" y="1.5" width="29" height="29" rx="9" fill="#111827" stroke="#fff" stroke-width="2.4"/><path d="M7 14.2 21.4 9.6l2.3 7.1-14.4 4.6z" fill="#fff"/><path d="M7.6 16.2 4.6 17.2l1.1 3.4 3-1" fill="none" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"/><path d="M18.6 10.7 20.3 7h4.2M24.6 5.1v3.8" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="17" r="1.25" fill="#111827"/></svg>';
+const CAM_IMG=new Image();CAM_IMG.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(CAM_SVG);
+let CamMarker=null;
+function camMarker(ll,opt){if(!CamMarker)CamMarker=L.CircleMarker.extend({_updatePath(){const r=this._renderer;if(!r._drawing||this._empty())return;
+    if(!CAM_IMG.complete||!CAM_IMG.naturalWidth)return L.CircleMarker.prototype._updatePath.call(this);
+    const p=this._point,z=26;r._ctx.drawImage(CAM_IMG,p.x-z/2,p.y-z/2,z,z)}});
+  return new CamMarker(ll,opt)}
 function cctvAgo(t){const m=Math.max(0,Math.round((Date.now()/1000-t)/60));return m<1?'เมื่อสักครู่':m<60?m+' นาทีที่แล้ว':Math.round(m/60)+' ชม. ที่แล้ว'}
 function cctvPopup(c){const f=S.cctv.feeds[c[0]]||{},src=S.cctv.base+f.path+encodeURIComponent(c[1])+'.jpg?t='+c[5];
   return `<div class="pop cctv-pop"><a href="${esc(src)}" target="_blank" rel="noopener"><img src="${esc(src)}" alt="ภาพจากกล้อง ${esc(c[2])}" loading="lazy" width="260" height="195"></a><b>${esc(c[2])}</b><br><small>${esc(f.org||'')} · ภาพเมื่อ ${cctvAgo(c[5])}</small>
@@ -216,7 +224,8 @@ async function toggleCctv(on){store.set('uh_lay_cctv',on?'1':'');$('#lay-cctv').
   try{if(!S.cctv||Date.now()-S.cctvAt>120000){const r=await fetch('/api/cctv').then(r=>r.json());if(!r||!r.ok)throw new Error('cctv');S.cctv=r;S.cctvAt=Date.now()}
     if(gen!==cctvGen)return;
     Object.values(S.maps).forEach(m=>{if(!m)return;const rd=m._cctvRd||(m._cctvRd=L.canvas({padding:.3}));
-      m._cctv=L.layerGroup(S.cctv.cams.map(c=>L.circleMarker([c[3],c[4]],{renderer:rd,radius:6,weight:2,color:'#fff',fillColor:'#111827',fillOpacity:.9}).bindPopup(()=>cctvPopup(c),{maxWidth:280,minWidth:260})));
+      m._cctv=L.layerGroup(S.cctv.cams.map(c=>camMarker([c[3],c[4]],{renderer:rd,radius:13,weight:0,fillOpacity:0}).bindPopup(()=>cctvPopup(c),{maxWidth:280,minWidth:260,offset:[0,-8]})));
+      if(!CAM_IMG.complete)CAM_IMG.onload=()=>Object.values(S.maps).forEach(mm=>mm&&mm._cctvRd&&mm._cctvRd._redraw&&mm._cctvRd._redraw());
       if(!m._cctvHook){m._cctvHook=1;m.on('zoomend',()=>cctvZoomSync(m))}
       cctvZoomSync(m)});
     const cur=S.maps[S.view==='map'?'map':'home'];if(cur&&cur.getZoom()<CCTV_ZOOM)toast(`ซูมเข้าเพื่อดูกล้อง CCTV (${S.cctv.cams.length.toLocaleString('th-TH')} ตัว)`);
