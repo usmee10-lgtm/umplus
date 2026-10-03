@@ -31,6 +31,10 @@ const areaLabel=d=>!d?'':/^(ตำบล|อำเภอ|แขวง|จัง�
 const distTxt=c=>areaLabel(typeof areaOf==='function'?areaOf(c):String(c.district||'').replace(/^เขต/,''));
 /* ที่อยู่ที่แสดง: อาสาเห็นเต็ม · คนทั่วไปเห็นแค่เขต */
 const addrTxt=c=>S.volunteer?[c.address,c.district?'เขต'+String(c.district).replace(/^เขต/,''):''].filter(Boolean).join(' · '):distTxt(c);
+/* หน่วยงานที่ลงพื้นที่ช่วย · ใส่ไฟล์โลโก้ใน logo ได้ (เช่น './assets/org-cicot.png') แทนป้ายตัวหนังสือ */
+const ORGS=[{name:'สภาเครือข่ายฯ สำนักจุฬาราชมนตรี',short:'สภาฯ',color:'#0F7B3F',logo:''},{name:'ทีมกู้ภัย',short:'กู้ภัย',color:'#E8590C',logo:''},{name:'มูลนิธิอุมมะตี',short:'อุมมะตี',color:'#DE1F26',logo:''},{name:'อื่น ๆ',short:'ทีม',color:'#5B6386',logo:''}];
+const orgOf=n=>{n=String(n||'').trim();return ORGS.find(o=>o.name===n)||ORGS.find(o=>n&&(n.includes(o.short)||o.name.includes(n)))||{name:n||'ทีมอาสา',short:'ทีม',color:'#5B6386',logo:''}};
+const orgOpts=sel=>ORGS.map(o=>`<option value="${esc(o.name)}" ${o.name===sel?'selected':''}>${esc(o.name)}</option>`).join('');
 function statusChip(c){const k=pinKind(c);const txt=STATUS_TH[c.status]||'รอช่วย';return `<span class="st st-${k}">${esc(txt)}</span>`}
 
 /* ---------- API (POST แบบ text/plain JSON) ---------- */
@@ -79,6 +83,7 @@ function renderAll(){
   const stTab=$('.tabbar [data-go=stats]');if(stTab)stTab.style.display=S.volunteer?'':'none';
   if(S.view==='stats'){if(S.volunteer)renderStats();else go('home')}
   if(typeof tripRefresh==='function')tripRefresh();
+  if(typeof drawHelped==='function'&&store.get('uh_lay_teams','')&&S.outreach)drawHelped();
 }
 
 /* ---------- เปลี่ยนหน้า ---------- */
@@ -189,11 +194,27 @@ function netPopup(p){const tel=String(p.phone||'').replace(/[^\d+]/g,'');
   return `<div class="pop"><span class="net-type">${esc(p.type)}</span><br><b>${esc(p.name)}</b>`+(p.detail?`<br>${esc(p.detail)}`:'')+(p.hours?`<br><small>เวลา: ${esc(p.hours)}</small>`:'')+
     (p.phone?`<br>${tel.length>=3?`<a href="tel:${esc(tel)}">${esc(p.phone)}</a>`:esc(p.phone)}`:'')+
     `<div class="pop-act"><a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener">นำทาง</a></div></div>`}
+/* จุดที่ทีมไปช่วยแล้ว: เคสที่ทีมรับ/ปิดในแอป + แท็บ "ลงพื้นที่" ในชีต (เช่น จากโพสต์โซเชียล) · วงกลมจาง ๆ สีตามหน่วยงาน */
+function helpedPopup(h){const o=orgOf(h.org);
+  return `<div class="pop"><span class="org-tag" style="background:${o.color}">${esc(o.name)}</span><br><b>${esc(h.title)}</b>`+(h.detail?`<br>${esc(h.detail)}`:'')+(h.when?`<br><small>${esc(h.when)}</small>`:'')+
+    (h.link?`<div class="pop-act"><a href="${esc(h.link)}" target="_blank" rel="noopener">ดูโพสต์</a></div>`:h.id?`<div class="pop-act"><a href="#" data-open="${esc(h.id)}">ดูรายละเอียด</a></div>`:'')+`</div>`}
+function helpedList(){const out=[];
+  S.cases.filter(c=>c.status!=='open'&&hasPin(c)).forEach(c=>out.push({lat:+c.lat,lng:+c.lng,org:c.org||'',id:c.id,title:(c.status==='done'?'ช่วยแล้ว · ':'กำลังไปช่วย · ')+((c.needs||[]).join(', ')||'ขอความช่วยเหลือ'),
+    detail:[c.volunteer?'ทีม '+c.volunteer:'',distTxt(c)].filter(Boolean).join(' · '),when:c.updatedAt?'อัปเดต '+ago(c.updatedAt):''}));
+  (S.outreach||[]).forEach(p=>out.push({lat:p.lat,lng:p.lng,org:p.org,link:p.link,title:'ลงพื้นที่ช่วยเหลือ',detail:p.detail,when:p.date?'วันที่ '+p.date:''}));
+  return out}
+function drawHelped(){Object.values(S.maps).forEach(m=>{if(!m)return;if(m._helped){m._helped.remove();m._helped=null}
+  if(!store.get('uh_lay_teams',''))return;const hs=helpedList();if(!hs.length)return;
+  m._helped=L.layerGroup(hs.flatMap(h=>{const o=orgOf(h.org);
+    return [L.circle([h.lat,h.lng],{radius:S.volunteer?180:400,color:o.color,weight:1,opacity:.35,fillColor:o.color,fillOpacity:.13,interactive:false}),
+      L.marker([h.lat,h.lng],{icon:L.divIcon({className:'org-pin',html:o.logo?`<img src="${esc(o.logo)}" alt="">`:`<span style="background:${o.color}">${esc(o.short)}</span>`,iconSize:[44,20],iconAnchor:[22,10]}),opacity:.88,zIndexOffset:-200,title:o.name+' · '+h.title}).bindPopup(()=>helpedPopup(h))]})).addTo(m)})}
 async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams').checked=on;const gen=++teamsGen;
-  Object.values(S.maps).forEach(m=>{if(m&&m._teams){m._teams.remove();m._teams=null}});if(!on)return;
+  Object.values(S.maps).forEach(m=>{if(m&&m._teams){m._teams.remove();m._teams=null}});drawHelped();if(!on)return;
   const p={action:'teams'};if(S.volunteer)p.key=volKey();
-  const [tr,nr]=await Promise.all([apiGet(p).catch(()=>null),apiGet({action:'network',t:Math.floor(Date.now()/60000)}).catch(()=>null)]);
+  const tm=Math.floor(Date.now()/60000);
+  const [tr,nr,or]=await Promise.all([apiGet(p).catch(()=>null),apiGet({action:'network',t:tm}).catch(()=>null),apiGet({action:'outreach',t:tm}).catch(()=>null)]);
   if(gen!==teamsGen)return;
+  S.outreach=or&&Array.isArray(or.points)?or.points:[];drawHelped();
   S.teams=tr&&Array.isArray(tr.teams)?tr.teams:[];S.network=nr&&Array.isArray(nr.points)?nr.points:[];
   if(!tr&&!nr){toast('โหลดทีมและเครือข่ายไม่สำเร็จ');return}
   Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams)m._teams.remove();
@@ -550,11 +571,13 @@ function renderVol(forceOpen){
       else msg.textContent=navigator.onLine?'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองกด "เข้า" อีกครั้ง':'ไม่มีสัญญาณ ลองใหม่เมื่อออนไลน์'};
     $('#vol-go').onclick=go2;$('#vol-key').onkeydown=e=>{if(e.key==='Enter')go2()};return}
   p.innerHTML=`<h3>ชื่อทีม</h3><div class="row"><input id="team-in" aria-label="ชื่อทีม" placeholder="ชื่อทีม / อาสา" value="${esc(store.get('uh_team',''))}" maxlength="40"></div>
+    <h3 class="mt">หน่วยงาน</h3><div class="row"><select id="org-in" aria-label="หน่วยงาน"><option value="">— เลือกหน่วยงาน —</option>${orgOpts(store.get('uh_org',''))}</select></div>
     <div class="sep"></div><h3>แชร์ตำแหน่งทีม</h3><p class="hint">ให้ผู้แจ้งเห็นว่าทีมอยู่พื้นที่ไหน (ปัดเศษประมาณ 100 ม.)</p>
     <button type="button" class="pill ${SHARE.watch?'pill-ghost':'pill-green'} full" id="share-btn">${SHARE.watch?'หยุดแชร์ตำแหน่ง':'เริ่มแชร์ตำแหน่ง'}</button>
     <div class="sep"></div><button type="button" class="pill pill-line full" id="vol-out">ออกจากโหมดอาสา</button>`;
   iconify(p);
   $('#team-in').onchange=e=>{store.set('uh_team',e.target.value.trim());renderVol()};
+  $('#org-in').onchange=e=>store.set('uh_org',e.target.value);
   $('#share-btn').onclick=()=>{SHARE.watch?stopShare():startShare();p.dataset.mode='';renderVol()};
   $('#vol-out').onclick=()=>{stopShare();store.set('uh_vol_key','');store.set('uh_vol_ok','');S.volunteer=false;p.hidden=true;p.dataset.mode='';S.cases=((store.json('uh_cases_cache',{})||{}).cases||[]).map(pubCase);renderAll();if(S.view==='detail')go('map');loadCases()};
 }
@@ -585,7 +608,7 @@ function renderDetail(full){
   const addr=addrTxt(c),V=S.volunteer;
   const tel=String(c.phone||'').replace(/[^\d+]/g,'');
   const facts=[['ความเร่งด่วน',URG_TH[sevOf(c)]],['จำนวนคน',(c.people||1)+' คน'],['ระดับน้ำ',LEVEL_TH[c.level]||'ไม่ระบุ'],['ความต้องการ',(c.needs||[]).join(', ')||'-'],['แจ้งเมื่อ',ago(c.createdAt)]];
-  if(V&&c.name)facts.push(['ผู้ติดต่อ',c.name]);if(V&&c.phone)facts.push(['เบอร์โทร',c.phone]);if(c.volunteer&&c.status!=='open')facts.push(['ทีมที่รับเคส',c.volunteer]);
+  if(V&&c.name)facts.push(['ผู้ติดต่อ',c.name]);if(V&&c.phone)facts.push(['เบอร์โทร',c.phone]);if(c.volunteer&&c.status!=='open')facts.push(['ทีมที่รับเคส',c.volunteer]);if(c.org&&c.status!=='open')facts.push(['หน่วยงาน',c.org]);
   el.innerHTML=`<div class="d-map-col">${hasPin(c)?`<div id="detail-map" class="detail-map"></div>${!V?`<p class="hint">${ic('pin')} ตำแหน่งโดยประมาณ (รัศมีราว 500 ม.) · ที่อยู่เต็มเห็นเฉพาะทีมอาสา</p>`:''}<div class="coord-row" ${V?'':'hidden'}><span>${ic('pin')} ${(+c.lat).toFixed(6)}, ${(+c.lng).toFixed(6)}</span><button type="button" class="pill pill-ghost small" id="copy-coord" data-icon="copy">คัดลอก</button></div>`:'<p class="hint">ผู้แจ้งไม่ได้ปักหมุด</p>'}</div>
     <div><div class="detail-head">${statusChip(c)}<h2>${esc((c.needs||[]).join(' · ')||'ขอความช่วยเหลือ')}</h2><span class="case-time">#${esc(c.id)}</span></div>
     <section class="card"><h2>${V?'ที่อยู่':'พื้นที่'}</h2><p>${esc(addr||(V?'ไม่ระบุ':'ไม่ระบุเขต'))}</p>${S.volunteer&&c.notes?`<h2 class="mt">รายละเอียด</h2><p>${esc(c.notes)}</p>`:''}
@@ -603,12 +626,14 @@ function renderDetail(full){
   if(S.volunteer){
     const fs=document.createElement('fieldset');fs.className='status-pick';
     fs.innerHTML=`<legend>สถานะเคส (ติ๊กเพื่อเปลี่ยน)</legend><div class="status-opts">${[['open','รอช่วย'],['going','กำลังไป · รับเคส'],['done','ช่วยแล้ว · ปิดเคส']].map(([v,t])=>`<label><input type="radio" name="cst" value="${v}" ${c.status===v?'checked':''}><span>${t}</span></label>`).join('')}</div>
-      <input id="d-team" placeholder="ชื่อทีม / อาสา" value="${esc(c.volunteer||store.get('uh_team',''))}" maxlength="40" aria-label="ชื่อทีม">`;
+      <input id="d-team" placeholder="ชื่อทีม / อาสา" value="${esc(c.volunteer||store.get('uh_team',''))}" maxlength="40" aria-label="ชื่อทีม">
+      <select id="d-org" aria-label="หน่วยงาน"><option value="">— หน่วยงาน —</option>${orgOpts(c.org||store.get('uh_org',''))}</select>`;
     fs.addEventListener('change',async e=>{if(e.target.name!=='cst')return;const v=e.target.value;if(!v||v===c.status)return;const team=$('#d-team').value.trim();
       if(v==='going'&&!team){toast('ใส่ชื่อทีมก่อนรับเคส');e.target.checked=false;const o=fs.querySelector(`input[value="${c.status}"]`);if(o)o.checked=true;$('#d-team').focus();return}
       if(team)store.set('uh_team',team);fs.disabled=true;
-      try{const r=await apiPost({action:'update',key:volKey(),id:c.id,status:v,volunteer:v==='open'?'':team});if(!r||!r.ok)throw new Error(r&&r.error);
-        c.status=v;c.volunteer=v==='open'?'':team||c.volunteer;toast(v==='going'?'รับเคสแล้ว':v==='done'?'ปิดเคสแล้ว':'คืนเคสแล้ว',{ok:true});renderDetail(true);loadCases()}
+      const org=$('#d-org').value;if(org)store.set('uh_org',org);
+      try{const r=await apiPost({action:'update',key:volKey(),id:c.id,status:v,volunteer:v==='open'?'':team,org:v==='open'?'':org});if(!r||!r.ok)throw new Error(r&&r.error);
+        c.status=v;c.volunteer=v==='open'?'':team||c.volunteer;c.org=v==='open'?'':org||c.org;toast(v==='going'?'รับเคสแล้ว':v==='done'?'ปิดเคสแล้ว':'คืนเคสแล้ว',{ok:true});renderDetail(true);loadCases()}
       catch(err){toast('อัปเดตไม่สำเร็จ ลองอีกครั้ง');fs.disabled=false;const o=fs.querySelector(`input[value="${c.status}"]`);if(o)o.checked=true;else e.target.checked=false}});
     act.after(fs);
   }else act.insertAdjacentHTML('afterend','<p class="hint">ทีมอาสาที่มีรหัสจะเห็นที่อยู่เต็ม เบอร์โทร และรับเคสได้ในหน้าแผนที่</p>');

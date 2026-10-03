@@ -10,6 +10,7 @@
  *   POST {action:"track", id, token}                      -> ผู้แจ้งดูสถานะคำขอของตัวเอง
  *   GET  ?action=teams[&key=รหัสอาสา]                     -> ตำแหน่งทีมที่แชร์อยู่ (คนทั่วไปได้พิกัดปัด ~100 ม.)
  *   GET  ?action=network                                  -> จุดเครือข่ายช่วยเหลือ จากแท็บ "เครือข่าย" (ข้อมูลสาธารณะ)
+ *   GET  ?action=outreach                                 -> จุดที่หน่วยงานลงพื้นที่ช่วยแล้ว จากแท็บ "ลงพื้นที่" (เช่น วางลิงก์โพสต์โซเชียล)
  *   POST {action:"ping", key, team, lat, lng, accuracy}   -> ทีมอาสาแชร์ตำแหน่ง / {stop:true} หยุดแชร์
  *
  * รหัสอาสา: Project Settings > Script properties > VOLUNTEER_KEY (setup() สร้างให้ครั้งแรก)
@@ -37,7 +38,9 @@ const LEVEL_TH = { ankle: 'ข้อเท้า', knee: 'เข่า', waist: 
 const URG_TH = { 1: 'ทั่วไป', 2: 'เร่งด่วน', 3: 'ด่วนมาก', 4: 'วิกฤต' };
 const YES = 'ใช่', NO = 'ไม่';
 const LEVELS = ['ankle', 'knee', 'waist', 'chest', 'roof'];
-const MAX = { name: 60, phone: 20, district: 40, address: 300, notes: 800, volunteer: 60, team: 40 };
+const MAX = { name: 60, phone: 20, district: 40, address: 300, notes: 800, volunteer: 60, team: 40, org: 60 };
+/** หน่วยงานของทีมที่รับเคส (เลือกในแอป หรือเลือกในชีต) */
+const ORGS = ['สภาเครือข่ายฯ สำนักจุฬาราชมนตรี', 'ทีมกู้ภัย', 'มูลนิธิอุมมะตี', 'อื่น ๆ'];
 const LIST_CACHE_SEC = 20;          // แคชรายการเคส ลดเวลาโหลดเมื่อมีคนเปิดพร้อมกันเยอะ
 const TEAM_FRESH_MIN = 30;          // แสดงทีมที่ส่งตำแหน่งภายใน 30 นาที
 
@@ -46,6 +49,7 @@ function setup() {
   formatSheet();
   teamSheet_();
   networkSheet_();
+  outreachSheet_();
   const props = PropertiesService.getScriptProperties();
   let key = props.getProperty('VOLUNTEER_KEY');
   if (!key) {
@@ -63,6 +67,7 @@ function doGet(e) {
     if (p.action === 'list') return json_(listCachedJson_(isVolunteer_(p.key), p.since), true);
     if (p.action === 'teams') return json_(listTeams_(isVolunteer_(p.key)));
     if (p.action === 'network') return json_(listNetworkCachedJson_(), true);
+    if (p.action === 'outreach') return json_(listOutreachCachedJson_(), true);
     return json_({ ok: true, service: 'flood-help', time: new Date().toISOString() });
   } catch (err) {
     return json_({ ok: false, error: String(err.message || err) });
@@ -167,6 +172,10 @@ function updateCase_(b) {
       if (b.status === 'open') sh.getRange(r, col('volunteer')).setValue('');
       else if (b.volunteer) sh.getRange(r, col('volunteer')).setValue(safeCell_(clean_(b.volunteer, MAX.volunteer)));
     }
+    if (col('org')) {
+      if (b.status === 'open') sh.getRange(r, col('org')).setValue('');
+      else if (b.org) sh.getRange(r, col('org')).setValue(safeCell_(clean_(b.org, MAX.org)));
+    }
     if (col('updatedAt')) sh.getRange(r, col('updatedAt')).setValue(new Date());
     clearListCache_();
     return { ok: true };
@@ -230,7 +239,7 @@ function publicCase_(o) {
   const snap = function (v) { return v === '' || v == null || isNaN(Number(v)) ? '' : Math.round(Math.round(Number(v) / PUB_GRID) * PUB_GRID * 1e4) / 1e4; };
   return {
     id: o.id, createdAt: o.createdAt, updatedAt: o.updatedAt, status: o.status, urgency: o.urgency,
-    level: o.level, needs: o.needs, people: o.people, district: districtOf_(o),
+    level: o.level, needs: o.needs, people: o.people, district: districtOf_(o), org: o.status === 'open' ? '' : String(o.org || ''),
     lat: snap(o.lat), lng: snap(o.lng), approx: true
   };
 }
@@ -315,7 +324,7 @@ const ALIASES = {
   district: ['เขต', 'district'], people: ['จำนวนคน', 'people'], address: ['ที่อยู่', 'address'],
   lat: ['ละติจูด', 'lat'], lng: ['ลองจิจูด', 'lng'], level: ['ระดับน้ำ', 'level'], needs: ['ต้องการ', 'needs'],
   vulnerable: ['กลุ่มเปราะบาง', 'vulnerable'], notes: ['รายละเอียด', 'notes'], volunteer: ['ทีมอาสา', 'volunteer'],
-  updatedAt: ['อัปเดตล่าสุด', 'updatedAt'], token: ['รหัสติดตาม (ห้ามแก้)', 'รหัสติดตาม', 'token']
+  updatedAt: ['อัปเดตล่าสุด', 'updatedAt'], org: ['หน่วยงาน', 'org'], token: ['รหัสติดตาม (ห้ามแก้)', 'รหัสติดตาม', 'token']
 };
 let COLS_ = null;
 /** {key: เลขคอลัมน์} จากแถวหัวตาราง (ชื่อซ้ำ ใช้คอลัมน์แรก) · คอลัมน์ token ถ้าไม่มี เพิ่มต่อท้ายให้ */
@@ -327,7 +336,8 @@ function cols_(sh) {
   Object.keys(ALIASES).forEach(function (k) {
     for (let i = 0; i < head.length; i++) if (ALIASES[k].indexOf(head[i]) >= 0) { m[k] = i + 1; break; }
   });
-  if (!m.token) { m.token = width + 1; sh.getRange(1, m.token).setValue(ALIASES.token[0]).setFontWeight('bold'); m._width = m.token; }
+  if (!m.token) { m.token = m._width + 1; sh.getRange(1, m.token).setValue(ALIASES.token[0]).setFontWeight('bold'); m._width = m.token; }
+  if (!m.org) { m.org = m._width + 1; sh.getRange(1, m.org).setValue(ALIASES.org[0]).setFontWeight('bold'); m._width = m.org; }
   COLS_ = m;
   return m;
 }
@@ -432,6 +442,10 @@ function formatSheet_(sh) {
     if (n > 0) { const lv = sh.getRange(2, colLevel, n, 1); lv.setValues(lv.getValues().map(function (r) { const c = levelCode_(r[0]); return [c ? LEVEL_TH[c] : r[0]]; })); }
     sh.getRange(2, colLevel, maxRows - 1, 1).setDataValidation(list(Object.keys(LEVEL_TH).map(function (k) { return LEVEL_TH[k]; })));
   }
+  if (m.org) {
+    sh.getRange(2, m.org, maxRows - 1, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(ORGS, true).setAllowInvalid(true).setHelpText('หน่วยงานของทีมที่รับเคส').build());
+    sh.setColumnWidth(m.org, 190);
+  }
   // 2) สีทั้งแถวตามสถานะ (ด่วนมาก = ยังไม่เสร็จ + ความเร่งด่วนสูงสุด)
   if (colStatus) {
     const L = function (c) { return c > 26 ? String.fromCharCode(64 + Math.floor((c - 1) / 26)) + String.fromCharCode(65 + (c - 1) % 26) : String.fromCharCode(64 + c); };
@@ -530,6 +544,51 @@ function listNetworkCachedJson_() {
   }
   const s = JSON.stringify({ ok: true, points: points.slice(0, 500), noLocation: missing });
   try { cache.put('network', s, 60); } catch (err) {}
+  return s;
+}
+
+/* ---------- ลงพื้นที่ (แท็บ "ลงพื้นที่": บันทึกจุดที่หน่วยงานไปช่วยแล้ว เช่น จากโพสต์ Facebook/LINE) ---------- */
+const OUTREACH_SHEET = 'ลงพื้นที่';
+const OUTREACH_HEADERS_TH = ['หน่วยงาน', 'วันที่ลงพื้นที่', 'พิกัด (วางลิงก์ Google Maps หรือ ละติจูด,ลองจิจูด)', 'ลิงก์โพสต์ (Facebook/LINE/อื่น ๆ)', 'รายละเอียด', 'แสดงบนแผนที่'];
+
+function outreachSheet_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sh = ss.getSheetByName(OUTREACH_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(OUTREACH_SHEET);
+    sh.getRange(1, 1, 1, OUTREACH_HEADERS_TH.length).setValues([OUTREACH_HEADERS_TH])
+      .setFontWeight('bold').setBackground('#0E7C66').setFontColor('#FFFFFF').setWrap(true);
+    sh.setFrozenRows(1);
+    sh.setColumnWidth(1, 230); sh.setColumnWidth(2, 120); sh.setColumnWidth(3, 300); sh.setColumnWidth(4, 300); sh.setColumnWidth(5, 260);
+    sh.getRange(2, 1, 1000, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList(ORGS, true).setAllowInvalid(true).build());
+    sh.getRange(2, 2, 1000, 1).setNumberFormat('d/m/yyyy');
+    sh.getRange(2, 6, 1000, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList([YES, NO], true).build());
+  }
+  return sh;
+}
+
+function listOutreachCachedJson_() {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('outreach');
+  if (hit) return hit;
+  const sh = outreachSheet_();
+  const n = sh.getLastRow() - 1;
+  const points = []; let missing = 0;
+  if (n > 0) {
+    const vals = sh.getRange(2, 1, n, OUTREACH_HEADERS_TH.length).getValues();
+    const disp = sh.getRange(2, 1, n, OUTREACH_HEADERS_TH.length).getDisplayValues();
+    vals.forEach(function (v, i) {
+      const d = disp[i];
+      if (!String(d[0]).trim() || d[5] === NO) return;
+      const ll = parseLatLng_(d[2]);
+      if (!ll) { missing++; return; }
+      const link = /^https?:\/\//i.test(String(d[3]).trim()) ? clean_(d[3], 400) : '';
+      points.push({ org: clean_(d[0], 60), at: v[1] instanceof Date ? v[1].getTime() : '', date: clean_(d[1], 30),
+        lat: ll.lat, lng: ll.lng, link: link, detail: clean_(d[4], 300) });
+    });
+  }
+  const s = JSON.stringify({ ok: true, points: points.slice(-800), noLocation: missing });
+  try { cache.put('outreach', s, 60); } catch (err) {}
   return s;
 }
 
