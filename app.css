@@ -758,3 +758,9 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .rain-ctl.past button{background:#F59E0B}
 .rain-scale{gap:8px!important}
 .rain-grad{width:56px!important;height:8px!important;border-radius:4px!important;background:linear-gradient(90deg,#9BE7FF,#3BA4F5,#1F4FD8,#F7D33A,#F2662F,#C8205B)}
+
+/* รูปภาพ (บังคับอย่างน้อย 1 รูป) */
+#sec-photos .req-star{color:var(--red)!important;font-style:normal}
+.photo-sec{border-radius:14px;transition:box-shadow .15s}
+.photo-sec.invalid .photo-add{box-shadow:0 0 0 2px var(--red);background:#FDECEC}
+.photo-sec .err{margin-top:8px}

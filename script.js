@@ -414,7 +414,7 @@ function shrinkPhoto(file){return new Promise((ok,bad)=>{const url=URL.createObj
 function renderPhotos(){const row=$('#photo-row'),add=$('#photo-add');row.querySelectorAll('.photo-th').forEach(x=>x.remove());
   F.photos.forEach((d,i)=>{const t=document.createElement('div');t.className='photo-th';t.innerHTML=`<img src="${d}" alt="รูปที่ ${i+1}"><button type="button" aria-label="ลบรูปที่ ${i+1}">${ic('close')}</button>`;
     t.querySelector('button').onclick=()=>{F.photos.splice(i,1);renderPhotos()};row.insertBefore(t,add)});
-  add.hidden=F.photos.length>=PHOTO_MAX}
+  add.hidden=F.photos.length>=PHOTO_MAX;if(F.photos.length&&$('#sec-photos').classList.contains('invalid'))markOk('photos')}
 $('#photo-in').addEventListener('change',async e=>{const files=[...e.target.files].filter(f=>/^image\//.test(f.type)||/\.(heic|heif|jpe?g|png|webp)$/i.test(f.name));e.target.value='';
   const room=PHOTO_MAX-F.photos.length;if(files.length>room)toast(`แนบได้อีก ${room} รูป`);
   for(const f of files.slice(0,room)){try{F.photos.push(await shrinkPhoto(f));renderPhotos()}catch(err){toast('เปิดรูปนี้ไม่ได้ ลองรูปอื่น')}}});
@@ -425,7 +425,7 @@ function startForm(opt={}){
   if(opt.gps)useGPS();
 }
 function resetForm(){
-  F.needs.clear();F.photos=[];if($('#photo-row'))renderPhotos();F.lat=F.lng=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
+  F.needs.clear();F.photos=[];if($('#photo-row')){renderPhotos();markOk('photos')}F.lat=F.lng=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
   $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
   ['#addr-input','#phone-in','#name-in','#details-in','#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');MA.sub='';MA.picked=null;$('#ma-preview').hidden=true;$('#manual-addr').open=false;
   $('#ppl-out').textContent='1';$$('input[name=level]').forEach(i=>i.checked=false);
@@ -514,17 +514,19 @@ $('#addr-apply').addEventListener('click',async()=>{
 $('#ppl-minus').addEventListener('click',()=>{F.people=Math.max(1,F.people-1);$('#ppl-out').textContent=F.people});
 $('#ppl-plus').addEventListener('click',()=>{F.people=Math.min(999,F.people+1);$('#ppl-out').textContent=F.people});
 $('#phone-in').addEventListener('input',()=>markOk('phone'));
-const FIELD={needs:'#need-grid',loc:'#addr-input',phone:'#phone-in'};
-function markOk(k){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[k];$(sec).classList.remove('invalid');$('#err-'+k).hidden=true;$(FIELD[k]).removeAttribute('aria-invalid')}
-function markBad(k){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[k];$(sec).classList.add('invalid');$('#err-'+k).hidden=false;$(FIELD[k]).setAttribute('aria-invalid','true')}
+const FIELD={needs:'#need-grid',loc:'#addr-input',phone:'#phone-in',photos:'#photo-in'};
+const SECS={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone',photos:'#sec-photos'};
+function markOk(k){const sec=SECS[k];$(sec).classList.remove('invalid');$('#err-'+k).hidden=true;$(FIELD[k]).removeAttribute('aria-invalid')}
+function markBad(k){const sec=SECS[k];$(sec).classList.add('invalid');$('#err-'+k).hidden=false;$(FIELD[k]).setAttribute('aria-invalid','true')}
 function phoneOk(v){let d=String(v||'').replace(/\D/g,'');if(d.startsWith('66'))d='0'+d.slice(2);return /^0\d{8,9}$/.test(d)}
 function validate(){const bad=[];
   if(!F.needs.size)bad.push('needs');
   else if(F.needs.has('other')&&!$('#other-in').value.trim()){bad.push('needs');$('#err-other').hidden=false}
   if(!$('#addr-input').value.trim()&&F.lat==null)bad.push('loc');
   if(!phoneOk($('#phone-in').value))bad.push('phone');
+  if(!F.photos.length)bad.push('photos');
   bad.forEach(markBad);if(F.needs.size)$('#err-needs').hidden=true;
-  if(bad.length){const sec={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone'}[bad[0]];$(sec).scrollIntoView({behavior:'smooth',block:'center'});const inp=bad[0]==='needs'&&!$('#other-box').hidden?$('#other-in'):$(sec).querySelector('input');if(inp&&(bad[0]!=='needs'||inp.id==='other-in'))setTimeout(()=>inp.focus({preventScroll:true}),400)}
+  if(bad.length){const sec=SECS[bad[0]];$(sec).scrollIntoView({behavior:'smooth',block:'center'});const inp=bad[0]==='needs'&&!$('#other-box').hidden?$('#other-in'):$(sec).querySelector('input');if(inp&&bad[0]!=='photos'&&(bad[0]!=='needs'||inp.id==='other-in'))setTimeout(()=>inp.focus({preventScroll:true}),400)}
   return !bad.length}
 function formData(){
   const other=$('#other-in').value.trim().replace(/\s+/g,' ');
