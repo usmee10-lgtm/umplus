@@ -11,6 +11,7 @@
  *   GET  ?action=teams[&key=รหัสอาสา]                     -> ตำแหน่งทีมที่แชร์อยู่ (คนทั่วไปได้พิกัดปัด ~100 ม.)
  *   GET  ?action=network                                  -> จุดเครือข่ายช่วยเหลือ จากแท็บ "เครือข่าย" (ข้อมูลสาธารณะ)
  *   GET  ?action=outreach                                 -> จุดที่หน่วยงานลงพื้นที่ช่วยแล้ว จากแท็บ "ลงพื้นที่" (เช่น วางลิงก์โพสต์โซเชียล)
+ *   POST {action:"outreach_add", key, org, date, lat, lng, link, detail} -> อาสาเพิ่มจุดลงพื้นที่ (เช่น จากโพสต์โซเชียล)
  *   POST {action:"ping", key, team, lat, lng, accuracy}   -> ทีมอาสาแชร์ตำแหน่ง / {stop:true} หยุดแชร์
  *
  * รหัสอาสา: Project Settings > Script properties > VOLUNTEER_KEY (setup() สร้างให้ครั้งแรก)
@@ -91,6 +92,10 @@ function doPost(e) {
     if (body.action === 'ping') {
       if (!isVolunteer_(body.key)) return json_({ ok: false, error: 'not_volunteer' });
       return json_(pingTeam_(body));
+    }
+    if (body.action === 'outreach_add') {
+      if (!isVolunteer_(body.key)) return json_({ ok: false, error: 'not_volunteer' });
+      return json_(addOutreach_(body));
     }
     return json_({ ok: false, error: 'unknown_action' });
   } catch (err) {
@@ -565,6 +570,22 @@ function outreachSheet_() {
     sh.getRange(2, 6, 1000, 1).setDataValidation(SpreadsheetApp.newDataValidation().requireValueInList([YES, NO], true).build());
   }
   return sh;
+}
+
+function addOutreach_(b) {
+  const org = clean_(b.org, MAX.org), lat = num_(b.lat, 5, 21), lng = num_(b.lng, 97, 106);
+  if (!org || lat === '' || lng === '') return { ok: false, error: 'missing' };
+  const link = /^https?:\/\//i.test(String(b.link || '').trim()) ? clean_(b.link, 400) : '';
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const sh = outreachSheet_();
+    sh.appendRow([safeCell_(org), safeCell_(clean_(b.date, 30)), lat + ', ' + lng, link, safeCell_(clean_(b.detail, 300)), YES]);
+    try { CacheService.getScriptCache().remove('outreach'); } catch (err) {}
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function listOutreachCachedJson_() {

@@ -32,7 +32,7 @@ const distTxt=c=>areaLabel(typeof areaOf==='function'?areaOf(c):String(c.distric
 /* ที่อยู่ที่แสดง: อาสาเห็นเต็ม · คนทั่วไปเห็นแค่เขต */
 const addrTxt=c=>S.volunteer?[c.address,c.district?'เขต'+String(c.district).replace(/^เขต/,''):''].filter(Boolean).join(' · '):distTxt(c);
 /* หน่วยงานที่ลงพื้นที่ช่วย · ใส่ไฟล์โลโก้ใน logo ได้ (เช่น './assets/org-cicot.png') แทนป้ายตัวหนังสือ */
-const ORGS=[{name:'สภาเครือข่ายฯ สำนักจุฬาราชมนตรี',short:'สภาฯ',color:'#0F7B3F',logo:''},{name:'ทีมกู้ภัย',short:'กู้ภัย',color:'#E8590C',logo:''},{name:'มูลนิธิอุมมะตี',short:'อุมมะตี',color:'#DE1F26',logo:''},{name:'อื่น ๆ',short:'ทีม',color:'#5B6386',logo:''}];
+const ORGS=[{name:'สภาเครือข่ายฯ สำนักจุฬาราชมนตรี',short:'สภาฯ',color:'#7C3AED',logo:''},{name:'ทีมกู้ภัย',short:'กู้ภัย',color:'#E8590C',logo:''},{name:'มูลนิธิอุมมะตี',short:'อุมมะตี',color:'#2E9E57',logo:''},{name:'อื่น ๆ',short:'ทีม',color:'#5B6386',logo:''}];
 const orgOf=n=>{n=String(n||'').trim();return ORGS.find(o=>o.name===n)||ORGS.find(o=>n&&(n.includes(o.short)||o.name.includes(n)))||{name:n||'ทีมอาสา',short:'ทีม',color:'#5B6386',logo:''}};
 const orgOpts=sel=>ORGS.map(o=>`<option value="${esc(o.name)}" ${o.name===sel?'selected':''}>${esc(o.name)}</option>`).join('');
 function statusChip(c){const k=pinKind(c);const txt=STATUS_TH[c.status]||'รอช่วย';return `<span class="st st-${k}">${esc(txt)}</span>`}
@@ -198,15 +198,12 @@ function netPopup(p){const tel=String(p.phone||'').replace(/[^\d+]/g,'');
 function helpedPopup(h){const o=orgOf(h.org);
   return `<div class="pop"><span class="org-tag" style="background:${o.color}">${esc(o.name)}</span><br><b>${esc(h.title)}</b>`+(h.detail?`<br>${esc(h.detail)}`:'')+(h.when?`<br><small>${esc(h.when)}</small>`:'')+
     (h.link?`<div class="pop-act"><a href="${esc(h.link)}" target="_blank" rel="noopener">ดูโพสต์</a></div>`:h.id?`<div class="pop-act"><a href="#" data-open="${esc(h.id)}">ดูรายละเอียด</a></div>`:'')+`</div>`}
-function helpedList(){const out=[];
-  S.cases.filter(c=>c.status!=='open'&&hasPin(c)).forEach(c=>out.push({lat:+c.lat,lng:+c.lng,org:c.org||'',id:c.id,title:(c.status==='done'?'ช่วยแล้ว · ':'กำลังไปช่วย · ')+((c.needs||[]).join(', ')||'ขอความช่วยเหลือ'),
-    detail:[c.volunteer?'ทีม '+c.volunteer:'',distTxt(c)].filter(Boolean).join(' · '),when:c.updatedAt?'อัปเดต '+ago(c.updatedAt):''}));
-  (S.outreach||[]).forEach(p=>out.push({lat:p.lat,lng:p.lng,org:p.org,link:p.link,title:'ลงพื้นที่ช่วยเหลือ',detail:p.detail,when:p.date?'วันที่ '+p.date:''}));
-  return out}
+/* วงกลมเฉพาะองค์กรอื่นที่ลงพื้นที่ (จากโพสต์โซเชียล/ข่าว ในแท็บ "ลงพื้นที่") · เคสของทีมอุมมะตีแสดงเป็นหมุดตามเดิม */
+function helpedList(){return (S.outreach||[]).map(p=>({lat:p.lat,lng:p.lng,org:p.org,link:p.link,title:'ลงพื้นที่ช่วยเหลือ',detail:p.detail,when:p.date?'วันที่ '+p.date:''}))}
 function drawHelped(){Object.values(S.maps).forEach(m=>{if(!m)return;if(m._helped){m._helped.remove();m._helped=null}
   if(!store.get('uh_lay_teams',''))return;const hs=helpedList();if(!hs.length)return;
   m._helped=L.layerGroup(hs.flatMap(h=>{const o=orgOf(h.org);
-    return [L.circle([h.lat,h.lng],{radius:S.volunteer?180:400,color:o.color,weight:1,opacity:.35,fillColor:o.color,fillOpacity:.13,interactive:false}),
+    return [L.circle([h.lat,h.lng],{radius:350,color:o.color,weight:1,opacity:.35,fillColor:o.color,fillOpacity:.13,interactive:false}),
       L.marker([h.lat,h.lng],{icon:L.divIcon({className:'org-pin',html:o.logo?`<img src="${esc(o.logo)}" alt="">`:`<span style="background:${o.color}">${esc(o.short)}</span>`,iconSize:[44,20],iconAnchor:[22,10]}),opacity:.88,zIndexOffset:-200,title:o.name+' · '+h.title}).bindPopup(()=>helpedPopup(h))]})).addTo(m)})}
 async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams').checked=on;const gen=++teamsGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._teams){m._teams.remove();m._teams=null}});drawHelped();if(!on)return;
