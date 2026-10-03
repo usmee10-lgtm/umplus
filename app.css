@@ -646,3 +646,4 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .stable tbody tr:last-child>*{border-bottom:0}
 .slist .urg{min-width:76px;justify-content:center}
 .stats>*{min-width:0}
+.brand{padding:9px 16px;gap:0}.brand img{display:block;height:24px;width:auto}
