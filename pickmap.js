@@ -60,6 +60,8 @@ async function mlPicker(el,onTap,onDragEnd){
   map.addControl(new maplibregl.ScaleControl({unit:'metric'}),'bottom-left');
   map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>'}),'bottom-right');
   await new Promise((res,rej)=>{map.once('load',res);map.once('error',e=>{if(!map.loaded())rej(e.error||e)})});
+  /* เครดิตแผนที่: หุบไว้เป็นปุ่ม (i) ไม่ให้บังแผนที่เล็ก ๆ ในฟอร์ม */
+  const att=el.querySelector('.maplibregl-ctrl-attrib');if(att){att.classList.remove('maplibregl-compact-show');att.removeAttribute('open')}
   /* ภาพดาวเทียม (ซ่อนไว้) วางใต้ถนนและป้ายชื่อ */
   const firstLine=(map.getStyle().layers.find(l=>l.type==='line')||{}).id;
   map.addSource('sat',{type:'raster',tiles:[MAPCFG.sat],tileSize:256,maxzoom:19,attribution:MAPCFG.satAttr});

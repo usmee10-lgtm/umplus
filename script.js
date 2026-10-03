@@ -455,6 +455,16 @@ async function ensureFormMap(){
 function addSatButton(pm){const b=document.createElement('button');b.type='button';b.className='map-sat-btn map-sat-float';
   const sync=()=>{const sat=pm.isSat();b.innerHTML=ic(sat?'road':'sat')+'<span>'+(sat?'แผนที่':'ดาวเทียม')+'</span>';b.setAttribute('aria-pressed',String(sat))};
   b.addEventListener('click',e=>{e.stopPropagation();pm.toggleSat();sync()});sync();$('#form-map').append(b)}
+/* ที่มาของหมุด (ส่งให้ทีมอาสาดูว่าหมุดแม่นแค่ไหน): gps / manual / addr / link · acc = ความแม่นยำ GPS (เมตร) */
+function pinSrcText(){const s=F.pinSrc||'';
+  return s==='gps'?'GPS ±'+F.pinAcc+' ม.':s==='gps+drag'?'GPS ±'+F.pinAcc+' ม. แล้วลากปรับเอง':s==='manual'?'ปักเองบนแผนที่':s==='link'?'จากลิงก์/พิกัดที่วาง':s==='addr'?'จากที่อยู่ (โดยประมาณ)':''}
+function accInfo(a){return a<=20?{cls:'good',txt:'แม่นยำมาก ±'+a+' ม.'}:a<=60?{cls:'ok',txt:'แม่นยำพอใช้ ±'+a+' ม. · ซูมดูว่าตรงบ้านไหม'}:{cls:'bad',txt:'ยังไม่แม่น ±'+a+' ม. · ลากหมุดให้ตรงบ้าน'}}
+function pinNote(){const el=$('#pin-status');if(!el)return;const s=F.pinSrc;
+  if(s==='gps'){const a=accInfo(F.pinAcc);el.innerHTML=`<i class="acc-dot ${a.cls}"></i>ตำแหน่งจาก GPS · ${esc(a.txt)}`}
+  else if(s==='gps+drag'||s==='manual')el.innerHTML='<i class="acc-dot good"></i>ปักหมุดเองแล้ว · ซูมเข้าเพื่อให้ตรงหลังคาบ้าน';
+  else if(s==='link')el.innerHTML='<i class="acc-dot good"></i>ปักตามพิกัดที่วาง · ลากปรับได้';
+  else if(s==='addr')el.innerHTML='<i class="acc-dot ok"></i>หมุดโดยประมาณจากที่อยู่ · ลากให้ตรงบ้าน';
+  else el.textContent='ปักหมุดแล้ว · ลากหมุดเพื่อปรับให้ตรง'}
 /* ซอยของหมุด: แสดงตัวเลือกซอย แล้วเติมที่อยู่ "ซอย… แขวง… เขต… กรุงเทพฯ" (ถ้าผู้ใช้ยังไม่ได้พิมพ์ที่อยู่เอง) */
 let soiSeq=0;
 function soiAddr(soi,info){return [soi,info.area?'แขวง'+info.area:'',info.dist?'เขต'+info.dist:'',info.dist&&info.bkk?'กรุงเทพฯ':''].filter(Boolean).join(' ')}
