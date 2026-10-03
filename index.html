@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=45">
+<link rel="stylesheet" href="./app.css?v=46">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -167,6 +167,7 @@
         <label class="search-field"><span data-icon="search"></span><input id="case-search" type="search" autocomplete="off" placeholder="ค้นหาเคส: เขต ที่อยู่ ความต้องการ เลขเคส" aria-label="ค้นหาเคส"></label>
         <div class="status-tabs" id="status-tabs" role="group" aria-label="กรองตามสถานะ"></div>
         <div class="type-chips" id="type-chips" role="group" aria-label="กรองตามประเภท"></div>
+        <div class="sort-row" id="sort-row" role="group" aria-label="เรียงลำดับเคส"></div>
         <button type="button" class="pill pill-ghost small" id="more-filter" data-icon="filter" aria-expanded="false" aria-controls="more-filter-panel">ตัวกรองเพิ่ม</button>
         <div class="more-filter card" id="more-filter-panel" hidden></div>
         <div class="trip card" id="trip-panel" hidden></div>
@@ -222,11 +223,11 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=45"></script>
-<script src="./geocode.js?v=45"></script>
-<script src="./location.js?v=45"></script>
-<script src="./hotlines.js?v=45"></script>
-<script src="./script.js?v=45"></script>
+<script src="./icons.js?v=46"></script>
+<script src="./geocode.js?v=46"></script>
+<script src="./location.js?v=46"></script>
+<script src="./hotlines.js?v=46"></script>
+<script src="./script.js?v=46"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>

@@ -647,3 +647,8 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .slist .urg{min-width:76px;justify-content:center}
 .stats>*{min-width:0}
 .brand{padding:9px 16px;gap:0}.brand img{display:block;height:24px;width:auto}
+/* เรียงลำดับเคส */
+.sort-row{display:flex;align-items:center;gap:4px;padding:3px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(22,27,61,.08);align-self:flex-start;max-width:100%}
+.sort-lbl{font-size:13px;font-weight:600;color:var(--muted);padding:0 8px 0 12px;flex:none}
+.sort-row button{flex:1 1 auto;min-height:40px;border:0;border-radius:999px;background:none;color:var(--ink);font:inherit;font-weight:600;font-size:14px;padding:0 14px;cursor:pointer;white-space:nowrap}
+.sort-row button[aria-pressed=true]{background:var(--navy,#0F2188);color:#fff}

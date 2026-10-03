@@ -407,8 +407,14 @@ function sentScreen(id,queued){
 $('#form-back').addEventListener('click',()=>{if(F.sending)return;if(F.step===2)showStep(1);else go('home')});
 
 /* ---------- แผนที่/รายการ ---------- */
-const FL=Object.assign({status:'active',types:[],people:[],level:[],q:''},store.json('uh_filters2',{}),{q:''});
-const saveFL=()=>store.put('uh_filters2',{status:FL.status,types:FL.types,people:FL.people,level:FL.level});
+const FL=Object.assign({status:'active',types:[],people:[],level:[],q:'',sort:'new',age:''},store.json('uh_filters2',{}),{q:''});
+const saveFL=()=>store.put('uh_filters2',{status:FL.status,types:FL.types,people:FL.people,level:FL.level,sort:FL.sort,age:FL.age});
+/* เรียงลำดับ + ช่วงเวลาที่แจ้ง */
+const SORTS=[['new','ใหม่ล่าสุด'],['old','เก่าสุด'],['urgent','ด่วนก่อน']];
+const AGES=[['','ทั้งหมด'],['today','วันนี้'],['24h','24 ชม.'],['3d','3 วัน'],['7d','7 วัน'],['older','เก่ากว่า 7 วัน']];
+function ageOk(c){if(!FL.age)return true;const t=Number(c.createdAt)||Date.parse(c.createdAt)||0,now=Date.now(),H=3600000;
+  if(FL.age==='today'){const d=new Date();d.setHours(0,0,0,0);return t>=d.getTime()}
+  if(FL.age==='older')return t&&t<now-168*H;return t>=now-({'24h':24,'3d':72,'7d':168}[FL.age])*H}
 const STATUS_TABS=[['active','ยังไม่เสร็จ'],['danger','ด่วน'],['open','รอช่วย'],['going','กำลังไป'],['done','ช่วยแล้ว'],['all','ทั้งหมด']];
 const PEOPLE_R=[['1-5','1–5 คน'],['6-20','6–20 คน'],['21-99999','มากกว่า 20 คน']];
 function renderFilters(){
@@ -416,16 +422,19 @@ function renderFilters(){
   $('#status-tabs').innerHTML=STATUS_TABS.map(([k,t])=>`<button type="button" data-st="${k}" aria-pressed="${FL.status===k}">${t}</button>`).join('');
   if(keep)setTimeout(()=>{const x=$(keep);x&&x.focus()},0);
   $('#type-chips').innerHTML=NEED_TYPES.map(t=>`<button type="button" data-ty="${t.key}" aria-pressed="${FL.types.includes(t.key)}">${ic(t.icon)}${t.label}</button>`).join('');
-  $('#more-filter-panel').innerHTML='<h4>จำนวนคน</h4><div class="chips">'+PEOPLE_R.map(([k,t])=>`<label><input type="checkbox" data-pp="${k}" ${FL.people.includes(k)?'checked':''}><span>${t}</span></label>`).join('')+'</div>'+
+  $('#sort-row').innerHTML='<span class="sort-lbl">เรียง</span>'+SORTS.map(([k,t])=>`<button type="button" data-sort="${k}" aria-pressed="${FL.sort===k}">${t}</button>`).join('');
+  $('#more-filter-panel').innerHTML='<h4>แจ้งเมื่อ</h4><div class="chips">'+AGES.map(([k,t])=>`<label><input type="radio" name="fl-age" data-age="${k}" ${FL.age===k?'checked':''}><span>${t}</span></label>`).join('')+'</div>'+
+    '<h4>จำนวนคน</h4><div class="chips">'+PEOPLE_R.map(([k,t])=>`<label><input type="checkbox" data-pp="${k}" ${FL.people.includes(k)?'checked':''}><span>${t}</span></label>`).join('')+'</div>'+
     '<h4>ระดับน้ำ</h4><div class="chips">'+Object.entries({...LEVEL_TH,none:'ไม่ระบุ'}).map(([k,t])=>`<label><input type="checkbox" data-lv="${k}" ${FL.level.includes(k)?'checked':''}><span>${t}</span></label>`).join('')+'</div>'+
     '<button type="button" class="pill pill-ghost small" id="clear-filter">ล้างตัวกรอง</button>';
-  const n=FL.types.length+FL.people.length+FL.level.length;$('#more-filter').lastChild.textContent=n?`ตัวกรองเพิ่ม (${n})`:'ตัวกรองเพิ่ม';
+  const n=FL.types.length+FL.people.length+FL.level.length+(FL.age?1:0);$('#more-filter').lastChild.textContent=n?`ตัวกรองเพิ่ม (${n})`:'ตัวกรองเพิ่ม';
 }
 $('#status-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-st]');if(!b)return;FL.status=b.dataset.st;saveFL();renderFilters();applyFilters()});
+$('#sort-row').addEventListener('click',e=>{const b=e.target.closest('[data-sort]');if(!b)return;FL.sort=b.dataset.sort;saveFL();renderFilters();applyFilters();$('#case-list').scrollIntoView({block:'nearest'})});
 $('#type-chips').addEventListener('click',e=>{const b=e.target.closest('[data-ty]');if(!b)return;const k=b.dataset.ty;FL.types=FL.types.includes(k)?FL.types.filter(x=>x!==k):[...FL.types,k];saveFL();renderFilters();applyFilters()});
 $('#more-filter').addEventListener('click',()=>{const p=$('#more-filter-panel');p.hidden=!p.hidden;$('#more-filter').setAttribute('aria-expanded',String(!p.hidden))});
-$('#more-filter-panel').addEventListener('change',e=>{const i=e.target;if(i.dataset.pp){FL.people=i.checked?[...FL.people,i.dataset.pp]:FL.people.filter(x=>x!==i.dataset.pp)}if(i.dataset.lv){FL.level=i.checked?[...FL.level,i.dataset.lv]:FL.level.filter(x=>x!==i.dataset.lv)}saveFL();renderFilters();applyFilters()});
-$('#more-filter-panel').addEventListener('click',e=>{if(e.target.id==='clear-filter'){FL.types=[];FL.people=[];FL.level=[];FL.status='active';saveFL();renderFilters();applyFilters()}});
+$('#more-filter-panel').addEventListener('change',e=>{const i=e.target;if(i.dataset.pp){FL.people=i.checked?[...FL.people,i.dataset.pp]:FL.people.filter(x=>x!==i.dataset.pp)}if(i.dataset.lv){FL.level=i.checked?[...FL.level,i.dataset.lv]:FL.level.filter(x=>x!==i.dataset.lv)}if(i.dataset.age!=null&&i.checked)FL.age=i.dataset.age;saveFL();renderFilters();applyFilters()});
+$('#more-filter-panel').addEventListener('click',e=>{if(e.target.id==='clear-filter'){FL.types=[];FL.people=[];FL.level=[];FL.age='';FL.status='active';saveFL();renderFilters();applyFilters()}});
 let qTimer;$('#case-search').addEventListener('input',()=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{FL.q=srchNorm($('#case-search').value.trim());applyFilters(true)},200)});
 function applyFilters(fit){renderList();drawPins('map');if(fit&&FL.q&&S.maps.map){const pts=filteredCases().filter(hasPin).map(c=>[+c.lat,+c.lng]);if(pts.length)S.maps.map.fitBounds(pts,{padding:[60,60],maxZoom:15})}}
 /* ค้นหาได้ทุกอย่าง (ชื่อ เบอร์ ที่อยู่ ความต้องการ ฯลฯ) */
@@ -445,7 +454,11 @@ function filteredCases(){
     if(FL.types.length&&!FL.types.some(k=>(c.needs||[]).some(v=>needKey(v)===k)))return false;
     if(FL.people.length){const p=Number(c.people)||1;if(!FL.people.some(r=>{const [a,b]=r.split('-').map(Number);return p>=a&&p<=b}))return false}
     if(FL.level.length&&!FL.level.includes(c.level||'none'))return false;
-    return true}).sort((a,b)=>((a.status==='done')-(b.status==='done'))||(sevOf(b)-sevOf(a))||(rank[a.status]-rank[b.status])||((Number(b.createdAt)||0)-(Number(a.createdAt)||0)));
+    if(!ageOk(c))return false;
+    return true}).sort((a,b)=>{const ta=Number(a.createdAt)||0,tb=Number(b.createdAt)||0;
+      if(FL.sort==='old')return ta-tb;
+      if(FL.sort==='urgent')return ((a.status==='done')-(b.status==='done'))||(sevOf(b)-sevOf(a))||(rank[a.status]-rank[b.status])||(tb-ta);
+      return tb-ta});
 }
 function caseCard(c){
   const b=document.createElement('button');b.type='button';b.className='case'+(c.status!=='done'?' u'+sevOf(c):' is-done')+(isDanger(c)?' danger':'');b.dataset.id=c.id;
