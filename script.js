@@ -32,7 +32,7 @@ const distTxt=c=>areaLabel(typeof areaOf==='function'?areaOf(c):String(c.distric
 /* ที่อยู่ที่แสดง: อาสาเห็นเต็ม · คนทั่วไปเห็นแค่เขต */
 const addrTxt=c=>S.volunteer?[c.address,c.district?'เขต'+String(c.district).replace(/^เขต/,''):''].filter(Boolean).join(' · '):distTxt(c);
 /* หน่วยงานที่ลงพื้นที่ช่วย · ใส่ไฟล์โลโก้ใน logo ได้ (เช่น './assets/org-cicot.png') แทนป้ายตัวหนังสือ */
-const ORGS=[{name:'สภาเครือข่ายฯ สำนักจุฬาราชมนตรี',short:'สภาฯ',color:'#7C3AED',logo:''},{name:'ทีมกู้ภัย',short:'กู้ภัย',color:'#E8590C',logo:''},{name:'มูลนิธิอุมมะตี',short:'อุมมะตี',color:'#2E9E57',logo:''},{name:'อื่น ๆ',short:'ทีม',color:'#5B6386',logo:''}];
+const ORGS=[{name:'สภาเครือข่ายฯ สำนักจุฬาราชมนตรี',short:'สภาฯ',color:'#7C3AED',logo:''},{name:'มูลนิธิป่อเต็กตึ๊ง',short:'ป่อเต็กตึ๊ง',color:'#C2410C',logo:''},{name:'มูลนิธิร่วมกตัญญู',short:'ร่วมกตัญญู',color:'#B45309',logo:''},{name:'ทีมกู้ภัย',short:'กู้ภัย',color:'#E8590C',logo:''},{name:'มูลนิธิอุมมะตี',short:'อุมมะตี',color:'#2E9E57',logo:''},{name:'อื่น ๆ',short:'ทีม',color:'#5B6386',logo:''}];
 const orgOf=n=>{n=String(n||'').trim();return ORGS.find(o=>o.name===n)||ORGS.find(o=>n&&(n.includes(o.short)||o.name.includes(n)))||{name:n||'ทีมอาสา',short:'ทีม',color:'#5B6386',logo:''}};
 const orgOpts=sel=>ORGS.map(o=>`<option value="${esc(o.name)}" ${o.name===sel?'selected':''}>${esc(o.name)}</option>`).join('');
 function statusChip(c){const k=pinKind(c);const txt=STATUS_TH[c.status]||'รอช่วย';return `<span class="st st-${k}">${esc(txt)}</span>`}
