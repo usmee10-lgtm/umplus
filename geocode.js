@@ -79,7 +79,7 @@ async function geoReverse(lat,lng){
 const SOI_RE=/((?:ซอย|ตรอก)\s?[^\s,]+(?:\s\d[\d/-]*)?(?:\s?แยก\s?\d[\d/-]*)*)|(ถนน[^\s,]+(?:\s\d[\d/-]*)?)/;
 function soiName(n){n=String(n||'').replace(/\s+/g,' ').trim();if(!n)return '';
   if(/^(ซอย|ตรอก|ถนน|ทางหลวง|ถ\.|ซ\.)/.test(n))return geoNorm(n);
-  return /\d/.test(n)?'ซอย'+n:n}
+  return /\d/.test(n)&&!/(ซอย|ถนน|ตรอก|ซ\.)/.test(n)?'ซอย'+n:n}
 async function geoSoiAt(lat,lng){
   /* Esri reverse 3 แบบ: ถนนที่ใกล้ที่สุด (วัดจากเส้นถนนจริง), บ้านเลขที่ใกล้ที่สุด, ทางแยกใกล้ที่สุด · แต่ละแบบบอกระยะ (ม.) */
   const er=ft=>fetch(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${lng},${lat}&langCode=TH&forStorage=false&featureTypes=${ft}&outFields=Address,Addr_type,Distance,Neighborhood,District,City`)
@@ -87,7 +87,7 @@ async function geoSoiAt(lat,lng){
   const osmSt=fetch(`${GEO.url}/reverse?lat=${lat}&lon=${lng}&limit=5&layer=street&radius=0.25`).then(r=>r.json()).then(j=>j.features||[]).catch(()=>[]);
   const [sn,pa,si,sts,p]=await Promise.all([er('StreetName'),er('PointAddress'),er('StreetInt'),osmSt,geoReverseRaw(lat,lng)]);
   const C=[];const add=(n,d,rank)=>{n=soiName(n);if(!n)return;const k=geoKey(n),o=C.find(x=>geoKey(x.name)===k);
-    if(o){if(d!=null&&(o.d==null||d<o.d))o.d=d;o.rank=Math.min(o.rank,rank)}else C.push({name:n,d:d==null?null:Math.round(d),rank})};
+    if(o){if(d!=null&&(o.d==null||d<o.d))o.d=Math.round(d);o.rank=Math.min(o.rank,rank)}else C.push({name:n,d:d==null?null:Math.round(d),rank})};
   const dist=x=>x&&x.Distance!=null?Number(x.Distance):null;
   const paSoi=pa&&pa.Address?(String(pa.Address).match(SOI_RE)||[])[0]:'';
   /* บ้านเลขที่อยู่ติดหมุด (≤15 ม.) → ซอยของบ้านนั้นน่าจะใช่ที่สุด (ทางเข้าบ้าน) · ไม่งั้นใช้ถนนที่ใกล้ที่สุด */
