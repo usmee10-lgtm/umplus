@@ -35,10 +35,12 @@ const TEAM_HEADERS_TH = ['ทีม', 'ละติจูด', 'ลองจิ�
 const STATUSES = ['open', 'going', 'done'];
 // ในชีตเก็บสถานะเป็นภาษาไทย (เลือกจาก dropdown ได้) แต่ส่งให้แอปเป็นรหัส open/going/done
 const STATUS_TH = { open: 'รอช่วย', going: 'กำลังไป', done: 'ช่วยแล้ว' };
-const LEVEL_TH = { ankle: 'ข้อเท้า', knee: 'เข่า', waist: 'เอว', chest: 'อก', roof: 'มิดหัว' };
+const LEVEL_TH = { dry: 'แห้ง / ต่ำกว่าข้อเท้า (<10 ซม.)', ankle: 'ข้อเท้า–เข่า (10–50 ซม.)', knee: 'เข่า–เอว (50–100 ซม.)', waist: 'เอว–อก (100–130 ซม.)', chest: 'อกขึ้นไป (130–180 ซม.)', roof: 'มิดหัว / ท่วมหลังคา (>180 ซม.)' };
+/* ป้ายระดับน้ำแบบเก่าที่อาจยังอยู่ในชีต */
+const LEVEL_OLD = { 'ข้อเท้า': 'ankle', 'เข่า': 'knee', 'เอว': 'waist', 'อก': 'chest', 'มิดหัว': 'roof', 'แห้ง': 'dry' };
 const URG_TH = { 1: 'ทั่วไป', 2: 'เร่งด่วน', 3: 'ด่วนมาก', 4: 'วิกฤต' };
 const YES = 'ใช่', NO = 'ไม่';
-const LEVELS = ['ankle', 'knee', 'waist', 'chest', 'roof'];
+const LEVELS = ['dry', 'ankle', 'knee', 'waist', 'chest', 'roof'];
 const MAX = { name: 60, phone: 20, district: 40, address: 300, notes: 800, volunteer: 60, team: 40, org: 60 };
 /** หน่วยงานของทีมที่รับเคส (เลือกในแอป หรือเลือกในชีต) */
 const ORGS = ['สภาเครือข่ายฯ สำนักจุฬาราชมนตรี', 'มูลนิธิป่อเต็กตึ๊ง', 'มูลนิธิร่วมกตัญญู', 'ทีมกู้ภัย', 'มูลนิธิอุมมะตี', 'อื่น ๆ'];
@@ -382,6 +384,8 @@ function levelCode_(v) {
   const s = String(v || '').trim();
   if (LEVELS.indexOf(s) >= 0) return s;
   for (const k in LEVEL_TH) if (LEVEL_TH[k] === s) return k;
+  if (LEVEL_OLD[s]) return LEVEL_OLD[s];
+  for (const k in LEVEL_TH) if (LEVEL_TH[k].split(' (')[0] === s) return k;
   return '';
 }
 function urgCode_(v) {
