@@ -806,3 +806,9 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .map-sat-float{position:absolute;top:10px;right:10px;z-index:5}
 #form-map .maplibregl-ctrl-group button{width:36px;height:36px}
 #form-map .maplibregl-ctrl-attrib{font-size:10px}
+
+/* แชร์ / คัดลอกตำแหน่ง */
+.loc-share{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.loc-share .pill{flex:1 1 140px;justify-content:center}
+.coord-row .loc-btns{display:flex;gap:6px;flex:none}
+.coord-row{flex-wrap:wrap}

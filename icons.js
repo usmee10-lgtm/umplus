@@ -48,6 +48,7 @@ const ICONS={
   rain:'<path d="M7 15a4.5 4.5 0 1 1 .9-8.9A6 6 0 0 1 19 8.5 3.5 3.5 0 0 1 18 15z"/><path d="M8 18.5 7 21M12.5 18.5l-1 2.5M17 18.5l-1 2.5"/>',
   play:'<path d="M8 5.5v13l10.5-6.5z"/>',
   pause:'<path d="M8 5v14M16 5v14"/>',
+  share:'<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/>',
   chev:'<path d="m6 9 6 6 6-6"/>',
   chart:'<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>'
 };

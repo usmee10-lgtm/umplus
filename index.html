@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=77">
+<link rel="stylesheet" href="./app.css?v=78">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -123,6 +123,7 @@
         <button type="button" class="pill pill-green full" id="form-gps" data-icon="gps">ใช้ตำแหน่งตอนนี้</button>
         <div id="form-map" class="form-map" role="region" aria-label="แผนที่ปักหมุด (ใช้ช่องค้นหาหรือกรอกที่อยู่เองแทนได้)"></div>
         <p class="hint" id="pin-status" aria-live="polite">แตะแผนที่เพื่อปักหมุด หรือลากหมุดให้ตรง</p>
+        <div class="loc-share" id="loc-share" hidden><button type="button" class="pill pill-ghost small" id="loc-copy" data-icon="copy">คัดลอกตำแหน่ง</button><button type="button" class="pill pill-ghost small" id="loc-share-btn" data-icon="share">แชร์ไป LINE / แอปอื่น</button></div>
         <div class="soi-pick" id="soi-pick" hidden><span class="soi-q">อยู่ซอยไหน?</span><div class="soi-chips" id="soi-chips" role="radiogroup" aria-label="เลือกซอยที่อยู่"></div><small class="soi-tip">แตะซอยที่ถูก ระบบใส่ในที่อยู่ให้ · ไม่มีในนี้พิมพ์เองในช่องที่อยู่ได้</small></div>
         <details class="coord" id="manual-addr"><summary><span data-icon="note"></span>กรอกที่อยู่เอง</summary>
           <div class="addr-form">
@@ -264,12 +265,12 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=77"></script>
-<script src="./geocode.js?v=77"></script>
-<script src="./location.js?v=77"></script>
-<script src="./pickmap.js?v=77"></script>
-<script src="./hotlines.js?v=77"></script>
-<script src="./script.js?v=77"></script>
+<script src="./icons.js?v=78"></script>
+<script src="./geocode.js?v=78"></script>
+<script src="./location.js?v=78"></script>
+<script src="./pickmap.js?v=78"></script>
+<script src="./hotlines.js?v=78"></script>
+<script src="./script.js?v=78"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>

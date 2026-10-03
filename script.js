@@ -426,7 +426,7 @@ function startForm(opt={}){
   if(opt.gps)useGPS();
 }
 function resetForm(){
-  F.needs.clear();F.photos=[];if($('#photo-row')){renderPhotos();markOk('photos')}F.lat=F.lng=null;F.soi='';F.soiAuto='';F.soiPrev='';F.soiInfo=null;soiSeq++;if($('#soi-pick'))$('#soi-pick').hidden=true;F.pinSrc='';F.pinAcc=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
+  F.needs.clear();F.photos=[];if($('#photo-row')){renderPhotos();markOk('photos')}F.lat=F.lng=null;F.soi='';F.soiAuto='';F.soiPrev='';F.soiInfo=null;soiSeq++;if($('#soi-pick'))$('#soi-pick').hidden=true;if($('#loc-share'))$('#loc-share').hidden=true;F.pinSrc='';F.pinAcc=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
   $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
   ['#addr-input','#phone-in','#name-in','#details-in','#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');MA.sub='';MA.picked=null;$('#ma-preview').hidden=true;$('#manual-addr').open=false;
   $('#ppl-out').value='1';$$('input[name=level]').forEach(i=>i.checked=false);markOk('level');
@@ -459,12 +459,27 @@ function addSatButton(pm){const b=document.createElement('button');b.type='butto
 function pinSrcText(){const s=F.pinSrc||'';
   return s==='gps'?'GPS ±'+F.pinAcc+' ม.':s==='gps+drag'?'GPS ±'+F.pinAcc+' ม. แล้วลากปรับเอง':s==='manual'?'ปักเองบนแผนที่':s==='link'?'จากลิงก์/พิกัดที่วาง':s==='addr'?'จากที่อยู่ (โดยประมาณ)':''}
 function accInfo(a){return a<=20?{cls:'good',txt:'แม่นยำมาก ±'+a+' ม.'}:a<=60?{cls:'ok',txt:'แม่นยำพอใช้ ±'+a+' ม. · ซูมดูว่าตรงบ้านไหม'}:{cls:'bad',txt:'ยังไม่แม่น ±'+a+' ม. · ลากหมุดให้ตรงบ้าน'}}
-function pinNote(){const el=$('#pin-status');if(!el)return;const s=F.pinSrc;
+function pinNote(){const el=$('#pin-status');if(!el)return;const s=F.pinSrc;const ls=$('#loc-share');if(ls)ls.hidden=F.lat==null;
   if(s==='gps'){const a=accInfo(F.pinAcc);el.innerHTML=`<i class="acc-dot ${a.cls}"></i>ตำแหน่งจาก GPS · ${esc(a.txt)}`}
   else if(s==='gps+drag'||s==='manual')el.innerHTML='<i class="acc-dot good"></i>ปักหมุดเองแล้ว · ซูมเข้าเพื่อให้ตรงหลังคาบ้าน';
   else if(s==='link')el.innerHTML='<i class="acc-dot good"></i>ปักตามพิกัดที่วาง · ลากปรับได้';
   else if(s==='addr')el.innerHTML='<i class="acc-dot ok"></i>หมุดโดยประมาณจากที่อยู่ · ลากให้ตรงบ้าน';
   else el.textContent='ปักหมุดแล้ว · ลากหมุดเพื่อปรับให้ตรง'}
+/* แชร์ / คัดลอกตำแหน่ง ไปวางใน LINE, Facebook, SMS ฯลฯ
+   ข้อความ = ชื่อ + ที่อยู่ + พิกัดตัวเลข (ใช้ได้กับทุกแอปแผนที่) + ลิงก์เปิดแผนที่ (Maps URL ธรรมดา ไม่ใช่ API · เปิดแอปแผนที่ในมือถือได้ทันที)
+   approx = ตำแหน่งโดยประมาณ (มุมมองคนทั่วไป ไม่เปิดเผยพิกัดจริง) */
+function locText({lat,lng,title,address,note,approx}){const d=approx?3:6,la=(+lat).toFixed(d),ln=(+lng).toFixed(d);
+  return ['📍 '+(title||'ตำแหน่ง'),address||'',`พิกัด ${la}, ${ln}${note?' ('+note+')':''}${approx?' · ตำแหน่งโดยประมาณ':''}`,
+    `เปิดแผนที่: https://www.google.com/maps/search/?api=1&query=${la},${ln}`].filter(Boolean).join('\n')}
+async function copyText(t,okMsg){
+  try{await navigator.clipboard.writeText(t);toast(okMsg||'คัดลอกแล้ว',{ok:true});return true}catch(e){}
+  const ta=document.createElement('textarea');ta.value=t;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;top:-1000px;left:0;opacity:0';document.body.append(ta);
+  ta.select();ta.setSelectionRange(0,t.length);let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();
+  if(ok){toast(okMsg||'คัดลอกแล้ว',{ok:true});return true}
+  prompt('กดค้างเพื่อคัดลอกข้อความนี้',t);return false}
+async function shareText(t,title){
+  if(navigator.share){try{await navigator.share({title:title||'ตำแหน่ง',text:t});return}catch(e){if(e&&e.name==='AbortError')return}}
+  copyText(t,'คัดลอกตำแหน่งแล้ว · วางในแชตได้เลย')}
 /* ซอยของหมุด: แสดงตัวเลือกซอย แล้วเติมที่อยู่ "ซอย… แขวง… เขต… กรุงเทพฯ" (ถ้าผู้ใช้ยังไม่ได้พิมพ์ที่อยู่เอง) */
 let soiSeq=0;
 function soiAddr(soi,info){return [soi,info.area?'แขวง'+info.area:'',info.dist?'เขต'+info.dist:'',info.dist&&info.bkk?'กรุงเทพฯ':''].filter(Boolean).join(' ')}
@@ -517,6 +532,9 @@ async function useGPS(){
   finally{btn.disabled=false;btn.classList.remove('busy')}
 }
 $('#form-gps').addEventListener('click',useGPS);
+const formLocText=()=>locText({lat:F.lat,lng:F.lng,title:'ตำแหน่งที่ต้องการความช่วยเหลือ',address:$('#addr-input').value.trim(),note:pinSrcText()});
+$('#loc-copy').addEventListener('click',()=>{if(F.lat!=null)copyText(formLocText(),'คัดลอกตำแหน่งแล้ว · วางใน LINE หรือแชตอื่นได้เลย')});
+$('#loc-share-btn').addEventListener('click',()=>{if(F.lat!=null)shareText(formLocText(),'ตำแหน่งที่ต้องการความช่วยเหลือ')});
 $('#addr-input').addEventListener('input',e=>{const v=$('#addr-input').value.trim();
   /* วางลิงก์ Google Maps หรือพิกัด → ปักหมุดตรงจุดนั้น แล้วเติมที่อยู่ให้ */
   const ll=parseLatLngText(v);
@@ -780,7 +798,7 @@ function renderDetail(full){
   const tel=String(c.phone||'').replace(/[^\d+]/g,'');
   const facts=[['ความเร่งด่วน',URG_TH[sevOf(c)]],['จำนวนคน',(c.people||1)+' คน'],['ระดับน้ำ',levelLabel(c.level)],['ความต้องการ',(c.needs||[]).join(', ')||'-'],['แจ้งเมื่อ',ago(c.createdAt)]];
   if(V&&c.name)facts.push(['ผู้ติดต่อ',c.name]);if(V&&c.phone)facts.push(['เบอร์โทร',c.phone]);if(c.volunteer&&c.status!=='open')facts.push(['ทีมที่รับเคส',c.volunteer]);if(c.org&&c.status!=='open')facts.push(['หน่วยงาน',c.org]);
-  el.innerHTML=`<div class="d-map-col">${hasPin(c)?`<div id="detail-map" class="detail-map"></div>${!V?`<p class="hint">${ic('pin')} ตำแหน่งโดยประมาณ (รัศมีราว 500 ม.) · ที่อยู่เต็มเห็นเฉพาะทีมอาสา</p>`:''}${V&&c.pinsrc?`<p class="hint pinsrc">${ic('locate')} ที่มาของหมุด: <b>${esc(c.pinsrc)}</b></p>`:''}<div class="coord-row" ${V?'':'hidden'}><span>${ic('pin')} ${(+c.lat).toFixed(6)}, ${(+c.lng).toFixed(6)}</span><button type="button" class="pill pill-ghost small" id="copy-coord" data-icon="copy">คัดลอก</button></div>`:'<p class="hint">ผู้แจ้งไม่ได้ปักหมุด</p>'}</div>
+  el.innerHTML=`<div class="d-map-col">${hasPin(c)?`<div id="detail-map" class="detail-map"></div>${!V?`<p class="hint">${ic('pin')} ตำแหน่งโดยประมาณ (รัศมีราว 500 ม.) · ที่อยู่เต็มเห็นเฉพาะทีมอาสา</p>`:''}${V&&c.pinsrc?`<p class="hint pinsrc">${ic('locate')} ที่มาของหมุด: <b>${esc(c.pinsrc)}</b></p>`:''}<div class="coord-row">${V?`<span>${ic('pin')} ${(+c.lat).toFixed(6)}, ${(+c.lng).toFixed(6)}</span>`:`<span>${ic('pin')} ตำแหน่งโดยประมาณ</span>`}<span class="loc-btns"><button type="button" class="pill pill-ghost small" id="copy-coord" data-icon="copy">คัดลอก</button><button type="button" class="pill pill-ghost small" id="share-coord" data-icon="share">แชร์</button></span></div>`:'<p class="hint">ผู้แจ้งไม่ได้ปักหมุด</p>'}</div>
     <div><div class="detail-head">${statusChip(c)}<h2>${esc((c.needs||[]).join(' · ')||'ขอความช่วยเหลือ')}</h2><span class="case-time">#${esc(c.id)}</span></div>
     <section class="card"><h2>${V?'ที่อยู่':'พื้นที่'}</h2><p>${esc(addr||(V?'ไม่ระบุ':'ไม่ระบุเขต'))}</p>${S.volunteer&&c.notes?`<h2 class="mt">รายละเอียด</h2><p>${esc(c.notes)}</p>`:''}
     <div class="facts">${facts.map(([k,v])=>`<div class="fact"><small>${k}</small><b>${esc(v)}</b></div>`).join('')}</div>
@@ -809,7 +827,9 @@ function renderDetail(full){
       catch(err){toast('อัปเดตไม่สำเร็จ ลองอีกครั้ง');fs.disabled=false;const o=fs.querySelector(`input[value="${c.status}"]`);if(o)o.checked=true;else e.target.checked=false}});
     act.after(fs);
   }else act.insertAdjacentHTML('afterend','<p class="hint">ทีมอาสาที่มีรหัสจะเห็นที่อยู่เต็ม เบอร์โทร และรับเคสได้ในหน้าแผนที่</p>');
-  const cp=$('#copy-coord');if(cp)cp.onclick=()=>{const t=(+c.lat).toFixed(6)+','+(+c.lng).toFixed(6);(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('คัดลอกพิกัดแล้ว',{ok:true})).catch(()=>prompt('คัดลอกพิกัด',t))};
+  const caseLoc=()=>locText({lat:c.lat,lng:c.lng,title:(c.needs||[]).join(' · ')||'ขอความช่วยเหลือ',address:(addrTxt(c)||'')+' · เคส #'+c.id,note:V&&c.pinsrc?c.pinsrc:'',approx:!V});
+  const cp=$('#copy-coord');if(cp)cp.onclick=()=>copyText(caseLoc(),'คัดลอกตำแหน่งแล้ว · วางใน LINE หรือแชตอื่นได้เลย');
+  const sh=$('#share-coord');if(sh)sh.onclick=()=>shareText(caseLoc(),'ตำแหน่งเคส #'+c.id);
   if(hasPin(c))loadLeaflet().then(()=>{const mel=$('#detail-map');if(!mel)return;if(S.detailMap){S.detailMap.remove()}
     S.detailMap=makeMap(mel,{center:[+c.lat,+c.lng],zoom:V?16:14});if(!V){L.circle([+c.lat,+c.lng],{radius:500,color:'#2D45C8',weight:1.5,fillOpacity:.08,interactive:false}).addTo(S.detailMap)}L.marker([+c.lat,+c.lng],{icon:pinIcon(pinKind(c)),interactive:false,keyboard:false}).addTo(S.detailMap);setTimeout(()=>S.detailMap&&S.detailMap.invalidateSize(),250)}).catch(()=>{});
 }
