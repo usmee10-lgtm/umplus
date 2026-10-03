@@ -728,3 +728,22 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .lay-list.in-menu .sw-in:focus-visible+.lay-row{outline-color:var(--primary)}
 .lay-list.in-menu .lay-key span{background:#fff;color:var(--ink)}
 .layer-menu .lay-list.in-menu .lay-row{display:flex;font-weight:400;padding-left:8px}
+
+/* ศูนย์พักพิงและจุดแจกของ */
+.leaflet-div-icon.sh-pin{background:none;border:0}
+.sh-pin span{position:relative;display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:var(--c);color:#fff;border:2px solid #fff;box-shadow:0 2px 6px rgba(22,27,61,.35)}
+.sh-pin span::after{content:"";position:absolute;left:50%;bottom:-7px;width:10px;height:10px;background:var(--c);border-right:2px solid #fff;border-bottom:2px solid #fff;transform:translateX(-50%) rotate(45deg);border-bottom-right-radius:3px}
+.sh-pin span .ic{position:relative;z-index:1;width:18px;height:18px}
+.sh-pin.sh-warn span::before,.sh-pin.sh-bad span::before{content:"";position:absolute;z-index:2;top:-5px;right:-5px;width:12px;height:12px;border-radius:50%;border:2px solid #fff;background:#F59E0B}
+.sh-pin.sh-bad span::before{background:#DC2626}
+.sh-pin.sh-off{opacity:.55;filter:grayscale(1)}
+.sh-pop{display:grid;gap:4px;min-width:0}
+.sh-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:2px}
+.sh-type,.sh-st{display:inline-block;font-size:11.5px;font-weight:700;border-radius:6px;padding:2px 7px;line-height:1.4}
+.sh-type{color:#fff}
+.sh-st.ok{background:#DCFCE7;color:#166534}.sh-st.warn{background:#FEF3C7;color:#92400E}.sh-st.bad{background:#FEE2E2;color:#991B1B}.sh-st.off{background:#E5E7EB;color:#4B5563}
+.sh-addr{color:var(--muted);line-height:1.4}
+.sh-rows{display:grid;gap:3px;margin-top:4px;padding-top:6px;border-top:1px solid var(--line)}
+.sh-row{display:grid;grid-template-columns:86px minmax(0,1fr);gap:6px;font-size:13px;line-height:1.4}
+.sh-row span{color:var(--muted)}.sh-row p{margin:0;color:var(--ink);overflow-wrap:anywhere}
+.sh-upd{color:var(--muted);font-size:12px}

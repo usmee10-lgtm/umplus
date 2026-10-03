@@ -132,7 +132,7 @@ async function ensureMap(which){
   if(S.maps[which])return S.maps[which];
   const m=makeMap(el,{zoom:11});S.maps[which]=m;PIN_LAYER[which]=L.layerGroup().addTo(m);
   m.on('baselayerchange',()=>{});
-  drawPins(which);if(store.get('uh_lay_flood','1')!=='0')toggleFlood(true);if(store.get('uh_lay_teams',''))toggleTeams(true);if(store.get('uh_lay_cctv',''))toggleCctv(true);
+  drawPins(which);if(store.get('uh_lay_flood','1')!=='0')toggleFlood(true);if(store.get('uh_lay_teams',''))toggleTeams(true);if(store.get('uh_lay_cctv',''))toggleCctv(true);if(store.get('uh_lay_shelter','1')!=='0')toggleShelter(true);
   if(which==='map'&&typeof drawTrip==='function')drawTrip();
   return m;
 }
@@ -182,7 +182,7 @@ document.addEventListener('click',e=>{
 let layerBtn=null;
 /* รายการชั้นข้อมูลอยู่ในกล่องสีน้ำเงินหน้าแรก · ถ้าเปิดเมนูจากหน้าแผนที่ ยกรายการเดียวกันไปแสดงในเมนูลอยชั่วคราว */
 function layListTo(menu){const l=$('#lay-list');if(!l)return;if(menu){if(l.parentNode!==menu)menu.append(l);l.classList.add('in-menu')}else{const c=$('#lay-card');if(l.parentNode!==c)c.append(l);l.classList.remove('in-menu')}}
-var LAY_NAMES={'lay-flood':'น้ำท่วม','lay-teams':'ทีมช่วยเหลือ','lay-cctv':'CCTV'};
+var LAY_NAMES={'lay-shelter':'ศูนย์พักพิง','lay-flood':'น้ำท่วม','lay-teams':'ทีมช่วยเหลือ','lay-cctv':'CCTV'};
 function layCount(){const on=Object.keys(LAY_NAMES).filter(id=>$('#'+id)&&$('#'+id).checked);const s=$('#lay-sum-s');if(s)s.textContent=on.length?'เปิดอยู่: '+on.map(id=>LAY_NAMES[id]).join(' · '):'ยังไม่ได้เปิดชั้นข้อมูล';const c=$('#lay-card');if(c)c.classList.toggle('has-on',on.length>0)}
 (function(){const c=$('#lay-card');if(!c)return;if(store.get('uh_lay_open','')==='1')c.open=true;c.addEventListener('toggle',()=>store.set('uh_lay_open',c.open?'1':''));$$('#lay-list .sw-in').forEach(i=>i.addEventListener('change',layCount));layCount()})();
 function closeLayerMenu(refocus){const m=$('#layer-menu');if(!m)return;const was=!m.hidden;m.hidden=true;layListTo(null);$$('.fab[data-act=layers]').forEach(b=>b.setAttribute('aria-expanded','false'));if(was&&refocus&&layerBtn)layerBtn.focus()}
@@ -229,14 +229,47 @@ async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams
   const [tr,nr,or]=await Promise.all([apiGet(p).catch(()=>null),apiGet({action:'network',t:tm}).catch(()=>null),apiGet({action:'outreach',t:tm}).catch(()=>null)]);
   if(gen!==teamsGen)return;
   S.outreach=or&&Array.isArray(or.points)?or.points:[];drawHelped();
-  S.teams=tr&&Array.isArray(tr.teams)?tr.teams:[];S.network=nr&&Array.isArray(nr.points)?nr.points:[];
+  S.teams=tr&&Array.isArray(tr.teams)?tr.teams:[];S.network=nr&&Array.isArray(nr.points)?nr.points:[];if(typeof drawShelters==='function')drawShelters();
   if(!tr&&!nr){toast('โหลดทีมและเครือข่ายไม่สำเร็จ');return}
   Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams)m._teams.remove();
     const team=S.teams.filter(t=>t.lat&&t.lng).map(t=>L.marker([+t.lat,+t.lng],{icon:L.divIcon({className:'team-pin',html:'<span>'+ic('shield')+'</span>'+(t.team?'<em>'+esc(t.team)+'</em>':''),iconSize:[30,30],iconAnchor:[15,15]}),title:'ทีม '+(t.team||'กู้ภัย')+' · ตำแหน่งสด',zIndexOffset:1800}));
-    const net=S.network.map(n=>L.marker([n.lat,n.lng],{icon:L.divIcon({className:'net-pin',html:'<span>'+ic(NET_STYLE[n.type]||'pin')+'</span>',iconSize:[30,30],iconAnchor:[15,15]}),title:n.type+' · '+n.name,zIndexOffset:1600}).bindPopup(()=>netPopup(n)));
+    const net=S.network.filter(n=>!NET_TO_SHELTER[n.type]).map(n=>L.marker([n.lat,n.lng],{icon:L.divIcon({className:'net-pin',html:'<span>'+ic(NET_STYLE[n.type]||'pin')+'</span>',iconSize:[30,30],iconAnchor:[15,15]}),title:n.type+' · '+n.name,zIndexOffset:1600}).bindPopup(()=>netPopup(n)));
     m._teams=L.layerGroup([...net,...team]).addTo(m)});
-  if(!S.teams.length&&!S.network.length&&!helpedList().length)toast('ยังไม่มีทีม จุดเครือข่าย หรือจุดที่ไปช่วยแล้ว');
+  if(!S.teams.length&&!S.network.filter(n=>!NET_TO_SHELTER[n.type]).length&&!helpedList().length)toast('ยังไม่มีทีม จุดเครือข่าย หรือจุดที่ไปช่วยแล้ว');
   else if(S.volunteer&&nr&&nr.noLocation)toast(`มี ${nr.noLocation} จุดในแท็บ "เครือข่าย" ที่ยังอ่านพิกัดไม่ได้ · วางพิกัดแบบ 13.75, 100.6 หรือลิงก์ Google Maps แบบเต็ม`,{ms:9000})}
+/* ชั้นศูนย์พักพิงและจุดแจกของ: แท็บ "ศูนย์พักพิง" ในชีต (+ จุดพักพิง/แจกของ/แพทย์ ที่เคยใส่ในแท็บ "เครือข่าย") */
+const SHELTER_T={shelter:{name:'ศูนย์พักพิง',icon:'home',color:'#2346B8'},supply:{name:'จุดแจกอาหารและของ',icon:'food',color:'#0B8A5B'},donate:{name:'จุดรับบริจาค',icon:'heart',color:'#C2410C'},medical:{name:'จุดแพทย์ / ปฐมพยาบาล',icon:'ambulance',color:'#C81E5B'}};
+const SHELTER_ST={open:{name:'เปิด',cls:'ok'},busy:{name:'ใกล้เต็ม / ของใกล้หมด',cls:'warn'},full:{name:'เต็ม / ของหมด',cls:'bad'},closed:{name:'ปิดแล้ว',cls:'off'}};
+const NET_TO_SHELTER={'จุดพักพิง':'shelter','จุดแจกของ':'supply','จุดแพทย์':'medical'};
+let shelterGen=0;
+function shelterList(){const fromNet=(S.network||[]).filter(n=>NET_TO_SHELTER[n.type]).map(n=>({type:NET_TO_SHELTER[n.type],name:n.name,lat:n.lat,lng:n.lng,status:'open',offers:n.detail||'',hours:n.hours||'',phone:n.phone||''}));
+  return [...(S.shelters||[]),...fromNet]}
+function shelterPopup(p){const t=SHELTER_T[p.type]||SHELTER_T.supply,st=SHELTER_ST[p.status]||SHELTER_ST.open,tel=String(p.phone||'').replace(/[^\d+]/g,'');
+  const row=(label,v)=>v?`<div class="sh-row"><span>${label}</span><p>${esc(v)}</p></div>`:'';
+  return `<div class="pop sh-pop"><div class="sh-tags"><span class="sh-type" style="background:${t.color}">${esc(t.name)}</span><span class="sh-st ${st.cls}">${esc(st.name)}</span></div>`+
+    `<b>${esc(p.name)}</b>`+(p.address?`<small class="sh-addr">${esc(p.address)}</small>`:'')+
+    `<div class="sh-rows">${row('รับได้',p.capacity?p.capacity+' คน':'')}${row('มีให้',p.offers)}${row('เวลา',p.hours)}${row('ต้องการรับบริจาค',p.needs)}${row('ติดต่อ',p.phone)}</div>`+
+    (p.at?`<small class="sh-upd">อัปเดต ${esc(ago(p.at))}</small>`:'')+
+    `<div class="pop-act"><a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener">นำทาง</a>`+
+    (tel.length>=3?`<a href="tel:${esc(tel)}">โทร</a>`:'')+(p.link?`<a href="${esc(p.link)}" target="_blank" rel="noopener">ที่มา</a>`:'')+`</div></div>`}
+function shelterIcon(p){const t=SHELTER_T[p.type]||SHELTER_T.supply,st=SHELTER_ST[p.status]||SHELTER_ST.open;
+  return L.divIcon({className:'sh-pin sh-'+st.cls,html:`<span style="--c:${t.color}">${ic(t.icon)}</span>`,iconSize:[34,40],iconAnchor:[17,38],popupAnchor:[0,-34]})}
+function drawShelters(){Object.values(S.maps).forEach(m=>{if(!m)return;if(m._shelter){m._shelter.remove();m._shelter=null}
+  if(store.get('uh_lay_shelter','1')==='0')return;const ps=shelterList();if(!ps.length)return;
+  m._shelter=L.layerGroup(ps.map(p=>L.marker([p.lat,p.lng],{icon:shelterIcon(p),title:(SHELTER_T[p.type]||SHELTER_T.supply).name+' · '+p.name,zIndexOffset:p.status==='closed'?-300:1500}).bindPopup(()=>shelterPopup(p),{maxWidth:290,minWidth:240}))).addTo(m)})}
+async function toggleShelter(on){store.set('uh_lay_shelter',on?'1':'0');$('#lay-shelter').checked=on;layCount();const gen=++shelterGen;
+  drawShelters();if(!on)return;
+  const tm=Math.floor(Date.now()/60000);
+  const [sr,nr]=await Promise.all([apiGet({action:'shelters',t:tm}).catch(()=>null),S.network?Promise.resolve(null):apiGet({action:'network',t:tm}).catch(()=>null)]);
+  if(gen!==shelterGen)return;
+  if(sr&&Array.isArray(sr.points))S.shelters=sr.points;if(nr&&Array.isArray(nr.points))S.network=nr.points;
+  drawShelters();
+  if(!sr&&!S.shelters){toast('โหลดศูนย์พักพิงไม่สำเร็จ');return}
+  const n=shelterList().length,sub=$('label[for=lay-shelter] small');
+  if(sub)sub.textContent=n?`${n} จุด · ที่พัก อาหาร จุดรับบริจาค จุดแพทย์`:'ยังไม่มีข้อมูล · ทีมงานกำลังรวบรวม';
+  if(!n&&S.volunteer)toast('ยังไม่มีศูนย์พักพิงบนแผนที่ · เพิ่มได้ในแท็บ "ศูนย์พักพิง" ในชีต',{ms:7000});
+  if(S.volunteer&&sr&&sr.noLocation)toast(`มี ${sr.noLocation} จุดในแท็บ "ศูนย์พักพิง" ที่ยังอ่านพิกัดไม่ได้`,{ms:8000})}
+$('#lay-shelter').addEventListener('change',e=>toggleShelter(e.target.checked));
 /* ชั้นกล้อง CCTV (ข้อมูล POPNIX Flood) · ซูมเข้า (ระดับ 12 ขึ้นไป) ถึงจะแสดง ไม่ให้จุดรกทั้งเมือง */
 let cctvGen=0;const CCTV_ZOOM=12;
 /* ไอคอนกล้องวงจรปิด วาดลง canvas (เบากว่าใช้ HTML ทีละตัว เพราะมีกล้องหลักพัน) */

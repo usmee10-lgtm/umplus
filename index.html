@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=58">
+<link rel="stylesheet" href="./app.css?v=59">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -49,8 +49,13 @@
         <button type="button" class="pill all-cases" id="btn-all-cases" data-icon="list"><span>ดูเคสทั้งหมด</span><b id="all-count"></b></button>
       </div>
       <details class="lay-card" id="lay-card">
-        <summary><span class="lay-sum-ic" data-icon="layers"></span><span class="lay-sum-t"><b>ชั้นข้อมูลบนแผนที่</b><small id="lay-sum-s">น้ำท่วม · ทีมช่วยเหลือ · CCTV</small></span><span class="lay-chev" data-icon="chev"></span></summary>
+        <summary><span class="lay-sum-ic" data-icon="layers"></span><span class="lay-sum-t"><b>ชั้นข้อมูลบนแผนที่</b><small id="lay-sum-s">ศูนย์พักพิง · น้ำท่วม · ทีมช่วยเหลือ · CCTV</small></span><span class="lay-chev" data-icon="chev"></span></summary>
         <div class="lay-list" id="lay-list">
+          <div class="lay-item">
+            <input type="checkbox" id="lay-shelter" class="sw-in" checked>
+            <label for="lay-shelter" class="lay-row"><span class="lay-ic" style="--c:#4F7BFF" data-icon="home"></span><span class="lay-t"><b>ศูนย์พักพิงและจุดแจกของ</b><small>ที่พัก อาหาร จุดรับบริจาค จุดแพทย์</small></span><i class="sw" aria-hidden="true"></i></label>
+            <div class="lay-key" aria-label="ประเภทจุด"><span><i style="background:#2346B8"></i>ศูนย์พักพิง</span><span><i style="background:#0B8A5B"></i>แจกอาหารและของ</span><span><i style="background:#C2410C"></i>รับบริจาค</span><span><i style="background:#C81E5B"></i>จุดแพทย์</span><span><i style="background:#A3A9BF"></i>สีจาง = ปิดแล้ว</span></div>
+          </div>
           <div class="lay-item">
             <input type="checkbox" id="lay-flood" class="sw-in" checked>
             <label for="lay-flood" class="lay-row"><span class="lay-ic" style="--c:#E04A3A" data-icon="water"></span><span class="lay-t"><b>ถนนน้ำท่วม</b><small>ระดับน้ำบนถนนล่าสุด</small></span><i class="sw" aria-hidden="true"></i></label>
@@ -247,11 +252,11 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=58"></script>
-<script src="./geocode.js?v=58"></script>
-<script src="./location.js?v=58"></script>
-<script src="./hotlines.js?v=58"></script>
-<script src="./script.js?v=58"></script>
+<script src="./icons.js?v=59"></script>
+<script src="./geocode.js?v=59"></script>
+<script src="./location.js?v=59"></script>
+<script src="./hotlines.js?v=59"></script>
+<script src="./script.js?v=59"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
