@@ -11,6 +11,8 @@
  *   GET  ?action=teams[&key=รหัสอาสา]                     -> ตำแหน่งทีมที่แชร์อยู่ (คนทั่วไปได้พิกัดปัด ~100 ม.)
  *   GET  ?action=network                                  -> จุดเครือข่ายช่วยเหลือ จากแท็บ "เครือข่าย" (ข้อมูลสาธารณะ)
  *   GET  ?action=outreach                                 -> จุดที่หน่วยงานลงพื้นที่ช่วยแล้ว จากแท็บ "ลงพื้นที่" (เช่น วางลิงก์โพสต์โซเชียล)
+ *   GET  ?action=shelters                                 -> ศูนย์พักพิง / จุดแจกของ / จุดรับบริจาค / จุดแพทย์ จากแท็บ "ศูนย์พักพิง"
+ *   POST {action:"shelter_add", key, type, name, lat, lng, ...} -> อาสาเพิ่มจุด
  *   POST {action:"outreach_add", key, org, date, lat, lng, link, detail} -> อาสาเพิ่มจุดลงพื้นที่ (เช่น จากโพสต์โซเชียล)
  *   POST {action:"ping", key, team, lat, lng, accuracy}   -> ทีมอาสาแชร์ตำแหน่ง / {stop:true} หยุดแชร์
  *
@@ -53,6 +55,7 @@ function setup() {
   teamSheet_();
   networkSheet_();
   outreachSheet_();
+  shelterSheet_();
   photoFolder_();   // ขอสิทธิ์ Google Drive สำหรับเก็บรูปแนบ (ครั้งแรกจะมีหน้าต่างให้กดอนุญาต)
   const props = PropertiesService.getScriptProperties();
   let key = props.getProperty('VOLUNTEER_KEY');
@@ -72,6 +75,7 @@ function doGet(e) {
     if (p.action === 'teams') return json_(listTeams_(isVolunteer_(p.key)));
     if (p.action === 'network') return json_(listNetworkCachedJson_(), true);
     if (p.action === 'outreach') return json_(listOutreachCachedJson_(), true);
+    if (p.action === 'shelters') return json_(listSheltersCachedJson_(), true);
     if (p.action === 'outreach_bot') return json_(botAddOutreach_(p));
     return json_({ ok: true, service: 'flood-help', time: new Date().toISOString() });
   } catch (err) {
@@ -96,6 +100,10 @@ function doPost(e) {
     if (body.action === 'ping') {
       if (!isVolunteer_(body.key)) return json_({ ok: false, error: 'not_volunteer' });
       return json_(pingTeam_(body));
+    }
+    if (body.action === 'shelter_add') {
+      if (!isVolunteer_(body.key)) return json_({ ok: false, error: 'not_volunteer' });
+      return json_(addShelter_(body));
     }
     if (body.action === 'outreach_add') {
       if (!isVolunteer_(body.key)) return json_({ ok: false, error: 'not_volunteer' });
@@ -644,6 +652,87 @@ function listOutreachCachedJson_() {
   }
   const s = JSON.stringify({ ok: true, points: points.slice(-800), noLocation: missing });
   try { cache.put('outreach', s, 60); } catch (err) {}
+  return s;
+}
+
+/* ---------- ศูนย์พักพิงและจุดแจกของ (แท็บ "ศูนย์พักพิง": ทีมงานเพิ่ม/แก้สถานะในชีตได้เอง) ---------- */
+const SHELTER_SHEET = 'ศูนย์พักพิง';
+const SHELTER_HEADERS_TH = ['ประเภท', 'ชื่อจุด', 'พิกัด (วางลิงก์ Google Maps หรือ ละติจูด,ลองจิจูด)', 'ที่อยู่ / จุดสังเกต', 'สถานะ',
+  'รับได้ (คน)', 'มีให้ / บริการ', 'ต้องการรับบริจาค', 'เบอร์ติดต่อ', 'ลิงก์ที่มา', 'อัปเดตล่าสุด', 'แสดงบนแผนที่'];
+const SHELTER_TYPES = { shelter: 'ศูนย์พักพิง', supply: 'จุดแจกอาหารและของ', donate: 'จุดรับบริจาค', medical: 'จุดแพทย์ / ปฐมพยาบาล' };
+const SHELTER_STATUS = { open: 'เปิด', busy: 'ใกล้เต็ม / ของใกล้หมด', full: 'เต็ม / ของหมด', closed: 'ปิดแล้ว' };
+function codeOf_(map, v) {
+  const s = String(v || '').trim();
+  if (map[s]) return s;
+  for (const k in map) if (map[k] === s || (s && map[k].indexOf(s) === 0)) return k;
+  return '';
+}
+function vals_(map) { return Object.keys(map).map(function (k) { return map[k]; }); }
+
+function shelterSheet_() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sh = ss.getSheetByName(SHELTER_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(SHELTER_SHEET);
+    sh.getRange(1, 1, 1, SHELTER_HEADERS_TH.length).setValues([SHELTER_HEADERS_TH])
+      .setFontWeight('bold').setBackground('#1F4FA3').setFontColor('#FFFFFF').setWrap(true);
+    sh.setFrozenRows(1);
+    [150, 230, 280, 230, 150, 90, 220, 220, 130, 260, 120, 90].forEach(function (w, i) { sh.setColumnWidth(i + 1, w); });
+    const rule = function (list) { return SpreadsheetApp.newDataValidation().requireValueInList(list, true).setAllowInvalid(false).build(); };
+    sh.getRange(2, 1, 1000, 1).setDataValidation(rule(vals_(SHELTER_TYPES)));
+    sh.getRange(2, 5, 1000, 1).setDataValidation(rule(vals_(SHELTER_STATUS)));
+    sh.getRange(2, 9, 1000, 1).setNumberFormat('@');
+    sh.getRange(2, 11, 1000, 1).setNumberFormat('d/m/yyyy HH:mm');
+    sh.getRange(2, 12, 1000, 1).setDataValidation(rule([YES, NO]));
+    sh.getRange(1, 11).setNote('ใส่วันเวลาที่ตรวจข้อมูลล่าสุด (กด Ctrl+Alt+Shift+; หรือ ⌘+Option+Shift+; เพื่อใส่เวลาปัจจุบัน) · แอปจะแสดงว่า "อัปเดต x ชม.ที่แล้ว"');
+  }
+  return sh;
+}
+
+function addShelter_(b) {
+  const type = codeOf_(SHELTER_TYPES, b.type), name = clean_(b.name, 120);
+  const lat = num_(b.lat, 5, 21), lng = num_(b.lng, 97, 106);
+  if (!type || !name || lat === '' || lng === '') return { ok: false, error: 'missing' };
+  const link = /^https?:\/\//i.test(String(b.link || '').trim()) ? clean_(b.link, 400) : '';
+  const lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    const sh = shelterSheet_();
+    sh.appendRow([SHELTER_TYPES[type], safeCell_(name), lat + ', ' + lng, safeCell_(clean_(b.address, 200)),
+      SHELTER_STATUS[codeOf_(SHELTER_STATUS, b.status) || 'open'], Number(b.capacity) > 0 ? Math.min(Math.round(Number(b.capacity)), 100000) : '',
+      safeCell_(clean_(b.offers, 300)), safeCell_(clean_(b.needs, 300)), safeCell_(clean_(b.phone, 60)), link, new Date(), YES]);
+    try { CacheService.getScriptCache().remove('shelters'); } catch (err) {}
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function listSheltersCachedJson_() {
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('shelters');
+  if (hit) return hit;
+  const sh = shelterSheet_();
+  const n = sh.getLastRow() - 1;
+  const points = []; let missing = 0;
+  if (n > 0) {
+    const W = SHELTER_HEADERS_TH.length;
+    const vals = sh.getRange(2, 1, n, W).getValues();
+    const disp = sh.getRange(2, 1, n, W).getDisplayValues();
+    vals.forEach(function (v, i) {
+      const d = disp[i];
+      if (!String(d[1]).trim() || d[11] === NO) return;
+      const ll = parseLatLng_(d[2]);
+      if (!ll) { missing++; return; }
+      const link = /^https?:\/\//i.test(String(d[9]).trim()) ? clean_(d[9], 400) : '';
+      points.push({ type: codeOf_(SHELTER_TYPES, d[0]) || 'supply', name: clean_(d[1], 120), lat: ll.lat, lng: ll.lng,
+        address: clean_(d[3], 200), status: codeOf_(SHELTER_STATUS, d[4]) || 'open', capacity: clean_(d[5], 20),
+        offers: clean_(d[6], 300), needs: clean_(d[7], 300), phone: clean_(d[8], 60), link: link,
+        at: v[10] instanceof Date ? v[10].getTime() : '' });
+    });
+  }
+  const s = JSON.stringify({ ok: true, points: points.slice(-800), noLocation: missing });
+  try { cache.put('shelters', s, 60); } catch (err) {}
   return s;
 }
 
