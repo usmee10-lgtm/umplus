@@ -221,7 +221,7 @@ async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams
     const team=S.teams.filter(t=>t.lat&&t.lng).map(t=>L.marker([+t.lat,+t.lng],{icon:L.divIcon({className:'team-pin',html:'<span>'+ic('shield')+'</span>'+(t.team?'<em>'+esc(t.team)+'</em>':''),iconSize:[30,30],iconAnchor:[15,15]}),title:'ทีม '+(t.team||'กู้ภัย')+' · ตำแหน่งสด',zIndexOffset:1800}));
     const net=S.network.map(n=>L.marker([n.lat,n.lng],{icon:L.divIcon({className:'net-pin',html:'<span>'+ic(NET_STYLE[n.type]||'pin')+'</span>',iconSize:[30,30],iconAnchor:[15,15]}),title:n.type+' · '+n.name,zIndexOffset:1600}).bindPopup(()=>netPopup(n)));
     m._teams=L.layerGroup([...net,...team]).addTo(m)});
-  if(!S.teams.length&&!S.network.length)toast('ยังไม่มีทีมที่แชร์ตำแหน่ง หรือจุดเครือข่ายในชีต');
+  if(!S.teams.length&&!S.network.length&&!helpedList().length)toast('ยังไม่มีทีม จุดเครือข่าย หรือจุดที่ไปช่วยแล้ว');
   else if(S.volunteer&&nr&&nr.noLocation)toast(`มี ${nr.noLocation} จุดในแท็บ "เครือข่าย" ที่ยังอ่านพิกัดไม่ได้ · วางพิกัดแบบ 13.75, 100.6 หรือลิงก์ Google Maps แบบเต็ม`,{ms:9000})}
 /* ชั้นกล้อง CCTV (ข้อมูล POPNIX Flood) · ซูมเข้า (ระดับ 12 ขึ้นไป) ถึงจะแสดง ไม่ให้จุดรกทั้งเมือง */
 let cctvGen=0;const CCTV_ZOOM=12;
