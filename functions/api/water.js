@@ -23,7 +23,7 @@ export async function onRequestGet(ctx) {
   const hit = await cache.match(key);
   if (hit) return hit;
 
-  let rows = [];
+  let rows = [], why = '';
   try {
     const ctl = new AbortController();
     const tm = setTimeout(() => ctl.abort(), 12000);
@@ -32,8 +32,10 @@ export async function onRequestGet(ctx) {
     if (r.ok) {
       const j = await r.json();
       rows = (j && j.waterlevel_data && j.waterlevel_data.data) || (j && j.data) || [];
-    }
-  } catch (e) { rows = []; }
+      if (!Array.isArray(rows)) rows = [];
+      why = 'rows ' + rows.length;
+    } else why = 'upstream ' + r.status;
+  } catch (e) { rows = []; why = (e && e.name === 'AbortError') ? 'timeout' : 'error ' + String(e && e.message || e).slice(0, 80); }
 
   const now = Date.now() / 1000, seen = new Set(), st = [];
   for (const d of rows) {
@@ -63,7 +65,7 @@ export async function onRequestGet(ctx) {
       th(d.agency && d.agency.agency_shortname) || th(d.agency && d.agency.agency_name)
     ]);
   }
-  const body = JSON.stringify({ ok: st.length > 0, at: Math.floor(now), src: 'ThaiWater (สสน.)', st });
+  const body = JSON.stringify(st.length ? { ok: true, at: Math.floor(now), src: 'ThaiWater (สสน.)', st } : { ok: false, at: Math.floor(now), why, st });
   const res = new Response(body, {
     headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': st.length ? 'public, max-age=300' : 'no-store' }
   });
