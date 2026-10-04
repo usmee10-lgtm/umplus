@@ -950,69 +950,75 @@ const URG_COL={4:'#B91C1C',3:'#E5383B',2:'#F07B14',1:'#E0B000'};
 function renderStats(soft){
   const el=$('#stats');if(!el)return;const all=S.cases;
   if(!S.loaded&&!all.length){el.innerHTML='<p class="empty">กำลังโหลด…</p>';return}
-  const N=x=>Number(x).toLocaleString('th-TH'),P=c=>Number(c.people)||1,sumP=l=>l.reduce((a,c)=>a+P(c),0);
-  const act=all.filter(c=>c.status!=='done'),open=all.filter(c=>c.status==='open'),going=all.filter(c=>c.status==='going'),done=all.filter(c=>c.status==='done');
-  const urgent=act.filter(isDanger);
-  const DAY=86400000,now=Date.now(),t0=new Date();t0.setHours(0,0,0,0);
-  const newToday=all.filter(c=>Number(c.createdAt)>=t0.getTime()).length,doneToday=done.filter(c=>Number(c.updatedAt)>=t0.getTime()).length,goingToday=going.filter(c=>Number(c.updatedAt)>=t0.getTime()).length;
-  const waits=done.map(c=>Number(c.updatedAt)-Number(c.createdAt)).filter(x=>x>0).sort((a,b)=>a-b),med=waits.length?waits[Math.floor(waits.length/2)]:0;
-  const dur=ms=>{const h=ms/3600000;return h<1?Math.max(1,Math.round(ms/60000))+' นาที':h<48?(Math.round(h*10)/10)+' ชม.':Math.round(h/24)+' วัน'};
-  const waitOf=c=>now-(Number(c.createdAt)||now);
-  const over24=open.filter(c=>waitOf(c)>DAY).length,over6=open.filter(c=>waitOf(c)>6*3600000).length;
-  const rate=all.length?Math.round(done.length/all.length*100):0;
-  /* 7 วันล่าสุด */
-  const days=[...Array(7)].map((_,i)=>{const s=t0.getTime()-(6-i)*DAY,e=s+DAY;return {d:new Date(s),n:all.filter(c=>+c.createdAt>=s&&+c.createdAt<e).length,k:done.filter(c=>+c.updatedAt>=s&&+c.updatedAt<e).length}});
-  const dmax=Math.max(1,...days.map(x=>Math.max(x.n,x.k)));
-  const cnt=(list,fn)=>{const m={};list.forEach(c=>[].concat(fn(c)).forEach(k=>{if(k)m[k]=(m[k]||0)+1}));return m};
-  /* ความเร่งด่วน */
-  const urgRows=[4,3,2,1].map(v=>{const l=act.filter(c=>sevOf(c)===v);return {label:URG_TH[v],n:l.length,sub:N(sumP(l))+' คน',color:URG_COL[v],v}});
-  const needs=cnt(act,c=>[...new Set((c.needs||[]).map(needKey))]);
-  const needRows=NEED_TYPES.map(t=>({key:t.key,label:t.label,icon:t.icon,n:needs[t.key]||0})).filter(r=>r.n).sort((a,b)=>b.n-a.n);
-  const lv=cnt(act,c=>c.level||'none');const lvRows=[...Object.keys(LEVEL_TH),'none'].map(k=>({key:k,label:LEVEL_TH[k]||'ไม่ระบุ',n:lv[k]||0})).filter(r=>r.n);
-  /* รายเขต: รอ / กำลังไป / ช่วยแล้ว / คนที่รอ / ด่วน */
-  const D={};all.forEach(c=>{const k=areaOf(c)||'';const d=D[k]||(D[k]={open:0,going:0,done:0,ppl:0,urg:0});d[c.status==='going'?'going':c.status==='done'?'done':'open']++;if(c.status!=='done'){d.ppl+=P(c);if(isDanger(c))d.urg++}});
+  const R=computeStats(all,{now:Date.now(),areaOf,needKey,sev:sevOf});window.__stats=R;
+  const N=x=>Math.round(Number(x)||0).toLocaleString('th-TH'),P=c=>Math.max(1,Number(c.people)||1);
+  const dur=ms=>{if(!ms)return '-';const h=ms/3600000;return h<1?Math.max(1,Math.round(ms/60000))+' นาที':h<48?(Math.round(h*10)/10)+' ชม.':(Math.round(h/24*10)/10)+' วัน'};
+  const pctTxt=x=>(Math.round(x*1000)/10)+'%';
   const dName=k=>areaLabel(k)||'ไม่ทราบเขต';
-  const dRows=Object.entries(D).sort((a,b)=>(!a[0])-(!b[0])||(b[1].urg-a[1].urg)||((b[1].open+b[1].going)-(a[1].open+a[1].going))||(b[1].done-a[1].done)).slice(0,15);
-  /* ทีมอาสา */
-  const T={};all.forEach(c=>{if(c.status==='open'||!c.volunteer)return;const k=String(c.volunteer).trim();const t=T[k]||(T[k]={going:0,done:0,ppl:0});t[c.status]++;if(c.status==='done')t.ppl+=P(c)});
-  const tRows=Object.entries(T).sort((a,b)=>(b[1].done+b[1].going)-(a[1].done+a[1].going)).slice(0,10);
-  /* รอนานที่สุด */
-  const oldest=open.slice().sort((a,b)=>(Number(a.createdAt)||0)-(Number(b.createdAt)||0)).slice(0,5);
-  /* ข้อมูลไม่ครบ */
-  const noPin=act.filter(c=>!hasPin(c)).length,noLv=act.filter(c=>!c.level).length,noArea=act.filter(c=>!areaOf(c)).length;
   const tile=(n,l,cls='',go='')=>`<button type="button" class="stile ${cls}" ${go}><b>${N(n)}</b><span>${l}</span></button>`;
   const line=(i,t,v,cls='')=>`<div class="sline${cls?' '+cls:''}"><span>${ic(i)}${t}</span><b>${v}</b></div>`;
-  el.innerHTML=`<p class="stats-upd">${S.loaded?'อัปเดต '+new Date(S.loaded).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.':'ข้อมูลล่าสุดที่บันทึกไว้'} · ${N(all.length)} เคสทั้งหมด · ช่วยแล้ว ${rate}%</p>
+  const pplNote=(raw,uniq)=>raw!==uniq?`${N(uniq)} คน <small class="snote">(รวมซ้ำ ${N(raw)})</small>`:`${N(uniq)} คน`;
+  const caseLink=(c,right)=>`<li><button type="button" data-sopen="${esc(c.id)}"><span class="urg urg-${sevOf(c)}"><i></i>${URG_TH[sevOf(c)]}</span><span class="sl-t"><b>${esc((c.needs||[]).join(' · ')||'ขอความช่วยเหลือ')}</b><small>${esc([dName(areaOf(c)),P(c)+' คน','#'+c.id].join(' · '))}</small></span><em>${right}</em></button></li>`;
+  const {open,going,done,act,urgent,people,times,waits,today,days}=R;
+  const dmax=Math.max(1,...days.map(x=>Math.max(x.n,x.k)));
+  const urgRows=R.urg.map(u=>({label:URG_TH[u.v],n:u.n,sub:N(u.ppl)+' คน',color:URG_COL[u.v],v:u.v}));
+  const needRows=NEED_TYPES.map(t=>({key:t.key,label:t.label,icon:t.icon,n:(R.needs[t.key]||{}).n||0,sub:N((R.needs[t.key]||{}).ppl||0)+' คน'})).filter(r=>r.n).sort((a,b)=>b.n-a.n);
+  const lvRows=[...Object.keys(LEVEL_TH),'none'].map(k=>({key:k,label:LEVEL_TH[k]||'ไม่ระบุ',n:(R.levels[k]||{}).n||0,sub:N((R.levels[k]||{}).ppl||0)+' คน',color:LEVEL_COLOR[k]})).filter(r=>r.n);
+  const dRow=d=>`<tr><th scope="row">${esc(dName(d.key))}</th><td>${d.open||'–'}</td><td class="${d.urg?'is-red':''}">${d.urg||'–'}</td><td>${d.going||'–'}</td><td>${d.done||'–'}</td><td>${d.ppl?N(d.ppl):'–'}</td><td>${d.oldest?dur(d.oldest):'–'}</td></tr>`;
+  const dHead='<thead><tr><th scope="col">เขต</th><th scope="col">รอช่วย</th><th scope="col">ด่วน</th><th scope="col">กำลังไป</th><th scope="col">ช่วยแล้ว</th><th scope="col">คนที่รอ</th><th scope="col">รอนานสุด</th></tr></thead>';
+  const top=R.districts.slice(0,12),rest=R.districts.slice(12);
+  const orgRows=Object.entries(R.orgs).sort((a,b)=>(b[1].done+b[1].going)-(a[1].done+a[1].going));
+  const ps=R.quality.pinSrc;
+  el.innerHTML=`<p class="stats-upd">${S.loaded?'ข้อมูล ณ '+new Date(S.loaded).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':'ข้อมูลล่าสุดที่บันทึกไว้'} · ${N(R.total)} เคส${R.tests.length?` (ไม่นับเคสทดสอบ ${R.tests.length})`:''} · ช่วยแล้ว ${pctTxt(R.rate)}</p>
   <section class="scard" aria-labelledby="st-now"><h2 id="st-now">ตอนนี้</h2>
     <div class="stiles">${tile(open.length,'รอช่วย','',`data-sgo="open"`)}${tile(urgent.length,'ด่วนมาก + วิกฤต','is-red',`data-sgo="danger"`)}${tile(going.length,'กำลังไป','',`data-sgo="going"`)}${tile(done.length,'ช่วยแล้ว','is-green',`data-sgo="done"`)}</div>
     <div class="sprog" role="img" aria-label="สัดส่วนสถานะ รอช่วย ${open.length} กำลังไป ${going.length} ช่วยแล้ว ${done.length}">${[[open.length,'var(--blue)'],[going.length,'var(--going)'],[done.length,'var(--ok)']].map(([n,c])=>n?`<i style="flex:${n};background:${c}"></i>`:'').join('')}</div>
-    ${line('users','คนที่ยังรอความช่วยเหลือ',N(sumP(act))+' คน')}
-    ${line('alert','คนในเคสด่วนมาก/วิกฤต',N(sumP(urgent))+' คน',urgent.length?'is-red':'')}
-    ${line('check','คนที่ช่วยแล้ว',N(sumP(done))+' คน')}
-    ${line('clock','เวลาตั้งแต่แจ้งถึงช่วยเสร็จ (ค่ากลาง)',med?dur(med):'-')}
-    ${line('clock','รอช่วยเกิน 6 ชม. / เกิน 24 ชม.',`${N(over6)} / ${N(over24)} เคส`,over24?'is-red':'')}</section>
-  <section class="scard" aria-labelledby="st-urg"><h2 id="st-urg">ความเร่งด่วน <small>(เคสที่ยังไม่เสร็จ · จำนวนเคส และคน)</small></h2>
-    ${act.length?statBars(urgRows):'<p class="hint">ไม่มีเคสค้าง</p>'}</section>
+    ${line('users','คนที่ยังรอความช่วยเหลือ',pplNote(people.act,people.actUnique))}
+    ${line('alert','คนในเคสด่วนมาก/วิกฤต',N(people.urgent)+' คน',urgent.length?'is-red':'')}
+    ${line('check','คนที่ช่วยแล้ว',pplNote(people.done,people.doneUnique))}
+    ${R.dupList.length?line('copy','เคสที่น่าจะแจ้งซ้ำ',N(R.dupList.length)+' เคส'):''}</section>
+  <section class="scard" aria-labelledby="st-speed"><h2 id="st-speed">ความเร็วในการช่วย</h2>
+    ${line('clock','แจ้ง → ทีมรับเคส (ค่ากลาง)',times.pickupN?dur(times.pickupMed)+` <small class="snote">จาก ${N(times.pickupN)} เคส</small>`:'ยังไม่มีข้อมูล')}
+    ${line('check','แจ้ง → ช่วยเสร็จ (ค่ากลาง)',times.doneN?dur(times.doneMed)+` <small class="snote">จาก ${N(times.doneN)} เคส</small>`:'-')}
+    ${line('check','90% ของเคสช่วยเสร็จภายใน',times.doneN?dur(times.doneP90):'-')}
+    ${line('clock','รอช่วยเกิน 6 ชม. / 24 ชม. / 3 วัน',`${N(waits.over6)} / ${N(waits.over24)} / ${N(waits.over72)} เคส`,waits.over24?'is-red':'')}
+    ${times.doneEstimated?`<p class="hint">เคสเก่า ${N(times.doneEstimated)} เคสไม่มีเวลาช่วยเสร็จที่บันทึกไว้ ใช้เวลาอัปเดตล่าสุดแทน (ค่าประมาณ) · เคสใหม่บันทึกเวลาจริงอัตโนมัติ</p>`:''}</section>
   <section class="scard" aria-labelledby="st-old"><h2 id="st-old">รอนานที่สุด <small>(ยังไม่มีทีมรับ)</small></h2>
-    ${oldest.length?`<ul class="slist">${oldest.map(c=>`<li><button type="button" data-sopen="${esc(c.id)}"><span class="urg urg-${sevOf(c)}"><i></i>${URG_TH[sevOf(c)]}</span><span class="sl-t"><b>${esc((c.needs||[]).join(' · ')||'ขอความช่วยเหลือ')}</b><small>${esc([dName(areaOf(c)),P(c)+' คน','#'+c.id].join(' · '))}</small></span><em>${dur(waitOf(c))}</em></button></li>`).join('')}</ul>`:'<p class="hint">ไม่มีเคสที่รอช่วย</p>'}</section>
-  <section class="scard" aria-labelledby="st-today"><h2 id="st-today">วันนี้</h2>
-    <div class="spair"><div><b>${newToday}</b><span>คำขอใหม่</span></div><div><b>${goingToday}</b><span>ทีมรับเคส</span></div><div><b>${doneToday}</b><span>ช่วยเสร็จ</span></div></div>
-    <div class="trend" role="img" aria-label="7 วันล่าสุด ${days.map(x=>x.d.toLocaleDateString('th-TH',{day:'numeric',month:'short'})+' ขอใหม่ '+x.n+' ช่วยแล้ว '+x.k).join(', ')}">
-      ${days.map(x=>`<div class="tcol"><div class="tbars"><i class="tn" style="height:${x.n/dmax*100}%"><em>${x.n||''}</em></i><i class="tk" style="height:${x.k/dmax*100}%"><em>${x.k||''}</em></i></div><small>${x.d.toLocaleDateString('th-TH',{weekday:'narrow'})}<br>${x.d.getDate()}</small></div>`).join('')}
+    ${waits.oldestList.length?`<ul class="slist">${waits.oldestList.map(o=>caseLink(o.c,dur(o.wait))).join('')}</ul>`:'<p class="hint">ไม่มีเคสที่รอช่วย</p>'}</section>
+  <section class="scard" aria-labelledby="st-today"><h2 id="st-today">วันนี้ <small>(ตั้งแต่ 00:00 น.)</small></h2>
+    <div class="spair"><div><b>${N(today.newN)}</b><span>คำขอใหม่</span></div><div><b>${N(today.taken)}</b><span>ทีมรับเคส</span></div><div><b>${N(today.done)}</b><span>ช่วยเสร็จ</span></div><div><b>${N(today.helped)}</b><span>คนที่ได้รับการช่วย</span></div></div>
+    <p class="hint">${today.newN>today.done?`เคสค้างเพิ่มขึ้น ${N(today.newN-today.done)} เคสวันนี้`:today.done>today.newN?`เคสค้างลดลง ${N(today.done-today.newN)} เคสวันนี้`:'เคสใหม่เท่ากับเคสที่ช่วยเสร็จวันนี้'}</p>
+    <div class="trend" role="img" aria-label="7 วันล่าสุด ${days.map(x=>new Date(x.start).toLocaleDateString('th-TH',{day:'numeric',month:'short',timeZone:'Asia/Bangkok'})+' ขอใหม่ '+x.n+' ช่วยแล้ว '+x.k).join(', ')}">
+      ${days.map(x=>{const d=new Date(x.start);return `<div class="tcol"><div class="tbars"><i class="tn" style="height:${x.n/dmax*100}%"><em>${x.n||''}</em></i><i class="tk" style="height:${x.k/dmax*100}%"><em>${x.k||''}</em></i></div><small>${d.toLocaleDateString('th-TH',{weekday:'narrow',timeZone:'Asia/Bangkok'})}<br>${d.toLocaleDateString('th-TH',{day:'numeric',timeZone:'Asia/Bangkok'})}</small></div>`}).join('')}
     </div>
     <div class="tkey"><span><i class="tn"></i>ขอใหม่</span><span><i class="tk"></i>ช่วยแล้ว</span></div></section>
+  <section class="scard" aria-labelledby="st-urg"><h2 id="st-urg">ความเร่งด่วน <small>(เคสค้าง · จำนวนเคส และคน)</small></h2>
+    ${act.length?statBars(urgRows):'<p class="hint">ไม่มีเคสค้าง</p>'}</section>
   <section class="scard" aria-labelledby="st-area"><h2 id="st-area">รายเขต</h2>
-    ${dRows.length?`<div class="stable-wrap"><table class="stable"><thead><tr><th scope="col">เขต</th><th scope="col">รอช่วย</th><th scope="col">ด่วน</th><th scope="col">กำลังไป</th><th scope="col">ช่วยแล้ว</th><th scope="col">คนที่รอ</th></tr></thead><tbody>
-      ${dRows.map(([k,d])=>`<tr><th scope="row">${esc(dName(k))}</th><td>${d.open||'–'}</td><td class="${d.urg?'is-red':''}">${d.urg||'–'}</td><td>${d.going||'–'}</td><td>${d.done||'–'}</td><td>${d.ppl?N(d.ppl):'–'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">ยังไม่มีเคส</p>'}
-    ${noArea&&areaBusy?'<p class="hint">กำลังหาเขตจากหมุด…</p>':''}</section>
-  <section class="scard" aria-labelledby="st-need"><h2 id="st-need">ต้องการอะไรมากที่สุด <small>(เคสที่ยังไม่เสร็จ · แตะเพื่อดูในแผนที่)</small></h2>
-    ${needRows.length?statBars(needRows,{tap:r=>`data-sneed="${r.key}" aria-label="${r.label} ${r.n} เคส · ดูในแผนที่"`}):'<p class="hint">ยังไม่มีเคส</p>'}</section>
+    ${top.length?`<div class="stable-wrap"><table class="stable">${dHead}<tbody>${top.map(dRow).join('')}</tbody></table></div>`:'<p class="hint">ยังไม่มีเคส</p>'}
+    ${rest.length?`<details class="smore"><summary>ดูอีก ${rest.length} เขต</summary><div class="stable-wrap"><table class="stable">${dHead}<tbody>${rest.map(dRow).join('')}</tbody></table></div></details>`:''}
+    ${R.quality.noArea&&areaBusy?'<p class="hint">กำลังหาเขตจากหมุด…</p>':''}</section>
+  <section class="scard" aria-labelledby="st-need"><h2 id="st-need">ต้องการอะไร <small>(เคสค้าง · แตะเพื่อดูในแผนที่)</small></h2>
+    ${needRows.length?statBars(needRows,{tap:r=>`data-sneed="${r.key}" aria-label="${r.label} ${r.n} เคส · ดูในแผนที่"`}):'<p class="hint">ยังไม่มีเคส</p>'}
+    ${R.otherNeeds.length?`<h3 class="ssub">ของที่ขอในช่อง "อื่น ๆ"</h3><div class="schips">${R.otherNeeds.slice(0,16).map(o=>`<span>${esc(o.label)}${o.n>1?` <b>${o.n}</b>`:''}</span>`).join('')}</div>`:''}</section>
+  <section class="scard" aria-labelledby="st-lv"><h2 id="st-lv">ระดับน้ำ <small>(เคสค้าง)</small></h2>${lvRows.length?statBars(lvRows):'<p class="hint">ยังไม่มีข้อมูล</p>'}</section>
   <section class="scard" aria-labelledby="st-team"><h2 id="st-team">ทีมอาสา</h2>
-    ${tRows.length?`<div class="stable-wrap"><table class="stable"><thead><tr><th scope="col">ทีม</th><th scope="col">กำลังไป</th><th scope="col">ช่วยแล้ว</th><th scope="col">คนที่ช่วย</th></tr></thead><tbody>
-      ${tRows.map(([k,t])=>`<tr><th scope="row">${esc(k)}</th><td>${t.going||'–'}</td><td>${t.done||'–'}</td><td>${t.ppl?N(t.ppl):'–'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">ยังไม่มีทีมรับเคส</p>'}</section>
-  <section class="scard" aria-labelledby="st-lv"><h2 id="st-lv">ระดับน้ำ <small>(เคสที่ยังไม่เสร็จ)</small></h2>${lvRows.length?statBars(lvRows):'<p class="hint">ยังไม่มีข้อมูล</p>'}</section>
-  <section class="scard" aria-labelledby="st-gap"><h2 id="st-gap">ข้อมูลที่ขาด <small>(เคสที่ยังไม่เสร็จ)</small></h2>
-    ${line('pin','ไม่ได้ปักหมุด',N(noPin)+' เคส')}${line('wave','ไม่ระบุระดับน้ำ',N(noLv)+' เคส')}${line('map','ไม่ทราบเขต',N(noArea)+' เคส')}</section>`;
+    ${R.teams.length?`<div class="stable-wrap"><table class="stable"><thead><tr><th scope="col">ทีม</th><th scope="col">กำลังไป</th><th scope="col">ช่วยแล้ว</th><th scope="col">คนที่ช่วย</th></tr></thead><tbody>
+      ${R.teams.slice(0,15).map(t=>`<tr><th scope="row">${esc(t.name)}${t.variants>1?` <small class="snote">(รวม ${t.variants} แบบที่พิมพ์)</small>`:''}</th><td>${t.going||'–'}</td><td>${t.done||'–'}</td><td>${t.ppl?N(t.ppl):'–'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">ยังไม่มีทีมรับเคส</p>'}
+    ${orgRows.length?`<h3 class="ssub">หน่วยงาน</h3><div class="stable-wrap"><table class="stable"><thead><tr><th scope="col">หน่วยงาน</th><th scope="col">กำลังไป</th><th scope="col">ช่วยแล้ว</th><th scope="col">คนที่ช่วย</th></tr></thead><tbody>${orgRows.map(([k,o])=>`<tr><th scope="row">${esc(k)}</th><td>${o.going||'–'}</td><td>${o.done||'–'}</td><td>${o.ppl?N(o.ppl):'–'}</td></tr>`).join('')}</tbody></table></div>`:''}</section>
+  <section class="scard" aria-labelledby="st-gap"><h2 id="st-gap">คุณภาพข้อมูล <small>(เคสค้าง)</small></h2>
+    ${line('pin','ไม่ได้ปักหมุด',N(R.quality.noPin)+' เคส')}${line('wave','ไม่ระบุระดับน้ำ',N(R.quality.noLevel)+' เคส')}${line('map','ไม่ทราบเขต',N(R.quality.noArea)+' เคส')}${line('phone','เบอร์โทรไม่ครบ',N(R.quality.noPhone)+' เคส')}${line('image','มีรูปแนบ',N(R.quality.photos)+' เคส')}
+    <p class="hint">ที่มาของหมุด: GPS ${N(ps.gps)} · ปักเอง ${N(ps.manual)} · จากลิงก์ ${N(ps.link)} · จากที่อยู่ (โดยประมาณ) ${N(ps.addr)} · เคสเก่าไม่ระบุ ${N(ps.old)} · ไม่มีหมุด ${N(ps.none)}</p>
+    ${R.dupList.length?`<h3 class="ssub">เคสที่น่าจะแจ้งซ้ำ <small>(เบอร์เดียวกัน ตำแหน่งใกล้กัน ภายใน 48 ชม.)</small></h3><ul class="slist">${R.dupList.slice(0,10).map(d=>{const c=all.find(x=>x.id===d.id);return c?caseLink(c,'ซ้ำกับ #'+esc(d.of)):''}).join('')}</ul>`:''}
+    ${R.tests.length?`<h3 class="ssub">เคสทดสอบ (ไม่นับในสรุป)</h3><ul class="slist">${R.tests.slice(0,10).map(c=>caseLink(c,STATUS_TH[c.status]||'')).join('')}</ul>`:''}</section>
+  <details class="sdef"><summary>วิธีนับตัวเลข</summary><ul>
+    <li><b>วันนี้</b> นับตั้งแต่ 00:00 น. เวลาประเทศไทย</li>
+    <li><b>เคสค้าง</b> = รอช่วย + กำลังไป</li>
+    <li><b>จำนวนคน</b> นับกลุ่มที่น่าจะแจ้งซ้ำครั้งเดียว (ใช้จำนวนคนมากที่สุดในกลุ่ม) · ตัวเลข "รวมซ้ำ" คือรวมทุกเคสตามที่แจ้ง</li>
+    <li><b>เคสที่น่าจะแจ้งซ้ำ</b> = เบอร์เดียวกัน แจ้งห่างกันไม่เกิน 48 ชม. และหมุดห่างกันไม่เกิน 150 ม. (หรือไม่มีหมุดทั้งคู่แต่ขอของเหมือนกัน) · ยังนับเป็นเคสตามปกติ</li>
+    <li><b>เคสทดสอบ</b> (มีคำว่า ทดสอบ / test หรือเบอร์ปลอม) ไม่นับในตัวเลขใด ๆ</li>
+    <li><b>เวลารับเคส / ช่วยเสร็จ</b> บันทึกอัตโนมัติเมื่อทีมเปลี่ยนสถานะในแอป · ถ้าเปลี่ยนในชีตโดยตรง หรือเป็นเคสเก่า ใช้เวลาอัปเดตล่าสุดแทน</li>
+    <li><b>ค่ากลาง</b> = เคสครึ่งหนึ่งเร็วกว่านี้ อีกครึ่งช้ากว่า (ไม่ถูกดึงด้วยเคสที่ช้าผิดปกติแบบค่าเฉลี่ย)</li></ul></details>`;
   if(!soft)fillAreas();
 }
 $('#stats').addEventListener('click',e=>{const o=e.target.closest('[data-sopen]');if(o){openCase(o.dataset.sopen);return}const g=e.target.closest('[data-sgo]'),n=e.target.closest('[data-sneed]');if(!g&&!n)return;

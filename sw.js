@@ -1,6 +1,6 @@
 /* Service worker: network-first เก็บหน้าไว้ใช้ตอนสัญญาณแย่ · เปลี่ยน CACHE ทุกครั้งที่แก้ไฟล์ */
-const CACHE='ummatee-v78';
-const SHELL=['./','./index.html','./app.css','./icons.js','./geocode.js','./location.js','./pickmap.js','./hotlines.js','./script.js','./manifest.webmanifest','./assets/ummatee-logo.png','./assets/helpme-logo.png','./assets/hm-icon-192.png','./assets/hm-icon-512.png'];
+const CACHE='ummatee-v79';
+const SHELL=['./','./index.html','./app.css','./icons.js','./geocode.js','./location.js','./pickmap.js','./stats.js','./hotlines.js','./script.js','./manifest.webmanifest','./assets/ummatee-logo.png','./assets/helpme-logo.png','./assets/hm-icon-192.png','./assets/hm-icon-512.png'];
 /* ถ้าโหลดไฟล์หลักไม่ครบ ให้ติดตั้งล้มเหลว → SW ตัวเก่า (และแคชเก่า) ยังใช้งานได้ ไม่หายทั้งชุด */
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 const TILES='ofm-tiles-v1',TILE_MAX=1500;   /* แผนที่ OpenFreeMap ที่เคยดู เก็บไว้ใช้ตอนสัญญาณอ่อน (ไม่ลบเมื่ออัปเดตแอป) */

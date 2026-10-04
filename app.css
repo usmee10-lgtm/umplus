@@ -812,3 +812,16 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .loc-share .pill{flex:1 1 140px;justify-content:center}
 .coord-row .loc-btns{display:flex;gap:6px;flex:none}
 .coord-row{flex-wrap:wrap}
+
+/* หน้าสรุป: รายละเอียดเพิ่ม */
+.snote{font-weight:500;color:var(--muted);font-size:12px}
+.ssub{font-size:14px;font-weight:700;margin:14px 0 8px;color:var(--ink)}
+.ssub small{font-weight:500;color:var(--muted)}
+.schips{display:flex;flex-wrap:wrap;gap:6px}
+.schips span{background:var(--tint);border-radius:999px;padding:5px 10px;font-size:13px;color:var(--ink)}
+.schips b{color:var(--primary);margin-left:2px}
+.spair{grid-template-columns:repeat(4,minmax(0,1fr))}
+.smore{margin-top:10px}.smore summary{cursor:pointer;color:var(--primary);font-weight:600;font-size:14px;padding:6px 0}
+.sdef{margin:4px 2px 18px;font-size:13px;color:var(--muted)}.sdef summary{cursor:pointer;font-weight:600;color:var(--ink);padding:6px 0}
+.sdef ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px}
+@media (max-width:420px){.spair{grid-template-columns:repeat(2,minmax(0,1fr))}}
