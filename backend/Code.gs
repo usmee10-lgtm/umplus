@@ -262,10 +262,17 @@ function listCases_(full, since) {
     o.vulnerable = o.vulnerable ? String(o.vulnerable).split(/\s*,\s*/) : [];
     if (!o.district) o.district = districtOf_(o);   // เขตจากที่อยู่ (ถ้าช่องเขตว่าง)
     o.photos = String(o.photos || '').match(/[-\w]{25,}/g) || [];
+    // เคสทดสอบ (มีคำว่า test / ทดสอบ / เทส ในช่องใดก็ได้) · คนทั่วไปไม่เห็นเลย · ทีมอาสาเห็นพร้อมป้าย test (ไม่นับในสรุป)
+    if (isTestCase_(o)) { if (!full) return null; o.test = true; }
     if (!full) return publicCase_(o);
     return o;
-  }).filter(function (o) { return o.id && (!sinceMs || o.updatedAt > sinceMs); });
+  }).filter(function (o) { return o && o.id && (!sinceMs || o.updatedAt > sinceMs); });
   return { ok: true, cases: cases, volunteer: full };
+}
+
+const TEST_RE = /\btest|ทดสอบ|เทส(?!โก้)/i;   // "เทสโก้" (Tesco) ไม่ใช่เคสทดสอบ
+function isTestCase_(o) {
+  return TEST_RE.test([o.name, o.notes, o.address, (o.needs || []).join(' '), o.volunteer, o.phone].join(' '));
 }
 
 /* คนทั่วไป: เห็นแค่เขต + ตำแหน่งโดยประมาณ (~500 ม.) ไม่มีชื่อ เบอร์ ที่อยู่ รายละเอียด */
