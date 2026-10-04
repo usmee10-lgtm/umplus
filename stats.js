@@ -103,7 +103,7 @@ function computeStats(all, opt = {}) {
   return {
     now, t0, total: base.length, tests, open, going, done, act, urgent, dupList,
     rate: base.length ? done.length / base.length : 0,
-    people: { act: sumP(act), actUnique: uniqP(act), urgent: uniqP(urgent), done: sumP(done), doneUnique: uniqP(done), all: uniqP(base) },
+    people: { allRaw: sumP(base), act: sumP(act), actUnique: uniqP(act), urgent: uniqP(urgent), done: sumP(done), doneUnique: uniqP(done), all: uniqP(base) },
     times: { pickupMed: stMedian(pick), pickupN: pick.length, doneMed: stMedian(fin), doneP90: stPct(fin, 90), doneN: fin.length, doneEstimated: estDone },
     waits: { over6: open.filter(c => waitOf(c) > 6 * 3600000).length, over24: open.filter(c => waitOf(c) > ST_DAY).length, over72: open.filter(c => waitOf(c) > 3 * ST_DAY).length,
       oldestList: open.slice().sort((a, b) => (+a.createdAt || 0) - (+b.createdAt || 0)).slice(0, 5).map(c => ({ c, wait: waitOf(c) })) },

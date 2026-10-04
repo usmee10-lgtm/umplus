@@ -967,12 +967,18 @@ function renderStats(soft){
   const dRow=d=>`<tr><th scope="row">${esc(dName(d.key))}</th><td>${d.open||'–'}</td><td class="${d.urg?'is-red':''}">${d.urg||'–'}</td><td>${d.going||'–'}</td><td>${d.done||'–'}</td><td>${d.ppl?N(d.ppl):'–'}</td><td>${d.oldest?dur(d.oldest):'–'}</td></tr>`;
   const dHead='<thead><tr><th scope="col">เขต</th><th scope="col">รอช่วย</th><th scope="col">ด่วน</th><th scope="col">กำลังไป</th><th scope="col">ช่วยแล้ว</th><th scope="col">คนที่รอ</th><th scope="col">รอนานสุด</th></tr></thead>';
   const top=R.districts.slice(0,12),rest=R.districts.slice(12);
+  const dSum=R.districts.reduce((t,d)=>{['open','urg','going','done','ppl','total'].forEach(k=>t[k]+=d[k]);t.oldest=Math.max(t.oldest,d.oldest);return t},{open:0,urg:0,going:0,done:0,ppl:0,total:0,oldest:0});
+  const dFoot=`<tfoot><tr><th scope="row">รวม ${R.districts.length} พื้นที่</th><td>${N(dSum.open)}</td><td class="${dSum.urg?'is-red':''}">${N(dSum.urg)}</td><td>${N(dSum.going)}</td><td>${N(dSum.done)}</td><td>${N(dSum.ppl)}</td><td>${dSum.oldest?dur(dSum.oldest):'–'}</td></tr></tfoot>`;
+  const tSum=R.teams.reduce((t,x)=>({going:t.going+x.going,done:t.done+x.done,ppl:t.ppl+x.ppl}),{going:0,done:0,ppl:0});
+  const oSum=Object.values(R.orgs).reduce((t,x)=>({going:t.going+x.going,done:t.done+x.done,ppl:t.ppl+x.ppl}),{going:0,done:0,ppl:0});
+  const sumFoot=(label,t)=>`<tfoot><tr><th scope="row">${label}</th><td>${N(t.going)}</td><td>${N(t.done)}</td><td>${N(t.ppl)}</td></tr></tfoot>`;
   const orgRows=Object.entries(R.orgs).sort((a,b)=>(b[1].done+b[1].going)-(a[1].done+a[1].going));
   const ps=R.quality.pinSrc;
   el.innerHTML=`<p class="stats-upd">${S.loaded?'ข้อมูล ณ '+new Date(S.loaded).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':'ข้อมูลล่าสุดที่บันทึกไว้'} · ${N(R.total)} เคส${R.tests.length?` (ไม่นับเคสทดสอบ ${R.tests.length})`:''} · ช่วยแล้ว ${pctTxt(R.rate)}</p>
   <section class="scard" aria-labelledby="st-now"><h2 id="st-now">ตอนนี้</h2>
     <div class="stiles">${tile(open.length,'รอช่วย','',`data-sgo="open"`)}${tile(urgent.length,'ด่วนมาก + วิกฤต','is-red',`data-sgo="danger"`)}${tile(going.length,'กำลังไป','',`data-sgo="going"`)}${tile(done.length,'ช่วยแล้ว','is-green',`data-sgo="done"`)}</div>
     <div class="sprog" role="img" aria-label="สัดส่วนสถานะ รอช่วย ${open.length} กำลังไป ${going.length} ช่วยแล้ว ${done.length}">${[[open.length,'var(--blue)'],[going.length,'var(--going)'],[done.length,'var(--ok)']].map(([n,c])=>n?`<i style="flex:${n};background:${c}"></i>`:'').join('')}</div>
+    ${line('list','<b>รวมทั้งหมด</b>',`${N(R.total)} เคส · ${pplNote(people.allRaw,people.all)}`,'is-total')}
     ${line('users','คนที่ยังรอความช่วยเหลือ',pplNote(people.act,people.actUnique))}
     ${line('alert','คนในเคสด่วนมาก/วิกฤต',N(people.urgent)+' คน',urgent.length?'is-red':'')}
     ${line('check','คนที่ช่วยแล้ว',pplNote(people.done,people.doneUnique))}
@@ -995,8 +1001,8 @@ function renderStats(soft){
   <section class="scard" aria-labelledby="st-urg"><h2 id="st-urg">ความเร่งด่วน <small>(เคสค้าง · จำนวนเคส และคน)</small></h2>
     ${act.length?statBars(urgRows):'<p class="hint">ไม่มีเคสค้าง</p>'}</section>
   <section class="scard" aria-labelledby="st-area"><h2 id="st-area">รายเขต</h2>
-    ${top.length?`<div class="stable-wrap"><table class="stable">${dHead}<tbody>${top.map(dRow).join('')}</tbody></table></div>`:'<p class="hint">ยังไม่มีเคส</p>'}
-    ${rest.length?`<details class="smore"><summary>ดูอีก ${rest.length} เขต</summary><div class="stable-wrap"><table class="stable">${dHead}<tbody>${rest.map(dRow).join('')}</tbody></table></div></details>`:''}
+    ${top.length?`<div class="stable-wrap"><table class="stable" id="dist-table">${dHead}<tbody>${top.map(dRow).join('')}${rest.map(d=>dRow(d).replace('<tr>','<tr class="dmore" hidden>')).join('')}</tbody>${dFoot}</table></div>
+      ${rest.length?`<button type="button" class="smore-btn" data-dmore>ดูอีก ${rest.length} เขต</button>`:''}`:'<p class="hint">ยังไม่มีเคส</p>'}
     ${R.quality.noArea&&areaBusy?'<p class="hint">กำลังหาเขตจากหมุด…</p>':''}</section>
   <section class="scard" aria-labelledby="st-need"><h2 id="st-need">ต้องการอะไร <small>(เคสค้าง · แตะเพื่อดูในแผนที่)</small></h2>
     ${needRows.length?statBars(needRows,{tap:r=>`data-sneed="${r.key}" aria-label="${r.label} ${r.n} เคส · ดูในแผนที่"`}):'<p class="hint">ยังไม่มีเคส</p>'}
@@ -1004,8 +1010,8 @@ function renderStats(soft){
   <section class="scard" aria-labelledby="st-lv"><h2 id="st-lv">ระดับน้ำ <small>(เคสค้าง)</small></h2>${lvRows.length?statBars(lvRows):'<p class="hint">ยังไม่มีข้อมูล</p>'}</section>
   <section class="scard" aria-labelledby="st-team"><h2 id="st-team">ทีมอาสา</h2>
     ${R.teams.length?`<div class="stable-wrap"><table class="stable"><thead><tr><th scope="col">ทีม</th><th scope="col">กำลังไป</th><th scope="col">ช่วยแล้ว</th><th scope="col">คนที่ช่วย</th></tr></thead><tbody>
-      ${R.teams.slice(0,15).map(t=>`<tr><th scope="row">${esc(t.name)}${t.variants>1?` <small class="snote">(รวม ${t.variants} แบบที่พิมพ์)</small>`:''}</th><td>${t.going||'–'}</td><td>${t.done||'–'}</td><td>${t.ppl?N(t.ppl):'–'}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">ยังไม่มีทีมรับเคส</p>'}
-    ${orgRows.length?`<h3 class="ssub">หน่วยงาน</h3><div class="stable-wrap"><table class="stable"><thead><tr><th scope="col">หน่วยงาน</th><th scope="col">กำลังไป</th><th scope="col">ช่วยแล้ว</th><th scope="col">คนที่ช่วย</th></tr></thead><tbody>${orgRows.map(([k,o])=>`<tr><th scope="row">${esc(k)}</th><td>${o.going||'–'}</td><td>${o.done||'–'}</td><td>${o.ppl?N(o.ppl):'–'}</td></tr>`).join('')}</tbody></table></div>`:''}</section>
+      ${R.teams.slice(0,15).map(t=>`<tr><th scope="row">${esc(t.name)}${t.variants>1?` <small class="snote">(รวม ${t.variants} แบบที่พิมพ์)</small>`:''}</th><td>${t.going||'–'}</td><td>${t.done||'–'}</td><td>${t.ppl?N(t.ppl):'–'}</td></tr>`).join('')}</tbody>${R.teams.length>1?sumFoot('รวม '+R.teams.length+' ทีม',tSum):''}</table></div>`:'<p class="hint">ยังไม่มีทีมรับเคส</p>'}
+    ${orgRows.length?`<h3 class="ssub">หน่วยงาน</h3><div class="stable-wrap"><table class="stable"><thead><tr><th scope="col">หน่วยงาน</th><th scope="col">กำลังไป</th><th scope="col">ช่วยแล้ว</th><th scope="col">คนที่ช่วย</th></tr></thead><tbody>${orgRows.map(([k,o])=>`<tr><th scope="row">${esc(k)}</th><td>${o.going||'–'}</td><td>${o.done||'–'}</td><td>${o.ppl?N(o.ppl):'–'}</td></tr>`).join('')}</tbody>${orgRows.length>1?sumFoot('รวม '+orgRows.length+' หน่วยงาน',oSum):''}</table></div>`:''}</section>
   <section class="scard" aria-labelledby="st-gap"><h2 id="st-gap">คุณภาพข้อมูล <small>(เคสค้าง)</small></h2>
     ${line('pin','ไม่ได้ปักหมุด',N(R.quality.noPin)+' เคส')}${line('wave','ไม่ระบุระดับน้ำ',N(R.quality.noLevel)+' เคส')}${line('map','ไม่ทราบเขต',N(R.quality.noArea)+' เคส')}${line('phone','เบอร์โทรไม่ครบ',N(R.quality.noPhone)+' เคส')}${line('image','มีรูปแนบ',N(R.quality.photos)+' เคส')}
     <p class="hint">ที่มาของหมุด: GPS ${N(ps.gps)} · ปักเอง ${N(ps.manual)} · จากลิงก์ ${N(ps.link)} · จากที่อยู่ (โดยประมาณ) ${N(ps.addr)} · เคสเก่าไม่ระบุ ${N(ps.old)} · ไม่มีหมุด ${N(ps.none)}</p>
@@ -1021,7 +1027,7 @@ function renderStats(soft){
     <li><b>ค่ากลาง</b> = เคสครึ่งหนึ่งเร็วกว่านี้ อีกครึ่งช้ากว่า (ไม่ถูกดึงด้วยเคสที่ช้าผิดปกติแบบค่าเฉลี่ย)</li></ul></details>`;
   if(!soft)fillAreas();
 }
-$('#stats').addEventListener('click',e=>{const o=e.target.closest('[data-sopen]');if(o){openCase(o.dataset.sopen);return}const g=e.target.closest('[data-sgo]'),n=e.target.closest('[data-sneed]');if(!g&&!n)return;
+$('#stats').addEventListener('click',e=>{const dm=e.target.closest('[data-dmore]');if(dm){const rows=$$('#dist-table .dmore'),show=rows[0]&&rows[0].hidden;rows.forEach(r=>r.hidden=!show);dm.textContent=show?'ย่อรายการเขต':'ดูอีก '+rows.length+' เขต';return}const o=e.target.closest('[data-sopen]');if(o){openCase(o.dataset.sopen);return}const g=e.target.closest('[data-sgo]'),n=e.target.closest('[data-sneed]');if(!g&&!n)return;
   FL.q='';$('#case-search').value='';FL.people=[];FL.level=[];
   if(g){FL.status=g.dataset.sgo;FL.types=[]}else{FL.status='active';FL.types=[n.dataset.sneed]}
   saveFL();renderFilters();applyFilters();go('map');setSheet(true)});
