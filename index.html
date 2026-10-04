@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=84">
+<link rel="stylesheet" href="./app.css?v=85">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -49,13 +49,8 @@
         <button type="button" class="pill all-cases" id="btn-all-cases" data-icon="list"><span>ดูเคสทั้งหมด</span><b id="all-count"></b></button>
       </div>
       <details class="lay-card" id="lay-card">
-        <summary><span class="lay-sum-ic" data-icon="layers"></span><span class="lay-sum-t"><b>ชั้นข้อมูลบนแผนที่</b><small id="lay-sum-s">เฝ้าระวังน้ำ · ฝน · น้ำท่วม · ทีมช่วยเหลือ · CCTV</small></span><span class="lay-chev" data-icon="chev"></span></summary>
+        <summary><span class="lay-sum-ic" data-icon="layers"></span><span class="lay-sum-t"><b>ชั้นข้อมูลบนแผนที่</b><small id="lay-sum-s">ฝน · น้ำท่วม · ทีมช่วยเหลือ · CCTV</small></span><span class="lay-chev" data-icon="chev"></span></summary>
         <div class="lay-list" id="lay-list">
-          <div class="lay-item">
-            <input type="checkbox" id="lay-water" class="sw-in" checked>
-            <label for="lay-water" class="lay-row"><span class="lay-ic" style="--c:#F59E0B" data-icon="wave"></span><span class="lay-t"><b>เฝ้าระวังน้ำ</b><small id="water-sub">ระดับน้ำในแม่น้ำ คลอง จากสถานีวัดทั่วประเทศ</small></span><i class="sw" aria-hidden="true"></i></label>
-            <div class="lay-key" aria-label="สถานการณ์ระดับน้ำ"><span><i style="background:#DC2626"></i>ล้นตลิ่ง</span><span><i style="background:#F59E0B"></i>น้ำมาก ใกล้ตลิ่ง (70–100%)</span><span><i style="background:#16A34A"></i>ปกติ</span><span><i style="background:#94A3B8"></i>น้ำน้อย</span><span>แตะจุดเพื่อดูระดับน้ำและแนวโน้ม</span></div>
-          </div>
           <div class="lay-item">
             <input type="checkbox" id="lay-rain" class="sw-in">
             <label for="lay-rain" class="lay-row"><span class="lay-ic" style="--c:#60A5FA" data-icon="rain"></span><span class="lay-t"><b>เรดาร์ฝน</b><small id="rain-sub">ฝนตกตรงไหน · ดูย้อนหลัง 2 ชม. ได้</small></span><i class="sw" aria-hidden="true"></i></label>
@@ -265,13 +260,13 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=84"></script>
-<script src="./geocode.js?v=84"></script>
-<script src="./location.js?v=84"></script>
-<script src="./pickmap.js?v=84"></script>
-<script src="./stats.js?v=84"></script>
-<script src="./hotlines.js?v=84"></script>
-<script src="./script.js?v=84"></script>
+<script src="./icons.js?v=85"></script>
+<script src="./geocode.js?v=85"></script>
+<script src="./location.js?v=85"></script>
+<script src="./pickmap.js?v=85"></script>
+<script src="./stats.js?v=85"></script>
+<script src="./hotlines.js?v=85"></script>
+<script src="./script.js?v=85"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
