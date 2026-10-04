@@ -133,7 +133,7 @@ async function ensureMap(which){
   if(S.maps[which])return S.maps[which];
   const m=makeMap(el,{zoom:11});S.maps[which]=m;PIN_LAYER[which]=L.layerGroup().addTo(m);
   m.on('baselayerchange',()=>{});
-  drawPins(which);if(store.get('uh_lay_flood','1')!=='0')toggleFlood(true);if(store.get('uh_lay_teams',''))toggleTeams(true);if(store.get('uh_lay_cctv',''))toggleCctv(true);if(store.get('uh_lay_shelter','1')!=='0')toggleShelter(true);if(store.get('uh_lay_rain',''))toggleRain(true);
+  drawPins(which);if(store.get('uh_lay_flood','1')!=='0')toggleFlood(true);if(store.get('uh_lay_teams',''))toggleTeams(true);if(store.get('uh_lay_cctv',''))toggleCctv(true);if(store.get('uh_lay_water','1')!=='0')toggleWater(true);if(store.get('uh_lay_rain',''))toggleRain(true);
   if(which==='map'&&typeof drawTrip==='function')drawTrip();
   return m;
 }
@@ -183,7 +183,7 @@ document.addEventListener('click',e=>{
 let layerBtn=null;
 /* รายการชั้นข้อมูลอยู่ในกล่องสีน้ำเงินหน้าแรก · ถ้าเปิดเมนูจากหน้าแผนที่ ยกรายการเดียวกันไปแสดงในเมนูลอยชั่วคราว */
 function layListTo(menu){const l=$('#lay-list');if(!l)return;if(menu){if(l.parentNode!==menu)menu.append(l);l.classList.add('in-menu')}else{const c=$('#lay-card');if(l.parentNode!==c)c.append(l);l.classList.remove('in-menu')}}
-var LAY_NAMES={'lay-shelter':'ศูนย์พักพิง','lay-rain':'เรดาร์ฝน','lay-flood':'น้ำท่วม','lay-teams':'ทีมช่วยเหลือ','lay-cctv':'CCTV'};
+var LAY_NAMES={'lay-water':'เฝ้าระวังน้ำ','lay-rain':'เรดาร์ฝน','lay-flood':'น้ำท่วม','lay-teams':'ทีมช่วยเหลือ','lay-cctv':'CCTV'};
 function layCount(){const on=Object.keys(LAY_NAMES).filter(id=>$('#'+id)&&$('#'+id).checked);const s=$('#lay-sum-s');if(s)s.textContent=on.length?'เปิดอยู่: '+on.map(id=>LAY_NAMES[id]).join(' · '):'ยังไม่ได้เปิดชั้นข้อมูล';const c=$('#lay-card');if(c)c.classList.toggle('has-on',on.length>0)}
 (function(){const c=$('#lay-card');if(!c)return;if(store.get('uh_lay_open','')==='1')c.open=true;c.addEventListener('toggle',()=>store.set('uh_lay_open',c.open?'1':''));$$('#lay-list .sw-in').forEach(i=>i.addEventListener('change',layCount));layCount()})();
 function closeLayerMenu(refocus){const m=$('#layer-menu');if(!m)return;const was=!m.hidden;m.hidden=true;layListTo(null);$$('.fab[data-act=layers]').forEach(b=>b.setAttribute('aria-expanded','false'));if(was&&refocus&&layerBtn)layerBtn.focus()}
@@ -230,47 +230,51 @@ async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams
   const [tr,nr,or]=await Promise.all([apiGet(p).catch(()=>null),apiGet({action:'network',t:tm}).catch(()=>null),apiGet({action:'outreach',t:tm}).catch(()=>null)]);
   if(gen!==teamsGen)return;
   S.outreach=or&&Array.isArray(or.points)?or.points:[];drawHelped();
-  S.teams=tr&&Array.isArray(tr.teams)?tr.teams:[];S.network=nr&&Array.isArray(nr.points)?nr.points:[];if(typeof drawShelters==='function')drawShelters();
+  S.teams=tr&&Array.isArray(tr.teams)?tr.teams:[];S.network=nr&&Array.isArray(nr.points)?nr.points:[];
   if(!tr&&!nr){toast('โหลดทีมและเครือข่ายไม่สำเร็จ');return}
   Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams)m._teams.remove();
     const team=S.teams.filter(t=>t.lat&&t.lng).map(t=>L.marker([+t.lat,+t.lng],{icon:L.divIcon({className:'team-pin',html:'<span>'+ic('shield')+'</span>'+(t.team?'<em>'+esc(t.team)+'</em>':''),iconSize:[30,30],iconAnchor:[15,15]}),title:'ทีม '+(t.team||'กู้ภัย')+' · ตำแหน่งสด',zIndexOffset:1800}));
-    const net=S.network.filter(n=>!NET_TO_SHELTER[n.type]).map(n=>L.marker([n.lat,n.lng],{icon:L.divIcon({className:'net-pin',html:'<span>'+ic(NET_STYLE[n.type]||'pin')+'</span>',iconSize:[30,30],iconAnchor:[15,15]}),title:n.type+' · '+n.name,zIndexOffset:1600}).bindPopup(()=>netPopup(n)));
+    const net=S.network.filter(n=>!NET_HIDE[n.type]).map(n=>L.marker([n.lat,n.lng],{icon:L.divIcon({className:'net-pin',html:'<span>'+ic(NET_STYLE[n.type]||'pin')+'</span>',iconSize:[30,30],iconAnchor:[15,15]}),title:n.type+' · '+n.name,zIndexOffset:1600}).bindPopup(()=>netPopup(n)));
     m._teams=L.layerGroup([...net,...team]).addTo(m)});
-  if(!S.teams.length&&!S.network.filter(n=>!NET_TO_SHELTER[n.type]).length&&!helpedList().length)toast('ยังไม่มีทีม จุดเครือข่าย หรือจุดที่ไปช่วยแล้ว');
+  if(!S.teams.length&&!S.network.filter(n=>!NET_HIDE[n.type]).length&&!helpedList().length)toast('ยังไม่มีทีม จุดเครือข่าย หรือจุดที่ไปช่วยแล้ว');
   else if(S.volunteer&&nr&&nr.noLocation)toast(`มี ${nr.noLocation} จุดในแท็บ "เครือข่าย" ที่ยังอ่านพิกัดไม่ได้ · วางพิกัดแบบ 13.75, 100.6 หรือลิงก์ Google Maps แบบเต็ม`,{ms:9000})}
-/* ชั้นศูนย์พักพิงและจุดแจกของ: แท็บ "ศูนย์พักพิง" ในชีต (+ จุดพักพิง/แจกของ/แพทย์ ที่เคยใส่ในแท็บ "เครือข่าย") */
-const SHELTER_T={shelter:{name:'ศูนย์พักพิง',icon:'home',color:'#2346B8'},supply:{name:'จุดแจกอาหารและของ',icon:'food',color:'#0B8A5B'},donate:{name:'จุดรับบริจาค',icon:'heart',color:'#C2410C'},medical:{name:'จุดแพทย์ / ปฐมพยาบาล',icon:'ambulance',color:'#C81E5B'}};
-const SHELTER_ST={open:{name:'เปิด',cls:'ok'},busy:{name:'ใกล้เต็ม / ของใกล้หมด',cls:'warn'},full:{name:'เต็ม / ของหมด',cls:'bad'},closed:{name:'ปิดแล้ว',cls:'off'}};
-const NET_TO_SHELTER={'จุดพักพิง':'shelter','จุดแจกของ':'supply','จุดแพทย์':'medical'};
-let shelterGen=0;
-function shelterList(){const fromNet=(S.network||[]).filter(n=>NET_TO_SHELTER[n.type]).map(n=>({type:NET_TO_SHELTER[n.type],name:n.name,lat:n.lat,lng:n.lng,status:'open',offers:n.detail||'',hours:n.hours||'',phone:n.phone||''}));
-  return [...(S.shelters||[]),...fromNet]}
-function shelterPopup(p){const t=SHELTER_T[p.type]||SHELTER_T.supply,st=SHELTER_ST[p.status]||SHELTER_ST.open,tel=String(p.phone||'').replace(/[^\d+]/g,'');
-  const row=(label,v)=>v?`<div class="sh-row"><span>${label}</span><div class="sh-v">${esc(v)}</div></div>`:'';
-  return `<div class="pop sh-pop"><div class="sh-tags"><span class="sh-type" style="background:${t.color}">${esc(t.name)}</span><span class="sh-st ${st.cls}">${esc(st.name)}</span></div>`+
-    `<b>${esc(p.name)}</b>`+(p.address?`<small class="sh-addr">${esc(p.address)}</small>`:'')+
-    `<div class="sh-rows">${row('รับได้',p.capacity?p.capacity+' คน':'')}${row('มีให้',p.offers)}${row('เวลา',p.hours)}${row('ต้องการรับบริจาค',p.needs)}${row('ติดต่อ',p.phone)}</div>`+
-    (p.at?`<small class="sh-upd">อัปเดต ${esc(ago(p.at))}</small>`:'')+
-    `<div class="pop-act"><a href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener">นำทาง</a>`+
-    (tel.length>=3?`<a href="tel:${esc(tel)}">โทร</a>`:'')+(p.link?`<a href="${esc(p.link)}" target="_blank" rel="noopener">ที่มา</a>`:'')+`</div></div>`}
-function shelterIcon(p){const t=SHELTER_T[p.type]||SHELTER_T.supply,st=SHELTER_ST[p.status]||SHELTER_ST.open;
-  return L.divIcon({className:'sh-pin sh-'+st.cls,html:`<span style="--c:${t.color}">${ic(t.icon)}</span>`,iconSize:[34,40],iconAnchor:[17,38],popupAnchor:[0,-34]})}
-function drawShelters(){Object.values(S.maps).forEach(m=>{if(!m)return;if(m._shelter){m._shelter.remove();m._shelter=null}
-  if(store.get('uh_lay_shelter','1')==='0')return;const ps=shelterList();if(!ps.length)return;
-  m._shelter=L.layerGroup(ps.map(p=>L.marker([p.lat,p.lng],{icon:shelterIcon(p),title:(SHELTER_T[p.type]||SHELTER_T.supply).name+' · '+p.name,zIndexOffset:p.status==='closed'?-300:1500}).bindPopup(()=>shelterPopup(p),{maxWidth:290,minWidth:240}))).addTo(m)})}
-async function toggleShelter(on){store.set('uh_lay_shelter',on?'1':'0');$('#lay-shelter').checked=on;layCount();const gen=++shelterGen;
-  drawShelters();if(!on)return;
-  const tm=Math.floor(Date.now()/60000);
-  const [sr,nr]=await Promise.all([apiGet({action:'shelters',t:tm}).catch(()=>null),S.network?Promise.resolve(null):apiGet({action:'network',t:tm}).catch(()=>null)]);
-  if(gen!==shelterGen)return;
-  if(sr&&Array.isArray(sr.points))S.shelters=sr.points;if(nr&&Array.isArray(nr.points))S.network=nr.points;
-  drawShelters();
-  if(!sr&&!S.shelters){toast('โหลดศูนย์พักพิงไม่สำเร็จ');return}
-  const n=shelterList().length,sub=$('label[for=lay-shelter] small');
-  if(sub)sub.textContent=n?`${n} จุด · ที่พัก อาหาร จุดรับบริจาค จุดแพทย์`:'ยังไม่มีข้อมูล · ทีมงานกำลังรวบรวม';
-  if(!n&&S.volunteer)toast('ยังไม่มีศูนย์พักพิงบนแผนที่ · เพิ่มได้ในแท็บ "ศูนย์พักพิง" ในชีต',{ms:7000});
-  if(S.volunteer&&sr&&sr.noLocation)toast(`มี ${sr.noLocation} จุดในแท็บ "ศูนย์พักพิง" ที่ยังอ่านพิกัดไม่ได้`,{ms:8000})}
-$('#lay-shelter').addEventListener('change',e=>toggleShelter(e.target.checked));
+/* จุดพักพิง / แจกของ / แพทย์ ในแท็บ "เครือข่าย" ไม่แสดงบนแผนที่ (เลิกใช้ชั้นศูนย์พักพิงแล้ว) */
+const NET_HIDE={'จุดพักพิง':1,'จุดแจกของ':1,'จุดแพทย์':1};
+/* ชั้นเฝ้าระวังน้ำ: ระดับน้ำล่าสุดจากสถานีวัดทั่วประเทศ (ThaiWater · สสน. ผ่าน /api/water แคช 5–10 นาที) */
+const WL_ATTR='ระดับน้ำ © <a href="https://www.thaiwater.net/" target="_blank" rel="noopener">ThaiWater (สสน.)</a>';
+const WL_ST={5:{n:'ล้นตลิ่ง',c:'#DC2626',r:9,z:5},4:{n:'น้ำมาก ใกล้ตลิ่ง',c:'#F59E0B',r:7.5,z:4},3:{n:'ปกติ',c:'#16A34A',r:5,z:3},2:{n:'น้ำน้อย',c:'#94A3B8',r:4.5,z:2},1:{n:'น้ำน้อยวิกฤต',c:'#94A3B8',r:4.5,z:2},0:{n:'ไม่มีข้อมูลตลิ่ง',c:'#94A3B8',r:4.5,z:1}};
+const wlSt=w=>WL_ST[w[4]]||WL_ST[0];
+let waterGen=0,waterRefresh=null;
+const wlNum=(n,d=2)=>Number(n).toLocaleString('th-TH',{minimumFractionDigits:d,maximumFractionDigits:d});
+function wlAgo(t){const m=Math.max(0,Math.round((Date.now()/1000-t)/60));return m<2?'เมื่อสักครู่':m<60?m+' นาทีที่แล้ว':m<1440?Math.round(m/60)+' ชม. ที่แล้ว':Math.round(m/1440)+' วันที่แล้ว'}
+function waterPopup(w){const st=wlSt(w),[,name,,,,pct,wl,dif,bank,at,river,place,ag]=w;
+  const trend=dif==null?'':Math.abs(dif)<0.005?'<span class="wl-tr">คงที่</span>':dif>0?`<span class="wl-tr up">▲ ขึ้น ${wlNum(dif)} ม.</span>`:`<span class="wl-tr dn">▼ ลง ${wlNum(-dif)} ม.</span>`;
+  const bankTxt=bank==null?'':bank>=0?`<b class="wl-bad">ล้นตลิ่ง ${wlNum(bank)} ม.</b>`:`ต่ำกว่าตลิ่ง ${wlNum(-bank)} ม.`;
+  const stale=Date.now()/1000-at>6*3600;
+  const row=(l,v)=>v?`<div class="sh-row"><span>${l}</span><div class="sh-v">${v}</div></div>`:'';
+  return `<div class="pop wl-pop"><div class="sh-tags"><span class="sh-type" style="background:${st.c}">${esc(st.n)}</span>${pct!=null?`<span class="wl-pct">${wlNum(pct,0)}% ของตลิ่ง</span>`:''}</div>`+
+    `<b>${esc(name)}</b>`+(river||place?`<small class="sh-addr">${esc([river,place].filter(Boolean).join(' · '))}</small>`:'')+
+    (pct!=null?`<div class="wl-bar" aria-hidden="true"><i style="width:${Math.min(100,Math.max(2,pct))}%;background:${st.c}"></i></div>`:'')+
+    `<div class="sh-rows">${row('ระดับน้ำ',wl!=null?wlNum(wl)+' ม.รทก. '+trend:'')}${row('เทียบตลิ่ง',bankTxt)}${row('วัดเมื่อ',esc(wlAgo(at))+(stale?' <span class="wl-old">ข้อมูลเก่า</span>':''))}${row('หน่วยงาน',esc(ag))}</div>`+
+    `<div class="pop-act"><a href="https://www.thaiwater.net/water/wl" target="_blank" rel="noopener">ดูทั้งหมดบน ThaiWater</a></div></div>`}
+function waterClear(m){if(!m)return;if(m._water){m.removeLayer(m._water);m._water=null}m.attributionControl&&m.attributionControl.removeAttribution(WL_ATTR)}
+function drawWater(){const W=S.water;Object.values(S.maps).forEach(m=>{if(!m)return;waterClear(m);if(store.get('uh_lay_water','1')==='0'||!W||!W.st.length)return;
+    const rd=m._wlRd||(m._wlRd=L.canvas({padding:.3}));
+    const list=W.st.slice().sort((a,b)=>wlSt(a).z-wlSt(b).z);   /* สถานีวิกฤตวาดทีหลัง จะได้อยู่บนสุด */
+    m._water=L.layerGroup(list.map(w=>{const st=wlSt(w);return L.circleMarker([w[2],w[3]],{renderer:rd,radius:st.r,color:'#fff',weight:st.z>=4?2:1.2,fillColor:st.c,fillOpacity:st.z>=4?.95:.8})
+      .bindPopup(()=>waterPopup(w),{maxWidth:290,minWidth:240})})).addTo(m);
+    m.attributionControl&&m.attributionControl.addAttribution(WL_ATTR)});
+  const sub=$('#water-sub');if(sub&&W){const c5=W.st.filter(w=>w[4]===5).length,c4=W.st.filter(w=>w[4]===4).length;
+    sub.textContent=(c5||c4?[c5&&`ล้นตลิ่ง ${c5}`,c4&&`น้ำมาก ${c4}`].filter(Boolean).join(' · ')+` จาก ${W.st.length} สถานี`:`${W.st.length} สถานี · ยังไม่มีจุดล้นตลิ่ง`)+' · อัปเดต '+new Date(W.at*1000).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.'}}
+async function waterLoad(force){if(!force&&S.water&&Date.now()-S.waterAt<5*60e3)return S.water;
+  const r=await fetch('/api/water').then(r=>r.json());if(!r||!r.ok||!Array.isArray(r.st))throw new Error('water');S.water=r;S.waterAt=Date.now();return r}
+async function toggleWater(on){store.set('uh_lay_water',on?'1':'0');$('#lay-water').checked=on;layCount();const gen=++waterGen;
+  if(waterRefresh){clearInterval(waterRefresh);waterRefresh=null}
+  if(!on){Object.values(S.maps).forEach(waterClear);return}
+  try{await waterLoad();if(gen!==waterGen)return;drawWater();
+    waterRefresh=setInterval(async()=>{if(document.hidden)return;try{const at=S.water&&S.water.at;await waterLoad(true);if(S.water.at!==at)drawWater()}catch(e){}},10*60e3)}
+  catch(e){if(gen!==waterGen)return;const sub=$('#water-sub');if(sub)sub.textContent='โหลดข้อมูลไม่สำเร็จ · ลองปิดแล้วเปิดใหม่';toast('โหลดข้อมูลระดับน้ำไม่สำเร็จ')}}
+$('#lay-water').addEventListener('change',e=>toggleWater(e.target.checked));
 /* ชั้นเรดาร์ฝน (RainViewer · ฟรี ใช้ภาพย้อนหลัง 2 ชม. ทุก 10 นาที, ซูมจริงสูงสุดระดับ 7) */
 const RAIN_ATTR='Weather data by <a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>';
 const RAIN_OP=.62;let rainGen=0,rainRefresh=null,rainAnim=null;
