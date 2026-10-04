@@ -90,7 +90,7 @@ async function loadCasesInner(){$('#sync-status').textContent='กำลัง�
 }
 function renderAll(){
   $('#live-badge').hidden=!(S.loaded&&Date.now()-S.loaded<REFRESH_MS*3);
-  drawPins('home');drawPins('map');renderList();$('#all-count').textContent=S.loaded&&S.volunteer?S.cases.length+' เคส':'';renderMyReq();renderVol();
+  drawPins('home');drawPins('map');renderList();$('#all-count').textContent=S.loaded&&S.volunteer?S.cases.filter(c=>!isTestCase(c)).length+' เคส':'';renderMyReq();renderVol();
   if(S.view==='detail'&&S.detailId)renderDetail(false);
   const stTab=$('.tabbar [data-go=stats]');if(stTab)stTab.style.display=S.volunteer?'':'none';
   if(S.view==='stats'){if(S.volunteer)renderStats();else go('home')}
@@ -974,7 +974,7 @@ function renderStats(soft){
   const sumFoot=(label,t)=>`<tfoot><tr><th scope="row">${label}</th><td>${N(t.going)}</td><td>${N(t.done)}</td><td>${N(t.ppl)}</td></tr></tfoot>`;
   const orgRows=Object.entries(R.orgs).sort((a,b)=>(b[1].done+b[1].going)-(a[1].done+a[1].going));
   const ps=R.quality.pinSrc;
-  el.innerHTML=`<p class="stats-upd">${S.loaded?'ข้อมูล ณ '+new Date(S.loaded).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':'ข้อมูลล่าสุดที่บันทึกไว้'} · ${N(R.total)} เคส${R.tests.length?` (ไม่นับเคสทดสอบ ${R.tests.length})`:''} · ช่วยแล้ว ${pctTxt(R.rate)}</p>
+  el.innerHTML=`<p class="stats-upd">${S.loaded?'ข้อมูล ณ '+new Date(S.loaded).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':'ข้อมูลล่าสุดที่บันทึกไว้'} · ${N(R.total)} เคส · ช่วยแล้ว ${pctTxt(R.rate)}</p>
   <section class="scard" aria-labelledby="st-now"><h2 id="st-now">ตอนนี้</h2>
     <div class="stiles">${tile(open.length,'รอช่วย','',`data-sgo="open"`)}${tile(urgent.length,'ด่วนมาก + วิกฤต','is-red',`data-sgo="danger"`)}${tile(going.length,'กำลังไป','',`data-sgo="going"`)}${tile(done.length,'ช่วยแล้ว','is-green',`data-sgo="done"`)}</div>
     <div class="sprog" role="img" aria-label="สัดส่วนสถานะ รอช่วย ${open.length} กำลังไป ${going.length} ช่วยแล้ว ${done.length}">${[[open.length,'var(--blue)'],[going.length,'var(--going)'],[done.length,'var(--ok)']].map(([n,c])=>n?`<i style="flex:${n};background:${c}"></i>`:'').join('')}</div>
@@ -1022,7 +1022,7 @@ function renderStats(soft){
     <li><b>เคสค้าง</b> = รอช่วย + กำลังไป</li>
     <li><b>จำนวนคน</b> นับกลุ่มที่น่าจะแจ้งซ้ำครั้งเดียว (ใช้จำนวนคนมากที่สุดในกลุ่ม) · ตัวเลข "รวมซ้ำ" คือรวมทุกเคสตามที่แจ้ง</li>
     <li><b>เคสที่น่าจะแจ้งซ้ำ</b> = เบอร์เดียวกัน แจ้งห่างกันไม่เกิน 48 ชม. และหมุดห่างกันไม่เกิน 150 ม. (ถ้าไม่มีหมุด: ขอของเหมือนกัน และจำนวนคนเท่ากันเมื่อมีหมุดฝั่งเดียว) · ยังนับเป็นเคสตามปกติ</li>
-    <li><b>เคสทดสอบ</b> (มีคำว่า ทดสอบ / test หรือเบอร์ปลอม) ไม่นับในตัวเลขใด ๆ</li>
+    <li><b>เคสทดสอบ</b> (มีคำว่า test / ทดสอบ / เทส) ไม่นับในตัวเลขใด ๆ และไม่แสดงให้คนทั่วไปเห็น</li>
     <li><b>เวลารับเคส / ช่วยเสร็จ</b> บันทึกอัตโนมัติเมื่อทีมเปลี่ยนสถานะในแอป · ถ้าเปลี่ยนในชีตโดยตรง หรือเป็นเคสเก่า ใช้เวลาอัปเดตล่าสุดแทน</li>
     <li><b>ค่ากลาง</b> = เคสครึ่งหนึ่งเร็วกว่านี้ อีกครึ่งช้ากว่า (ไม่ถูกดึงด้วยเคสที่ช้าผิดปกติแบบค่าเฉลี่ย)</li></ul></details>`;
   if(!soft)fillAreas();

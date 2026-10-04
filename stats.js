@@ -1,7 +1,7 @@
 /* คำนวณตัวเลขหน้าสรุป (ไม่ยุ่งกับหน้าจอ · ทดสอบแยกได้)
  * นิยามหลัก
  *  - "วันนี้" = ตั้งแต่ 00:00 น. เวลาประเทศไทย (ไม่ขึ้นกับเขตเวลาของเครื่อง)
- *  - เคสทดสอบ (ชื่อ/รายละเอียดมีคำว่า ทดสอบ/test หรือเบอร์ปลอม) ไม่นับในตัวเลขใด ๆ แต่แสดงรายการให้ตรวจ
+ *  - เคสทดสอบ (มีคำว่า test / ทดสอบ / เทส ในช่องใดก็ได้) ไม่นับในตัวเลขใด ๆ · หลังบ้านไม่ส่งให้คนทั่วไปเลย
  *  - เคสที่น่าจะซ้ำ = เบอร์เดียวกัน + แจ้งห่างกันไม่เกิน 48 ชม. + (หมุดห่างกันไม่เกิน 150 ม. / ไม่มีหมุดแต่ต้องการของเหมือนกัน / มีหมุดฝั่งเดียวแต่ของและจำนวนคนตรงกัน)
  *    ยังนับเป็นเคส (ไม่ลบทิ้ง) แต่ตอนรวม "จำนวนคน" จะนับกลุ่มซ้ำครั้งเดียว (ใช้จำนวนคนสูงสุดในกลุ่ม)
  *  - เวลารับเคส / ช่วยเสร็จ ใช้คอลัมน์ที่บันทึกตอนเปลี่ยนสถานะ ถ้าเคสเก่าไม่มี ใช้ "อัปเดตล่าสุด" แทน (นับว่าเป็นค่าประมาณ)
@@ -10,9 +10,9 @@ const ST_DAY = 86400000, ST_BKK = 7 * 3600000;
 const bkkDayStart = t => Math.floor((t + ST_BKK) / ST_DAY) * ST_DAY - ST_BKK;
 function stMedian(a) { if (!a.length) return 0; const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2 }
 function stPct(a, p) { if (!a.length) return 0; const s = a.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.max(0, Math.ceil(p / 100 * s.length) - 1))] }
-const ST_FAKE_PHONE = /^(0812345678|0000000000|0123456789|0999999999|1234567890|0811111111)$/;
+const ST_TEST_RE = /\btest|ทดสอบ|เทส(?!โก้)/i;   // "เทสโก้" (Tesco) ไม่นับ
 const stPhone = c => String(c.phone || '').replace(/\D/g, '');
-function isTestCase(c) { return /ทดสอบ|ทดลองระบบ|\btest\b/i.test([c.name, c.notes, c.address].join(' ')) || ST_FAKE_PHONE.test(stPhone(c)) }
+function isTestCase(c) { return c.test === true || ST_TEST_RE.test([c.name, c.notes, c.address, (c.needs || []).join(' '), c.volunteer].join(' ')) }
 const stHasPin = c => c && c.lat !== '' && c.lat != null && c.lng !== '' && c.lng != null && !isNaN(+c.lat) && !isNaN(+c.lng) && +c.lat !== 0;
 function stDist(a, b) { const k = 111320, cx = Math.cos(+a.lat * Math.PI / 180); return Math.hypot((+a.lat - +b.lat) * k, (+a.lng - +b.lng) * k * cx) }
 const stNeedsKey = c => (c.needs || []).map(x => String(x).replace(/:.*$/, '').trim()).sort().join('|');
