@@ -192,7 +192,15 @@ function updateCase_(b) {
     const r = findRow_(sh, b.id);
     if (!r) return { ok: false, error: 'not_found' };
     const m = cols_(sh), col = function (name) { return m[name]; };
+    const prev = statusCode_(sh.getRange(r, col('status')).getValue()), now = new Date();
     sh.getRange(r, col('status')).setValue(STATUS_TH[b.status]);
+    // เวลารับเคส / เวลาช่วยเสร็จ (ครั้งแรก) · เปิดเคสใหม่ (กลับเป็นรอช่วย) = ล้างเวลา
+    if (b.status === 'open') { if (col('goingAt')) sh.getRange(r, col('goingAt')).setValue(''); if (col('doneAt')) sh.getRange(r, col('doneAt')).setValue(''); }
+    else {
+      if (col('goingAt') && !sh.getRange(r, col('goingAt')).getValue()) sh.getRange(r, col('goingAt')).setValue(now);
+      if (b.status === 'done' && prev !== 'done' && col('doneAt')) sh.getRange(r, col('doneAt')).setValue(now);
+      if (b.status === 'going' && col('doneAt')) sh.getRange(r, col('doneAt')).setValue('');
+    }
     if (col('volunteer')) {
       if (b.status === 'open') sh.getRange(r, col('volunteer')).setValue('');
       else if (b.volunteer) sh.getRange(r, col('volunteer')).setValue(safeCell_(clean_(b.volunteer, MAX.volunteer)));
@@ -252,6 +260,7 @@ function listCases_(full, since) {
     o.status = statusCode_(o.status); o.level = levelCode_(o.level); o.urgency = urgCode_(o.urgency);
     o.needs = o.needs ? String(o.needs).split(/\s*,\s*/) : [];
     o.vulnerable = o.vulnerable ? String(o.vulnerable).split(/\s*,\s*/) : [];
+    if (!o.district) o.district = districtOf_(o);   // เขตจากที่อยู่ (ถ้าช่องเขตว่าง)
     o.photos = String(o.photos || '').match(/[-\w]{25,}/g) || [];
     if (!full) return publicCase_(o);
     return o;
@@ -350,7 +359,7 @@ const ALIASES = {
   district: ['เขต', 'district'], people: ['จำนวนคน', 'people'], address: ['ที่อยู่', 'address'],
   lat: ['ละติจูด', 'lat'], lng: ['ลองจิจูด', 'lng'], level: ['ระดับน้ำ', 'level'], needs: ['ต้องการ', 'needs'],
   vulnerable: ['กลุ่มเปราะบาง', 'vulnerable'], notes: ['รายละเอียด', 'notes'], volunteer: ['ทีมอาสา', 'volunteer'],
-  updatedAt: ['อัปเดตล่าสุด', 'updatedAt'], org: ['หน่วยงาน', 'org'], photos: ['รูปภาพ', 'photos'], pinsrc: ['ที่มาของหมุด', 'pinsrc'], token: ['รหัสติดตาม (ห้ามแก้)', 'รหัสติดตาม', 'token']
+  updatedAt: ['อัปเดตล่าสุด', 'updatedAt'], org: ['หน่วยงาน', 'org'], photos: ['รูปภาพ', 'photos'], pinsrc: ['ที่มาของหมุด', 'pinsrc'], goingAt: ['เวลารับเคส', 'goingAt'], doneAt: ['เวลาช่วยเสร็จ', 'doneAt'], token: ['รหัสติดตาม (ห้ามแก้)', 'รหัสติดตาม', 'token']
 };
 let COLS_ = null;
 /** {key: เลขคอลัมน์} จากแถวหัวตาราง (ชื่อซ้ำ ใช้คอลัมน์แรก) · คอลัมน์ token ถ้าไม่มี เพิ่มต่อท้ายให้ */
@@ -366,6 +375,8 @@ function cols_(sh) {
   if (!m.org) { m.org = m._width + 1; sh.getRange(1, m.org).setValue(ALIASES.org[0]).setFontWeight('bold'); m._width = m.org; }
   if (!m.photos) { m.photos = m._width + 1; sh.getRange(1, m.photos).setValue(ALIASES.photos[0]).setFontWeight('bold'); m._width = m.photos; }
   if (!m.pinsrc) { m.pinsrc = m._width + 1; sh.getRange(1, m.pinsrc).setValue(ALIASES.pinsrc[0]).setFontWeight('bold'); m._width = m.pinsrc; }
+  // เวลารับเคส / เวลาช่วยเสร็จ: บันทึกอัตโนมัติเมื่อเปลี่ยนสถานะในแอป (ใช้คำนวณหน้าสรุปให้แม่น)
+  ['goingAt', 'doneAt'].forEach(function (k) { if (!m[k]) { m[k] = m._width + 1; sh.getRange(1, m[k]).setValue(ALIASES[k][0]).setFontWeight('bold'); sh.getRange(2, m[k], Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('d/m/yyyy HH:mm'); m._width = m[k]; } });
   COLS_ = m;
   return m;
 }
