@@ -266,8 +266,23 @@ function drawWater(){const W=S.water;Object.values(S.maps).forEach(m=>{if(!m)ret
     m.attributionControl&&m.attributionControl.addAttribution(WL_ATTR)});
   const sub=$('#water-sub');if(sub&&W){const c5=W.st.filter(w=>w[4]===5).length,c4=W.st.filter(w=>w[4]===4).length;
     sub.textContent=(c5||c4?[c5&&`ล้นตลิ่ง ${c5}`,c4&&`น้ำมาก ${c4}`].filter(Boolean).join(' · ')+` จาก ${W.st.length} สถานี`:`${W.st.length} สถานี · ยังไม่มีจุดล้นตลิ่ง`)+' · อัปเดต '+new Date(W.at*1000).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})+' น.'}}
+/* แปลงข้อมูล ThaiWater เป็นแถวแบบเดียวกับ /api/water (ใช้ตอนดึงตรงจากเครื่องผู้ใช้) */
+function waterParse(j){const rows=(j&&j.waterlevel_data&&j.waterlevel_data.data)||(j&&j.data)||[],now=Date.now()/1000,seen={},st=[];
+  const n=v=>{const x=parseFloat(v);return isFinite(x)?x:null},r2=x=>x==null?null:Math.round(x*100)/100,th=o=>(o&&(o.th||o.en))||'';
+  (Array.isArray(rows)?rows:[]).forEach(d=>{const s=d&&d.station;if(!s)return;const lat=n(s.tele_station_lat),lng=n(s.tele_station_long);
+    if(lat==null||lng==null||lat<5||lat>21||lng<97||lng>106)return;
+    const m=/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(String(d.waterlevel_datetime||''));if(!m)return;
+    const at=Math.floor((Date.UTC(+m[1],m[2]-1,+m[3],+m[4],+m[5])-7*3600e3)/1000);if(now-at>3*86400)return;
+    const id=String(s.id||'');if(!id||seen[id])return;seen[id]=1;
+    const wl=n(d.waterlevel_msl),pv=n(d.waterlevel_msl_previous);let bank=n(d.diff_wl_bank);if(bank!=null)bank=/ล้น/.test(d.diff_wl_bank_text||'')?Math.abs(bank):-Math.abs(bank);
+    const g=d.geocode||{},place=[th(g.tumbon_name)&&'ต.'+th(g.tumbon_name),th(g.amphoe_name)&&'อ.'+th(g.amphoe_name),th(g.province_name)&&'จ.'+th(g.province_name)].filter(Boolean).join(' ');
+    st.push([id,String(th(s.tele_station_name)||s.tele_station_oldcode||'สถานีวัดระดับน้ำ').slice(0,80),lat,lng,Number(d.situation_level)||0,r2(n(d.storage_percent)),r2(wl),wl!=null&&pv!=null?r2(wl-pv):null,r2(bank),at,String(d.river_name||''),place,th(d.agency&&d.agency.agency_shortname)])});
+  return {ok:st.length>0,at:Math.floor(now),st}}
 async function waterLoad(force){if(!force&&S.water&&Date.now()-S.waterAt<5*60e3)return S.water;
-  const r=await fetch('/api/water').then(r=>r.json());if(!r||!r.ok||!Array.isArray(r.st))throw new Error('water');S.water=r;S.waterAt=Date.now();return r}
+  let r=await fetch('/api/water').then(r=>r.json()).catch(()=>null);
+  if(!r||!r.ok||!Array.isArray(r.st)||!r.st.length)   /* เซิร์ฟเวอร์เราดึงไม่ได้ (ThaiWater จำกัดจำนวนครั้ง) → ดึงตรงจากเครื่องผู้ใช้ */
+    r=waterParse(await fetch('https://api-v3.thaiwater.net/api/v1/thaiwater30/public/waterlevel_load').then(r=>r.json()));
+  if(!r||!r.ok)throw new Error('water');S.water=r;S.waterAt=Date.now();return r}
 async function toggleWater(on){store.set('uh_lay_water',on?'1':'0');$('#lay-water').checked=on;layCount();const gen=++waterGen;
   if(waterRefresh){clearInterval(waterRefresh);waterRefresh=null}
   if(!on){Object.values(S.maps).forEach(waterClear);return}

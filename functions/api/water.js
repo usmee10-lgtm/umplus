@@ -67,8 +67,8 @@ export async function onRequestGet(ctx) {
   }
   const body = JSON.stringify(st.length ? { ok: true, at: Math.floor(now), src: 'ThaiWater (สสน.)', st } : { ok: false, at: Math.floor(now), why, st });
   const res = new Response(body, {
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': st.length ? 'public, max-age=300' : 'no-store' }
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': st.length ? 'public, max-age=300' : 'public, max-age=90' }
   });
-  if (st.length) ctx.waitUntil(cache.put(key, res.clone()));
+  ctx.waitUntil(cache.put(key, res.clone()));   // ดึงไม่ได้ (เช่น ThaiWater ตอบ 429) ก็จำไว้ 90 วินาที ไม่ยิงซ้ำ · แอปจะดึงตรงจากเครื่องผู้ใช้แทน
   return res;
 }
