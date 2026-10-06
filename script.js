@@ -315,7 +315,10 @@ if($('#type-grid')){$('#type-grid').innerHTML=NEED_TYPES.map(t=>`<button type="b
 $('#type-grid').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(b)startForm({type:b.dataset.type,gps:true})})}
 $('#btn-use-gps').addEventListener('click',()=>startForm({gps:true}));
 $('#btn-all-cases').addEventListener('click',()=>{if(!S.volunteer)return;FL.status='all';FL.types=[];FL.people=[];FL.level=[];FL.q='';$('#case-search').value='';saveFL();renderFilters();go('map');setSheet(true);applyFilters()});
-$('#btn-help').addEventListener('click',()=>{go('map');setSheet(true);if(!S.volunteer){$('#vol-panel').hidden=false;renderVol(true)}});
+$('#btn-help').addEventListener('click',()=>{go('map');setSheet(true);
+  if(!S.volunteer){const p=$('#vol-panel');p.dataset.mode='';renderVol(true);setTimeout(()=>{const k=$('#vol-key');k&&k.focus()},250)}   /* ครั้งแรก: ใส่รหัส */
+  else $('#vol-panel').hidden=true});   /* ใส่รหัสแล้ว: เข้ารายการเคสเลย ไม่ต้องใส่ซ้ำ */
+$('#btn-vol-set').addEventListener('click',()=>{if(!S.volunteer)return;go('map');setSheet(true);const p=$('#vol-panel');p.dataset.mode='';renderVol(true);p.scrollIntoView({block:'nearest'})});
 let searchFrom=null;
 const openSearch=e=>{searchFrom=(e&&e.currentTarget)||document.activeElement;$('#search-overlay').hidden=false;$$('.view.active,.tabbar').forEach(x=>x.inert=true);
   $('#search-input').value='';$('#search-list').hidden=true;$('#search-status').textContent='';setTimeout(()=>$('#search-input').focus(),50)};
@@ -711,9 +714,8 @@ $('#sheet-handle').addEventListener('click',()=>setSheet(!$('#list-sheet').class
 
 /* ---------- ทีมอาสา ---------- */
 function renderVol(forceOpen){
-  const sw=$('#vol-switch');sw.classList.toggle('on',S.volunteer);sw.classList.toggle('active',S.volunteer);sw.setAttribute('aria-expanded',String(!$('#vol-panel').hidden));sw.setAttribute('aria-label',(S.volunteer?'โหมดทีมอาสา: เปิดอยู่':'เข้าโหมดทีมอาสา')+' · ตั้งค่า');
-  sw.classList.toggle('sharing',!!SHARE.watch);
-  $('#vol-label').textContent=S.volunteer?(store.get('uh_team','')||'ทีมอาสา'):'ทีมอาสา';
+  /* ไม่มีสวิตช์ "ทีมอาสา" แล้ว: เข้าโหมดจากปุ่ม "อยากช่วย" (ใส่รหัสครั้งเดียว จำไว้ในเครื่อง) · ตั้งค่า/ออก จากปุ่ม "ตั้งค่าทีมอาสา" หน้าแรก */
+  const vs=$('#btn-vol-set');if(vs){vs.hidden=!S.volunteer;const t=vs.querySelector('span');if(t)t.textContent='ตั้งค่าทีมอาสา · '+(store.get('uh_team','')||'ยังไม่ตั้งชื่อทีม')}
   const p=$('#vol-panel');if(forceOpen)p.hidden=false;if(p.hidden)return;
   if(p.dataset.mode===(S.volunteer?'v':'p')&&p.children.length)return;p.dataset.mode=S.volunteer?'v':'p';
   if(!S.volunteer){p.innerHTML='<h3>ใส่รหัสทีมอาสา</h3><p class="hint">เพื่อดูเบอร์โทร รับเคส ปิดเคส หรือคืนเคส</p><div class="row"><input id="vol-key" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="รหัสอาสา" aria-label="รหัสอาสา" aria-describedby="vol-msg"><button type="button" class="pill pill-blue" id="vol-go">เข้า</button></div><p class="err" id="vol-msg" role="alert"></p>';
@@ -744,7 +746,7 @@ function renderVol(forceOpen){
   $('#share-btn').onclick=()=>{SHARE.watch?stopShare():startShare();p.dataset.mode='';renderVol()};
   $('#vol-out').onclick=()=>{stopShare();store.set('uh_vol_key','');store.set('uh_vol_ok','');S.volunteer=false;p.hidden=true;p.dataset.mode='';S.cases=((store.json('uh_cases_cache',{})||{}).cases||[]).map(pubCase);renderAll();if(S.view==='detail')go('map');loadCases()};
 }
-$('#vol-switch').addEventListener('click',()=>{const p=$('#vol-panel');p.hidden=!p.hidden;p.dataset.mode='';renderVol();if(!p.hidden){const f=p.querySelector('input,button');f&&f.focus()}});
+
 const SHARE={watch:null,last:0,pos:null};
 function startShare(){
   if(!store.get('uh_team','')){toast('ใส่ชื่อทีมก่อนแชร์');$('#team-in')&&$('#team-in').focus();return}
