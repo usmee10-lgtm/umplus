@@ -888,3 +888,6 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .status-tabs button[aria-selected=true],.hl-cats button[aria-selected=true],.status-tabs button[aria-pressed=true],.hl-cats button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
 .tabbar button.active{background:var(--tint);color:var(--primary)}
 .me-dot span{background:#1A73E8}
+
+/* ไม่มีกล่อง "ต้องการความช่วยเหลือที่ไหน?" แล้ว · ปุ่มลอยขยับขึ้นใต้แถบโลโก้ (ค้นหาใช้ปุ่มแว่นขยายมุมขวาบน) */
+@media (max-width:1023px){#view-home .live-badge,#view-home .map-fabs{top:calc(var(--safe-t) + 84px)}}

@@ -320,7 +320,7 @@ let searchFrom=null;
 const openSearch=e=>{searchFrom=(e&&e.currentTarget)||document.activeElement;$('#search-overlay').hidden=false;$$('.view.active,.tabbar').forEach(x=>x.inert=true);
   $('#search-input').value='';$('#search-list').hidden=true;$('#search-status').textContent='';setTimeout(()=>$('#search-input').focus(),50)};
 function closeSearch(refocus=true){const o=$('#search-overlay');if(o.hidden)return;o.hidden=true;$$('.view,.tabbar').forEach(x=>x.inert=false);if(refocus&&searchFrom&&document.contains(searchFrom))searchFrom.focus()}
-$('#search-card').addEventListener('click',openSearch);$('#home-search-btn').addEventListener('click',openSearch);
+$('#home-search-btn').addEventListener('click',openSearch);
 $('#search-cancel').addEventListener('click',()=>closeSearch());
 $('#search-gps').addEventListener('click',()=>{closeSearch(false);startForm({gps:true})});
 geoAttach($('#search-input'),$('#search-list'),it=>{closeSearch(false);startForm({loc:it})},{status:$('#search-status'),
