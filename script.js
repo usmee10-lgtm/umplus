@@ -1017,3 +1017,11 @@ setInterval(()=>{if(!document.hidden)loadCases()},REFRESH_MS);
 setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
+
+/* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
+const APP_V='197';let appNewer=false;
+async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V)appNewer=true}catch(e){}
+  if(appNewer&&S.view!=='form'&&S.view!=='sent'){try{const reg=navigator.serviceWorker&&await navigator.serviceWorker.getRegistration();reg&&await reg.update()}catch(e){}location.reload()}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppVersion()});
+setInterval(()=>{if(!document.hidden)checkAppVersion()},5*60e3);
+setTimeout(checkAppVersion,3000);
