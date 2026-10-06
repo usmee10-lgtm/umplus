@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=101">
+<link rel="stylesheet" href="./app.css?v=102">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -194,6 +194,8 @@
           <button type="button" class="fl-btn" id="more-filter" data-icon="filter" aria-expanded="false" aria-controls="fl-drawer">ตัวกรอง</button>
         </div>
         <div class="fl-drawer card" id="fl-drawer" hidden>
+          <h4>ความด่วน</h4>
+          <div class="chips urg-chips" id="urg-filter" role="group" aria-label="กรองตามความด่วน"></div>
           <h4>เรียงลำดับ</h4>
           <div class="sort-row" id="sort-row" role="group" aria-label="เรียงลำดับเคส"></div>
           <h4>ประเภทความช่วยเหลือ</h4>
@@ -249,13 +251,13 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=101"></script>
-<script src="./geocode.js?v=101"></script>
-<script src="./location.js?v=101"></script>
-<script src="./pickmap.js?v=101"></script>
-<script src="./stats.js?v=101"></script>
-<script src="./hotlines.js?v=101"></script>
-<script src="./script.js?v=101"></script>
+<script src="./icons.js?v=102"></script>
+<script src="./geocode.js?v=102"></script>
+<script src="./location.js?v=102"></script>
+<script src="./pickmap.js?v=102"></script>
+<script src="./stats.js?v=102"></script>
+<script src="./hotlines.js?v=102"></script>
+<script src="./script.js?v=102"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
