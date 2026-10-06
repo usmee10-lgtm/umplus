@@ -187,7 +187,7 @@ function layListTo(menu){const l=$('#lay-list');if(!l)return;if(menu){if(l.paren
 /* ชั้นข้อมูลบนแผนที่: เหลือเฉพาะทีมอาสา (เปิดไว้เป็นค่าเริ่มต้น) · โค้ดชั้นน้ำท่วม/ฝน/CCTV ยังอยู่แต่ไม่ได้เรียกใช้ */
 const teamsOn=()=>!!S.volunteer&&store.get('uh_lay_teams','1')!=='0';   /* ชั้นทีมอาสาเห็นเฉพาะคนที่เข้าโหมดทีมอาสา (ใส่รหัสแล้ว) */
 var volLayShown=null;
-function syncVolLayers(){const v=!!S.volunteer,c=$('#lay-card');if(c)c.hidden=!v;
+function syncVolLayers(){const v=!!S.volunteer,c=$('#lay-card');if(c)c.hidden=!v;const ac=$('#btn-all-cases');if(ac)ac.hidden=!v;   /* ปุ่ม "ดูเคสทั้งหมด" เฉพาะทีมอาสา */
   if(volLayShown===v)return;volLayShown=v;
   if(!v){closeLayerMenu&&$('#layer-menu')&&!$('#layer-menu').hidden&&closeLayerMenu(false);teamsGen++;Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams){m._teams.remove();m._teams=null}if(m._helped){m._helped.remove();m._helped=null}})}
   else{$('#lay-teams').checked=teamsOn();layCount();if(teamsOn()&&Object.values(S.maps).some(Boolean))toggleTeams(true)}}
@@ -314,7 +314,7 @@ $('#lay-teams').addEventListener('change',e=>toggleTeams(e.target.checked));
 $('#type-grid').innerHTML=NEED_TYPES.map(t=>`<button type="button" class="type-btn" data-type="${t.key}">${ic(t.icon)}<span>${t.label}</span></button>`).join('');
 $('#type-grid').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(b)startForm({type:b.dataset.type,gps:true})});
 $('#btn-use-gps').addEventListener('click',()=>startForm({gps:true}));
-$('#btn-all-cases').addEventListener('click',()=>{FL.status='all';FL.types=[];FL.people=[];FL.level=[];FL.q='';$('#case-search').value='';saveFL();renderFilters();go('map');setSheet(true);applyFilters()});
+$('#btn-all-cases').addEventListener('click',()=>{if(!S.volunteer)return;FL.status='all';FL.types=[];FL.people=[];FL.level=[];FL.q='';$('#case-search').value='';saveFL();renderFilters();go('map');setSheet(true);applyFilters()});
 $('#btn-help').addEventListener('click',()=>{go('map');setSheet(true);if(!S.volunteer){$('#vol-panel').hidden=false;renderVol(true)}});
 let searchFrom=null;
 const openSearch=e=>{searchFrom=(e&&e.currentTarget)||document.activeElement;$('#search-overlay').hidden=false;$$('.view.active,.tabbar').forEach(x=>x.inert=true);
