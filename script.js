@@ -776,11 +776,15 @@ function renderVol(forceOpen){
     <h3 class="mt">หน่วยงาน</h3><div class="row"><select id="org-in" aria-label="หน่วยงาน"><option value="">— เลือกหน่วยงาน —</option>${orgOpts(store.get('uh_org',''))}</select></div>
     <div class="sep"></div><h3>แชร์ตำแหน่งทีม</h3><p class="hint">ให้ผู้แจ้งเห็นว่าทีมอยู่พื้นที่ไหน (ปัดเศษประมาณ 100 ม.)</p>
     <button type="button" class="pill ${SHARE.watch?'pill-ghost':'pill-green'} full" id="share-btn">${SHARE.watch?'หยุดแชร์ตำแหน่ง':'เริ่มแชร์ตำแหน่ง'}</button>
-    <div class="sep"></div><button type="button" class="pill pill-line full" id="vol-out">ออกจากโหมดอาสา</button>`;
+    <div class="vol-out-wrap"><button type="button" class="vol-out-link" id="vol-out-ask">ออกจากโหมดอาสา</button>
+    <div class="vol-out-confirm" id="vol-out-confirm" hidden><p><b>ออกจากโหมดอาสา?</b><br>ครั้งหน้าต้องใส่รหัสใหม่${SHARE.watch?' และจะหยุดแชร์ตำแหน่งทีม':''}</p><div class="row"><button type="button" class="pill pill-ghost" id="vol-out-no">ยกเลิก</button><button type="button" class="pill vol-out-yes" id="vol-out">ออก</button></div></div></div>`;
   iconify(p);
   $('#team-in').onchange=e=>{store.set('uh_team',e.target.value.trim());renderVol()};
   $('#org-in').onchange=e=>store.set('uh_org',e.target.value);
   $('#share-btn').onclick=()=>{SHARE.watch?stopShare():startShare();p.dataset.mode='';renderVol()};
+  /* กันกดพลาด: ลิงก์เล็ก → ต้องกดยืนยันอีกครั้ง */
+  $('#vol-out-ask').onclick=()=>{$('#vol-out-confirm').hidden=false;$('#vol-out-ask').hidden=true;$('#vol-out-no').focus()};
+  $('#vol-out-no').onclick=()=>{$('#vol-out-confirm').hidden=true;$('#vol-out-ask').hidden=false};
   $('#vol-out').onclick=()=>{stopShare();store.set('uh_vol_key','');store.set('uh_vol_ok','');S.volunteer=false;p.hidden=true;p.dataset.mode='';S.cases=((store.json('uh_cases_cache',{})||{}).cases||[]).map(pubCase);renderAll();if(S.view==='detail')go('map');loadCases()};
 }
 
@@ -1056,7 +1060,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='205';let appNewer=false;
+const APP_V='206';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */

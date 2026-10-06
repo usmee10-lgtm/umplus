@@ -966,3 +966,12 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .leaflet-control-attribution.attr-min:not(.attr-open)::after{content:"i";position:absolute;inset:0;display:grid;place-items:center;font:italic 700 13px/1 Georgia,serif;color:#5E626E}
 .leaflet-control-attribution.attr-open{max-width:calc(100vw - 24px);padding:4px 8px!important;border-radius:10px;background:rgba(255,255,255,.95)!important;box-shadow:0 1px 4px rgba(22,27,61,.18)}
 .leaflet-bottom.leaflet-right .leaflet-control-attribution.attr-min{margin:0 6px 6px 0}
+
+/* ออกจากโหมดอาสา: ลิงก์เล็ก แยกห่างจากปุ่มอื่น + ต้องยืนยัน */
+.vol-out-wrap{margin-top:22px;padding-top:12px;border-top:1px dashed var(--line);display:grid;justify-items:center}
+.vol-out-link{border:0;background:none;color:var(--muted);font:inherit;font-size:13.5px;text-decoration:underline;text-underline-offset:3px;padding:8px 12px;cursor:pointer}
+.vol-out-confirm{width:100%;display:grid;gap:10px;background:var(--bg);border-radius:14px;padding:12px}
+.vol-out-confirm p{margin:0;font-size:14px;color:var(--muted);text-align:center}.vol-out-confirm p b{color:var(--ink)}
+.vol-out-confirm .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.vol-out-confirm .pill{min-height:44px;justify-content:center}
+.vol-out-yes{background:#fff;color:var(--primary);box-shadow:inset 0 0 0 1.5px var(--primary)}
