@@ -95,7 +95,7 @@ function renderAll(){
   const stTab=$('.tabbar [data-go=stats]');if(stTab)stTab.style.display=S.volunteer?'':'none';
   if(S.view==='stats'){if(S.volunteer)renderStats();else go('home')}
   if(typeof tripRefresh==='function')tripRefresh();
-  if(typeof drawHelped==='function'&&store.get('uh_lay_teams','')&&S.outreach)drawHelped();
+  if(typeof drawHelped==='function'&&teamsOn()&&S.outreach)drawHelped();
 }
 
 /* ---------- เปลี่ยนหน้า ---------- */
@@ -133,7 +133,7 @@ async function ensureMap(which){
   if(S.maps[which])return S.maps[which];
   const m=makeMap(el,{zoom:11});S.maps[which]=m;PIN_LAYER[which]=L.layerGroup().addTo(m);
   m.on('baselayerchange',()=>{});
-  drawPins(which);if(store.get('uh_lay_flood','1')!=='0')toggleFlood(true);if(store.get('uh_lay_teams',''))toggleTeams(true);if(store.get('uh_lay_cctv',''))toggleCctv(true);if(store.get('uh_lay_rain',''))toggleRain(true);
+  drawPins(which);if(teamsOn())toggleTeams(true);
   if(which==='map'&&typeof drawTrip==='function')drawTrip();
   return m;
 }
@@ -183,9 +183,11 @@ document.addEventListener('click',e=>{
 let layerBtn=null;
 /* รายการชั้นข้อมูลอยู่ในกล่องสีน้ำเงินหน้าแรก · ถ้าเปิดเมนูจากหน้าแผนที่ ยกรายการเดียวกันไปแสดงในเมนูลอยชั่วคราว */
 function layListTo(menu){const l=$('#lay-list');if(!l)return;if(menu){if(l.parentNode!==menu)menu.append(l);l.classList.add('in-menu')}else{const c=$('#lay-card');if(l.parentNode!==c)c.append(l);l.classList.remove('in-menu')}}
-var LAY_NAMES={'lay-rain':'เรดาร์ฝน','lay-flood':'น้ำท่วม','lay-teams':'ทีมช่วยเหลือ','lay-cctv':'CCTV'};
+/* ชั้นข้อมูลบนแผนที่: เหลือเฉพาะทีมอาสา (เปิดไว้เป็นค่าเริ่มต้น) · โค้ดชั้นน้ำท่วม/ฝน/CCTV ยังอยู่แต่ไม่ได้เรียกใช้ */
+const teamsOn=()=>store.get('uh_lay_teams','1')!=='0';
+var LAY_NAMES={'lay-teams':'ทีมอาสา'};
 function layCount(){const on=Object.keys(LAY_NAMES).filter(id=>$('#'+id)&&$('#'+id).checked);const s=$('#lay-sum-s');if(s)s.textContent=on.length?'เปิดอยู่: '+on.map(id=>LAY_NAMES[id]).join(' · '):'ยังไม่ได้เปิดชั้นข้อมูล';const c=$('#lay-card');if(c)c.classList.toggle('has-on',on.length>0)}
-(function(){const c=$('#lay-card');if(!c)return;if(store.get('uh_lay_open','')==='1')c.open=true;c.addEventListener('toggle',()=>store.set('uh_lay_open',c.open?'1':''));$$('#lay-list .sw-in').forEach(i=>i.addEventListener('change',layCount));layCount()})();
+(function(){const c=$('#lay-card');if(!c)return;$('#lay-teams').checked=teamsOn();if(store.get('uh_lay_open','')==='1')c.open=true;c.addEventListener('toggle',()=>store.set('uh_lay_open',c.open?'1':''));$$('#lay-list .sw-in').forEach(i=>i.addEventListener('change',layCount));layCount()})();
 function closeLayerMenu(refocus){const m=$('#layer-menu');if(!m)return;const was=!m.hidden;m.hidden=true;layListTo(null);$$('.fab[data-act=layers]').forEach(b=>b.setAttribute('aria-expanded','false'));if(was&&refocus&&layerBtn)layerBtn.focus()}
 async function locateMe(which,btn){
   const m=await ensureMap(which);if(!m)return;btn&&btn.classList.add('on');
@@ -204,7 +206,6 @@ async function toggleFlood(on){store.set('uh_lay_flood',on?'1':'0');$('#lay-floo
     if(gen!==floodGen)return;  /* มีการเรียกใหม่กว่าแล้ว */
     Object.values(S.maps).forEach(m=>{if(!m)return;if(m._flood)m._flood.remove();m._flood=L.geoJSON(S.flood,{interactive:false,attribution:'ข้อมูลน้ำท่วม © <a href="https://www.floodboard.org/about" target="_blank" rel="noopener">Floodboard</a>',style:f=>({color:FLOOD_COL[floodV(f.properties)],weight:5,opacity:.85,lineCap:'round'}),pointToLayer:(f,ll)=>L.circleMarker(ll,{radius:4,color:FLOOD_COL[floodV(f.properties)],weight:2})}).addTo(m)});
   }catch(e){toast('โหลดข้อมูลน้ำท่วมไม่สำเร็จ')}}
-$('#lay-flood').addEventListener('change',e=>toggleFlood(e.target.checked));
 /* ชั้นทีมกู้ภัย (ตำแหน่งปัดเศษสำหรับคนทั่วไป) */
 /* ชั้นทีมกู้ภัยและเครือข่ายช่วยเหลือ: ทีมที่แชร์ตำแหน่งสด (ปัดเศษสำหรับคนทั่วไป) + จุดเครือข่ายจากแท็บ "เครือข่าย" ในชีต */
 const NET_STYLE={'ทีมกู้ภัย':'shield','จุดพักพิง':'home','จุดแจกของ':'food','จุดแพทย์':'ambulance','มูลนิธิ/เครือข่าย':'heart'};
@@ -219,11 +220,11 @@ function helpedPopup(h){const o=orgOf(h.org);
 /* วงกลมเฉพาะองค์กรอื่นที่ลงพื้นที่ (จากโพสต์โซเชียล/ข่าว ในแท็บ "ลงพื้นที่") · เคสของทีมอุมมะตีแสดงเป็นหมุดตามเดิม */
 function helpedList(){return (S.outreach||[]).map(p=>({lat:p.lat,lng:p.lng,org:p.org,link:p.link,title:'ลงพื้นที่ช่วยเหลือ',detail:p.detail,when:p.date?'วันที่ '+p.date:''}))}
 function drawHelped(){Object.values(S.maps).forEach(m=>{if(!m)return;if(m._helped){m._helped.remove();m._helped=null}
-  if(!store.get('uh_lay_teams',''))return;const hs=helpedList();if(!hs.length)return;
+  if(!teamsOn())return;const hs=helpedList();if(!hs.length)return;
   m._helped=L.layerGroup(hs.flatMap(h=>{const o=orgOf(h.org);
     return [L.circle([h.lat,h.lng],{radius:350,color:o.color,weight:1,opacity:.35,fillColor:o.color,fillOpacity:.13,interactive:false}),
       L.marker([h.lat,h.lng],{icon:L.divIcon({className:'org-pin',html:o.logo?`<img src="${esc(o.logo)}" alt="">`:`<span style="background:${o.color}">${esc(o.short)}</span>`,iconSize:[44,20],iconAnchor:[22,10]}),opacity:.88,zIndexOffset:-200,title:o.name+' · '+h.title}).bindPopup(()=>helpedPopup(h))]})).addTo(m)})}
-async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'');$('#lay-teams').checked=on;layCount&&layCount();const gen=++teamsGen;
+async function toggleTeams(on){store.set('uh_lay_teams',on?'1':'0');$('#lay-teams').checked=on;layCount&&layCount();const gen=++teamsGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._teams){m._teams.remove();m._teams=null}});drawHelped();if(!on)return;
   const p={action:'teams'};if(S.volunteer)p.key=volKey();
   const tm=Math.floor(Date.now()/60000);
@@ -273,7 +274,6 @@ async function toggleRain(on){store.set('uh_lay_rain',on?'1':'');$('#lay-rain').
   try{await rainMeta();if(gen!==rainGen)return;drawRain();
     rainRefresh=setInterval(async()=>{if(document.hidden||rainAnim)return;const last=(rainFrames().slice(-1)[0]||{}).time;try{await rainMeta(true);if((rainFrames().slice(-1)[0]||{}).time!==last)drawRain()}catch(e){}},5*60e3)}
   catch(e){if(gen!==rainGen)return;toast('โหลดเรดาร์ฝนไม่สำเร็จ');store.set('uh_lay_rain','');$('#lay-rain').checked=false;layCount()}}
-$('#lay-rain').addEventListener('change',e=>toggleRain(e.target.checked));
 /* ชั้นกล้อง CCTV (ข้อมูล POPNIX Flood) · ซูมเข้า (ระดับ 12 ขึ้นไป) ถึงจะแสดง ไม่ให้จุดรกทั้งเมือง */
 let cctvGen=0;const CCTV_ZOOM=12;
 /* ไอคอนกล้องวงจรปิด วาดลง canvas (เบากว่าใช้ HTML ทีละตัว เพราะมีกล้องหลักพัน) */
@@ -302,7 +302,6 @@ async function toggleCctv(on){store.set('uh_lay_cctv',on?'1':'');$('#lay-cctv').
       cctvZoomSync(m)});
     const cur=S.maps[S.view==='map'?'map':'home'];if(cur&&cur.getZoom()<CCTV_ZOOM)toast(`ซูมเข้าเพื่อดูกล้อง CCTV (${S.cctv.cams.length.toLocaleString('th-TH')} ตัว)`);
   }catch(e){toast('โหลดกล้อง CCTV ไม่สำเร็จ');store.set('uh_lay_cctv','');$('#lay-cctv').checked=false;layCount()}}
-$('#lay-cctv').addEventListener('change',e=>toggleCctv(e.target.checked));
 $('#lay-teams').addEventListener('change',e=>toggleTeams(e.target.checked));
 
 /* ---------- หน้าแรก ---------- */
