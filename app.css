@@ -1,8 +1,9 @@
 /* Help Me ช่วยด้วย — Liquid Glass · 2 สี: น้ำเงิน #0F2188 / เขียว #71F48A (เฉดอื่นผสมขาวเท่านั้น) */
 :root{
   /* โทน ViaBus + iOS 26: น้ำเงินรอยัล / กรมท่า / พื้นเทาอ่อน */
-  --primary:#2D45C8;--primary-2:#2338A8;--tint:#E9ECFB;--tint-2:#D9DEF3;
-  --navy:#1F2A5E;--navy-2:#2A3672;--ink:#161B3D;--muted:#5B6386;--line:#E3E6EF;--bg:#F2F3F7;
+  /* สีแบรนด์ตามโลโก้ Help Me: แดง #DD2027 + ดำ บนพื้นขาว · สีสถานะเคส (เปิด/กำลังไป/เสร็จ) แยกไว้ที่ --open */
+  --primary:#DD2027;--primary-2:#B8161D;--tint:#FDEDEE;--tint-2:#F9D5D7;--open:#2D45C8;--open-tint:#E9ECFB;
+  --navy:#17181C;--navy-2:#2B2D33;--ink:#17181C;--muted:#62656F;--line:#E8E8EC;--bg:#F5F5F7;
   --ok:#2E9E57;--ok-tint:#E3F5E9;--ok-ink:#1D6B3B;--red:#E5383B;--going:#7B8CEB;
   --blue:var(--primary);--b-80:var(--primary);--b-60:var(--going);--b-muted:var(--muted);--b-40:#AEB6DA;--b-20:var(--tint-2);--b-10:var(--tint);--b-05:var(--bg);
   --green:var(--primary);--g-60:var(--tint-2);--g-30:var(--tint);--g-15:var(--tint);
@@ -851,3 +852,39 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .hl-org-t small{font-size:13px;line-height:1.4;color:var(--muted)}
 .hl-org .hl{margin:0;border:0;border-radius:0;background:none;border-top:1px solid var(--line,#E6E8F0);padding:10px 14px}
 .hl-org .hl-name{font-size:13px}
+
+
+/* ===== ธีมขาว + แดงตามโลโก้ Help Me ===== */
+.sheet-head{background:#fff;color:var(--ink);padding:22px 20px 10px}
+.sheet-head::before{background:#D9D9DE}
+.sheet-body{background:#fff;color:var(--ink)}
+.type-btn{background:var(--bg);color:var(--ink);border:1px solid var(--line)}
+.type-btn .ic{color:var(--primary)}
+.type-btn:active,.type-btn:hover{background:var(--tint);color:var(--ink);border-color:var(--tint-2)}
+.sheet-actions{grid-template-columns:1.35fr 1fr}
+.sheet-actions .pill-sos{background:var(--primary);color:#fff;font-weight:800;box-shadow:0 6px 16px rgba(221,32,39,.32)}
+.sheet-actions .pill-sos:active{background:var(--primary-2)}
+.sheet-actions .pill-ghost{background:var(--bg);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.sheet-actions .pill-ghost .ic{color:var(--primary)}
+.sheet-actions .all-cases{background:var(--bg);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.sheet-actions .all-cases b{background:var(--ink);color:#fff}
+.my-req{border-top-color:var(--line)}
+.req-item{background:var(--bg)}
+/* กล่องชั้นข้อมูล (ทีมอาสา) บนพื้นขาว */
+.lay-card{background:var(--bg);border-color:var(--line)}
+.lay-card>summary:focus-visible,.sw-in:focus-visible+.lay-row{outline-color:var(--primary)}
+.lay-sum-ic{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.lay-card.has-on .lay-sum-ic{background:var(--primary);color:#fff;box-shadow:none}
+.lay-sum-t b,.lay-t b{color:var(--ink)}
+.lay-sum-t small,.lay-t small,.sw-in:checked+.lay-row .lay-t small{color:var(--muted)}
+.lay-chev{background:#fff;color:var(--ink)}
+.lay-item{background:#fff}
+.lay-key span{background:var(--bg);color:var(--ink)}
+.sw-in:checked+.lay-row .sw{background:var(--primary)}
+/* สีสถานะเคสคงเดิม (น้ำเงิน = รอช่วย) ไม่ปนกับสีแดงของแบรนด์/ด่วน */
+.st-open{background:var(--open-tint);color:var(--open)}
+.um-pin.open span{background:var(--open)}
+/* ส่วนอื่น: แถบหัว/แท็บ/ปุ่มเลือก ใช้ดำ-ขาว-แดง */
+.status-tabs button[aria-selected=true],.hl-cats button[aria-selected=true],.status-tabs button[aria-pressed=true],.hl-cats button[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.tabbar button.active{background:var(--tint);color:var(--primary)}
+.me-dot span{background:#1A73E8}
