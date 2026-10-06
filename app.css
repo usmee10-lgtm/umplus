@@ -955,3 +955,6 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 .urg-chips .u4 i{background:#9F1239}.urg-chips .u3 i{background:#E5383B}.urg-chips .u2 i{background:#F07B14}.urg-chips .u1 i{background:#E0B000}
 .urg-chips input:checked+.u4{background:#9F1239;color:#fff}.urg-chips input:checked+.u3{background:#E5383B;color:#fff}.urg-chips input:checked+.u2{background:#F07B14;color:#fff}.urg-chips input:checked+.u1{background:#E0B000;color:#3A2A00}
 .urg-chips input:checked+span i{background:#fff}
+
+/* คนทั่วไป: แท็บ "รายการ" แสดงแค่คำขอของตัวเอง → ไม่ต้องมีค้นหา/ตัวกรอง */
+body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.is-vol) #fl-drawer,body:not(.is-vol) #trip-panel{display:none!important}

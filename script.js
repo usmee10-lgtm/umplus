@@ -123,7 +123,7 @@ function focusView(view){const v=$('#view-'+view);if(!v)return;const t=v.querySe
   setTimeout(()=>{if(!v.contains(document.activeElement)||document.activeElement===document.body)t.focus({preventScroll:true})},0)}
 $('#skip-link').addEventListener('click',e=>{e.preventDefault();focusView(S.view||'home')});
 addEventListener('popstate',()=>{const v=(location.hash||'#home').slice(1);go(['home','map','emergency','stats','form','detail','sent'].includes(v)?v:'home',false)});
-document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){e.preventDefault();go(b.dataset.go)}});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){e.preventDefault();go(b.dataset.go);if(b.dataset.go==='map'&&b.closest('.tabbar'))setSheet(true)}});   /* แท็บ "รายการ" เปิดรายการขึ้นมาเลย */
 
 /* ---------- แผนที่หลัก ---------- */
 const PIN_LAYER={};
@@ -143,7 +143,7 @@ function drawPins(which){
   const m=S.maps[which],lg=PIN_LAYER[which];if(!m||!lg)return;
   if(m._popup&&m.hasLayer(m._popup)){m._pinsStale=true;if(!m._pinsHook){m._pinsHook=1;m.on('popupclose',()=>{if(m._pinsStale){m._pinsStale=false;setTimeout(()=>drawPins(which),0)}})}return}  /* อาสากำลังอ่าน popup อยู่ → ค่อยวาดใหม่ตอนปิด */
   lg.clearLayers();
-  const list=which==='home'?S.cases.filter(c=>c.status!=='done'):filteredCases();
+  const list=which==='home'?visibleCases().filter(c=>c.status!=='done'):filteredCases();
   const pts=[];
   list.filter(hasPin).forEach(c=>{const k=pinKind(c);pts.push([+c.lat,+c.lng]);
     L.marker([+c.lat,+c.lng],{icon:pinIcon(k),zIndexOffset:k==='danger'?1000:k==='open'?500:0,title:[k==='danger'?'ด่วน':STATUS_TH[c.status]||'รอช่วย',((c.needs||[]).join(', ')||'ขอความช่วยเหลือ'),(c.people||1)+' คน'].join(' · ')}).bindPopup(()=>popupHtml(c)).addTo(lg)});
@@ -187,7 +187,7 @@ function layListTo(menu){const l=$('#lay-list');if(!l)return;if(menu){if(l.paren
 /* ชั้นข้อมูลบนแผนที่: เหลือเฉพาะทีมอาสา (เปิดไว้เป็นค่าเริ่มต้น) · โค้ดชั้นน้ำท่วม/ฝน/CCTV ยังอยู่แต่ไม่ได้เรียกใช้ */
 const teamsOn=()=>!!S.volunteer&&store.get('uh_lay_teams','1')!=='0';   /* ชั้นทีมอาสาเห็นเฉพาะคนที่เข้าโหมดทีมอาสา (ใส่รหัสแล้ว) */
 var volLayShown=null;
-function syncVolLayers(){const v=!!S.volunteer,c=$('#lay-card');if(c)c.hidden=!v;const ac=$('#btn-all-cases');if(ac)ac.hidden=!v;   /* ปุ่ม "ดูเคสทั้งหมด" เฉพาะทีมอาสา */
+function syncVolLayers(){const v=!!S.volunteer,c=$('#lay-card');document.body.classList.toggle('is-vol',v);if(c)c.hidden=!v;const ac=$('#btn-all-cases');if(ac)ac.hidden=!v;   /* ปุ่ม "ดูเคสทั้งหมด" เฉพาะทีมอาสา */
   if(volLayShown===v)return;volLayShown=v;
   if(!v){closeLayerMenu&&$('#layer-menu')&&!$('#layer-menu').hidden&&closeLayerMenu(false);teamsGen++;Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams){m._teams.remove();m._teams=null}if(m._helped){m._helped.remove();m._helped=null}})}
   else{$('#lay-teams').checked=teamsOn();layCount();if(teamsOn()&&Object.values(S.maps).some(Boolean))toggleTeams(true)}}
@@ -673,8 +673,11 @@ function caseHay(c){const d=Number(c.createdAt)?new Date(Number(c.createdAt)):nu
   return srchNorm([c.id,'#'+c.id,(c.needs||[]).join(' '),c.district,c.district?'เขต'+c.district:'',c.address,c.name,c.phone,c.notes,c.volunteer,STATUS_TH[c.status],c.status!=='done'?URG_TH[sevOf(c)]:'',LEVEL_TH[c.level]||'',c.people?c.people+' คน':'',d?d.toLocaleDateString('th-TH',{day:'numeric',month:'short'}):''].filter(Boolean).join(' '))}
 function caseMatches(c,q){const hay=caseHay(c);if(q.length>=3&&hay.replace(/\s+/g,'').includes(q.replace(/\s+/g,'')))return true;const digits=normDigits(c.phone);
   return q.split(/\s+/).every(t=>{if(hay.includes(t))return true;if(!/^\+?[\d-]+$/.test(t))return false;const raw=t.replace(/\D/g,''),d=normDigits(t);if(raw.length<3||!d)return false;return /^(0|\+?66)/.test(t)?digits.startsWith(d):digits.includes(d)})}
+/* คนทั่วไปเห็นเฉพาะคำขอที่ตัวเองแจ้งจากเครื่องนี้ · ทีมอาสาเห็นทุกเคส */
+function visibleCases(){if(S.volunteer)return S.cases;const mine=new Set(myReqs().map(m=>String(m.id)));return S.cases.filter(c=>mine.has(String(c.id)))}
 function filteredCases(){
   const rank={open:0,going:1,done:2};
+  if(!S.volunteer)return visibleCases().sort((a,b)=>(Number(b.createdAt)||0)-(Number(a.createdAt)||0));
   return S.cases.filter(c=>{
     if(FL.q)return caseMatches(c,FL.q);
     if(FL.status==='active'&&c.status==='done')return false;
@@ -730,9 +733,9 @@ function caseMore(c){const d=document.createElement('div');d.className='cr-more'
   d.querySelector('.cr-open').addEventListener('click',()=>openCase(c.id));return d}
 function renderList(){
   const list=filteredCases(),el=$('#case-list');el.replaceChildren(...(list.length?[caseHead()]:[]),...list.map(caseRow));
-  if(!list.length)el.innerHTML=`<p class="empty">${S.loaded?(FL.q?'ไม่พบเคสที่ค้นหา':'ไม่มีเคสในตัวกรองนี้'):'กำลังโหลด…'}</p>`;
+  if(!list.length)el.innerHTML=`<p class="empty">${!S.volunteer?'ยังไม่มีคำขอที่ส่งจากเครื่องนี้ · กด "ขอความช่วยเหลือ" ที่หน้าแรก':S.loaded?(FL.q?'ไม่พบเคสที่ค้นหา':'ไม่มีเคสในตัวกรองนี้'):'กำลังโหลด…'}</p>`;
   /* คนทั่วไปไม่เห็นจำนวนเคส */
-  const txt=S.volunteer?(FL.q?`พบ ${list.length} เคส (ค้นจากทุกเคส)`:`${list.length} เคส`):(FL.q?'ผลการค้นหา':'รายการเคส');$('#case-count').textContent=txt;S.listTxt=txt;sheetLabel();
+  const txt=S.volunteer?(FL.q?`พบ ${list.length} เคส (ค้นจากทุกเคส)`:`${list.length} เคส`):'คำขอของฉัน';$('#case-count').textContent=txt;S.listTxt=txt;sheetLabel();
   if(typeof tripBadges==='function')tripBadges();
 }
 function renderLegend(){$('#legend').innerHTML=`<span><i style="background:var(--red)"></i>ด่วน</span><span><i style="background:var(--open)"></i>รอช่วย</span><span><i style="background:var(--going)"></i>กำลังไป</span><span><i style="background:var(--ok)"></i>ช่วยแล้ว</span>`}
@@ -1047,7 +1050,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='202';let appNewer=false;
+const APP_V='203';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
