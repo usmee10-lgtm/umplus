@@ -134,7 +134,7 @@ async function ensureMap(which){
   if(S.maps[which])return S.maps[which];
   const m=makeMap(el,{zoom:11});S.maps[which]=m;PIN_LAYER[which]=L.layerGroup().addTo(m);
   m.on('baselayerchange',()=>{});
-  drawPins(which);if(teamsOn())toggleTeams(true);
+  drawPins(which);if(S.volunteer)volLayersOn();
   if(which==='map'&&typeof drawTrip==='function')drawTrip();
   return m;
 }
@@ -184,14 +184,17 @@ document.addEventListener('click',e=>{
 let layerBtn=null;
 /* รายการชั้นข้อมูลอยู่ในกล่องสีน้ำเงินหน้าแรก · ถ้าเปิดเมนูจากหน้าแผนที่ ยกรายการเดียวกันไปแสดงในเมนูลอยชั่วคราว */
 function layListTo(menu){const l=$('#lay-list');if(!l)return;if(menu){if(l.parentNode!==menu)menu.append(l);l.classList.add('in-menu')}else{const c=$('#lay-card');if(l.parentNode!==c)c.append(l);l.classList.remove('in-menu')}}
-/* ชั้นข้อมูลบนแผนที่: เหลือเฉพาะทีมอาสา (เปิดไว้เป็นค่าเริ่มต้น) · โค้ดชั้นน้ำท่วม/ฝน/CCTV ยังอยู่แต่ไม่ได้เรียกใช้ */
+/* ชั้นข้อมูลบนแผนที่: เฉพาะทีมอาสาที่ใส่รหัสแล้ว · ทีมอาสา + ถนนน้ำท่วม เปิดเป็นค่าเริ่มต้น · ฝน/CCTV เปิดเองได้ */
 const teamsOn=()=>!!S.volunteer&&store.get('uh_lay_teams','1')!=='0';   /* ชั้นทีมอาสาเห็นเฉพาะคนที่เข้าโหมดทีมอาสา (ใส่รหัสแล้ว) */
+function volLayersOn(){if(teamsOn())toggleTeams(true);if(store.get('uh_lay_flood','1')!=='0')toggleFlood(true);if(store.get('uh_lay_cctv',''))toggleCctv(true);if(store.get('uh_lay_rain',''))toggleRain(true)}
+function volLayersOff(){const keep={f:store.get('uh_lay_flood','1'),c:store.get('uh_lay_cctv',''),r:store.get('uh_lay_rain','')};   /* ซ่อนแต่ไม่ลืมค่าที่ทีมเลือกไว้ */
+  try{toggleFlood(false);toggleCctv(false);toggleRain(false)}catch(e){}store.set('uh_lay_flood',keep.f);store.set('uh_lay_cctv',keep.c);store.set('uh_lay_rain',keep.r)}
 var volLayShown=null;
 function syncVolLayers(){const v=!!S.volunteer,c=$('#lay-card');document.body.classList.toggle('is-vol',v);if(c)c.hidden=!v;const ac=$('#btn-all-cases');if(ac)ac.hidden=!v;   /* ปุ่ม "ดูเคสทั้งหมด" เฉพาะทีมอาสา */
   if(volLayShown===v)return;volLayShown=v;
-  if(!v){closeLayerMenu&&$('#layer-menu')&&!$('#layer-menu').hidden&&closeLayerMenu(false);teamsGen++;Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams){m._teams.remove();m._teams=null}if(m._helped){m._helped.remove();m._helped=null}})}
-  else{$('#lay-teams').checked=teamsOn();layCount();if(teamsOn()&&Object.values(S.maps).some(Boolean))toggleTeams(true)}}
-var LAY_NAMES={'lay-teams':'ทีมอาสา'};
+  if(!v){closeLayerMenu&&$('#layer-menu')&&!$('#layer-menu').hidden&&closeLayerMenu(false);teamsGen++;Object.values(S.maps).forEach(m=>{if(!m)return;if(m._teams){m._teams.remove();m._teams=null}if(m._helped){m._helped.remove();m._helped=null}});volLayersOff()}
+  else{$('#lay-teams').checked=teamsOn();$('#lay-flood').checked=store.get('uh_lay_flood','1')!=='0';$('#lay-rain').checked=!!store.get('uh_lay_rain','');$('#lay-cctv').checked=!!store.get('uh_lay_cctv','');layCount();if(Object.values(S.maps).some(Boolean))volLayersOn()}}
+var LAY_NAMES={'lay-teams':'ทีมอาสา','lay-flood':'น้ำท่วม','lay-rain':'เรดาร์ฝน','lay-cctv':'CCTV'};
 function layCount(){const on=Object.keys(LAY_NAMES).filter(id=>$('#'+id)&&$('#'+id).checked);const s=$('#lay-sum-s');if(s)s.textContent=on.length?'เปิดอยู่: '+on.map(id=>LAY_NAMES[id]).join(' · '):'ยังไม่ได้เปิดชั้นข้อมูล';const c=$('#lay-card');if(c)c.classList.toggle('has-on',on.length>0)}
 (function(){const c=$('#lay-card');if(!c)return;$('#lay-teams').checked=teamsOn();if(store.get('uh_lay_open','')==='1')c.open=true;c.addEventListener('toggle',()=>store.set('uh_lay_open',c.open?'1':''));$$('#lay-list .sw-in').forEach(i=>i.addEventListener('change',layCount));layCount()})();
 function closeLayerMenu(refocus){const m=$('#layer-menu');if(!m)return;const was=!m.hidden;m.hidden=true;layListTo(null);$$('.fab[data-act=layers]').forEach(b=>b.setAttribute('aria-expanded','false'));if(was&&refocus&&layerBtn)layerBtn.focus()}
@@ -206,7 +209,7 @@ async function locateMe(which,btn){
 const FLOOD_COL={blocked:'#d32f2f',risky:'#f57c00',caution:'#fbc02d'};   /* สีแบบ floodboard: ผ่านไม่ได้ / เสี่ยง / น้ำขังผ่านได้ (คิดจากรถสูง) */
 const floodV=p=>{const v=(p||{}).verdict;return typeof v==='string'?v:(v&&(v.truck||v.pickup))||(p||{}).status};
 let floodGen=0,teamsGen=0;
-async function toggleFlood(on){store.set('uh_lay_flood',on?'1':'0');$('#lay-flood').checked=on;layCount&&layCount();const gen=++floodGen;
+async function toggleFlood(on){if(on&&!S.volunteer)return;store.set('uh_lay_flood',on?'1':'0');$('#lay-flood').checked=on;layCount&&layCount();const gen=++floodGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._flood){m._flood.remove();m._flood=null}});if(!on)return;
   try{if(!S.flood){S.floodP=S.floodP||fetch('https://www.floodboard.org/api/export/roads.geojson').then(r=>r.json()).then(j=>{j.features=(j.features||[]).filter(f=>{const p=f.properties||{};return !p.cleared&&FLOOD_COL[floodV(p)]});return j}).finally(()=>{S.floodP=null});S.flood=await S.floodP}
     if(gen!==floodGen)return;  /* มีการเรียกใหม่กว่าแล้ว */
@@ -274,7 +277,7 @@ function drawRain(){if(rainAnim){clearInterval(rainAnim);rainAnim=null}const fr=
       L.DomEvent.disableClickPropagation(d);d.querySelector('button').addEventListener('click',rainPlay);return d}});
     m._rainCtl=new C({position:'bottomleft'}).addTo(m)});
   rainCtlSync();const sub=$('#rain-sub');if(sub&&fr.length)sub.textContent='ภาพล่าสุด '+rainTime(fr[fr.length-1])+' น. · อัปเดตทุก 10 นาที'}
-async function toggleRain(on){store.set('uh_lay_rain',on?'1':'');$('#lay-rain').checked=on;layCount();const gen=++rainGen;
+async function toggleRain(on){if(on&&!S.volunteer)return;store.set('uh_lay_rain',on?'1':'');$('#lay-rain').checked=on;layCount();const gen=++rainGen;
   if(rainRefresh){clearInterval(rainRefresh);rainRefresh=null}
   if(!on){if(rainAnim){clearInterval(rainAnim);rainAnim=null}Object.values(S.maps).forEach(rainClear);const sub=$('#rain-sub');if(sub)sub.textContent='ฝนตกตรงไหน · ดูย้อนหลัง 2 ชม. ได้';return}
   try{await rainMeta();if(gen!==rainGen)return;drawRain();
@@ -297,7 +300,7 @@ function cctvPopup(c){const f=S.cctv.feeds[c[0]]||{},src=S.cctv.base+f.path+enco
 const CCTV_ATTR='กล้อง CCTV © <a href="https://flood.pop.in.th/" target="_blank" rel="noopener">POPNIX Flood</a>';
 function cctvZoomSync(m){if(!m||!m._cctv)return;const show=m.getZoom()>=CCTV_ZOOM,ac=m.attributionControl;
   if(show&&!m.hasLayer(m._cctv)){m._cctv.addTo(m);ac&&ac.addAttribution(CCTV_ATTR)}else if(!show&&m.hasLayer(m._cctv)){m.removeLayer(m._cctv);ac&&ac.removeAttribution(CCTV_ATTR)}}
-async function toggleCctv(on){store.set('uh_lay_cctv',on?'1':'');$('#lay-cctv').checked=on;layCount&&layCount();const gen=++cctvGen;
+async function toggleCctv(on){if(on&&!S.volunteer)return;store.set('uh_lay_cctv',on?'1':'');$('#lay-cctv').checked=on;layCount&&layCount();const gen=++cctvGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._cctv){m.removeLayer(m._cctv);m._cctv=null;m.attributionControl&&m.attributionControl.removeAttribution(CCTV_ATTR)}});if(!on)return;
   try{if(!S.cctv||Date.now()-S.cctvAt>120000){const r=await fetch('/api/cctv').then(r=>r.json());if(!r||!r.ok)throw new Error('cctv');S.cctv=r;S.cctvAt=Date.now()}
     if(gen!==cctvGen)return;
@@ -309,6 +312,9 @@ async function toggleCctv(on){store.set('uh_lay_cctv',on?'1':'');$('#lay-cctv').
     const cur=S.maps[S.view==='map'?'map':'home'];if(cur&&cur.getZoom()<CCTV_ZOOM)toast(`ซูมเข้าเพื่อดูกล้อง CCTV (${S.cctv.cams.length.toLocaleString('th-TH')} ตัว)`);
   }catch(e){toast('โหลดกล้อง CCTV ไม่สำเร็จ');store.set('uh_lay_cctv','');$('#lay-cctv').checked=false;layCount()}}
 $('#lay-teams').addEventListener('change',e=>toggleTeams(e.target.checked));
+$('#lay-flood').addEventListener('change',e=>toggleFlood(e.target.checked));
+$('#lay-rain').addEventListener('change',e=>toggleRain(e.target.checked));
+$('#lay-cctv').addEventListener('change',e=>toggleCctv(e.target.checked));
 
 /* ---------- หน้าแรก ---------- */
 if($('#type-grid')){$('#type-grid').innerHTML=NEED_TYPES.map(t=>`<button type="button" class="type-btn" data-type="${t.key}">${ic(t.icon)}<span>${t.label}</span></button>`).join('');
@@ -1050,7 +1056,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='203';let appNewer=false;
+const APP_V='204';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
