@@ -23,6 +23,10 @@ function makeMap(el,opt={}){
   if(isDesktop()||opt.zoom===true)L.control.zoom({position:'topleft'}).addTo(map);
   L.control.scale({metric:true,imperial:false,position:'bottomleft'}).addTo(map);
   map.attributionControl.setPrefix(false);
+  /* เครดิตแผนที่ (เงื่อนไข OSM/OpenFreeMap บังคับให้แสดง) ย่อเป็นปุ่ม ⓘ · แตะเพื่อเปิด/ปิดข้อความ */
+  {const ac=map.attributionControl.getContainer();ac.classList.add('attr-min');ac.setAttribute('role','button');ac.setAttribute('tabindex','0');ac.setAttribute('aria-label','เครดิตแผนที่');
+   const tg=e=>{if(e.target.closest('a'))return;ac.classList.toggle('attr-open');L.DomEvent.stop(e)};L.DomEvent.on(ac,'click',tg);L.DomEvent.disableClickPropagation(ac);
+   ac.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')tg(e)})}
   let base=null,fellBack=0;
   const layer=(u,a,o={})=>L.tileLayer(u,{maxZoom:19,attribution:a,crossOrigin:true,...o});
   map.setBase=name=>{
