@@ -700,8 +700,32 @@ function caseCard(c){
     `</div><span class="case-go" aria-hidden="true">${ic('next')}</span>`;
   b.addEventListener('click',()=>openCase(c.id));return b;
 }
+/* รายการเคสแบบตาราง: แถวละบรรทัดเดียว (ความด่วน · ต้องการ · คน · พื้นที่ · เวลา) · แตะแถวเพื่อกางรายละเอียด */
+function caseHead(){const h=document.createElement('div');h.className='crow-head';h.setAttribute('aria-hidden','true');h.innerHTML='<span>ความด่วน</span><span>ต้องการ</span><span>คน</span><span>พื้นที่</span><span>เมื่อ</span><span></span>';return h}
+function agoShort(ts){const t=Number(ts)||Date.parse(ts);if(!t)return '';const m=Math.round((Date.now()-t)/60000);if(m<60)return Math.max(1,m)+' น.';const h=Math.round(m/60);if(h<24)return h+' ชม.';return Math.round(h/24)+' วัน'}
+let rowOpen='';
+function caseRow(c){
+  const w=document.createElement('div');w.className='crow'+(c.status==='done'?' is-done':' u'+sevOf(c))+(isDanger(c)?' danger':'')+(rowOpen===c.id?' open':'');w.dataset.id=c.id;
+  const needs=c.needs&&c.needs.length?c.needs:['ขอความช่วยเหลือ'],v=sevOf(c),area=areaOf(c)||'–';
+  const lvl=c.status==='done'?'<span class="cr-u done">เสร็จ</span>':`<span class="cr-u urg-${v}"><i></i>${URG_TH[v]}</span>`;
+  const st=c.status==='going'?'<i class="cr-st going" title="กำลังไป"></i>':'';
+  w.innerHTML=`<button type="button" class="cr-main" aria-expanded="${rowOpen===c.id}">${lvl}<span class="cr-ics">${needs.slice(0,2).map(n=>ic(needIcon(n))).join('')}${needs.length>2?`<em>+${needs.length-2}</em>`:''}</span><span class="cr-ppl">${esc(String(c.people||1))}</span><span class="cr-area">${st}${esc(area)}</span><span class="cr-time">${esc(agoShort(c.createdAt))}</span><span class="cr-chev">${ic('chev')}</span></button>`;
+  w.querySelector('.cr-main').addEventListener('click',()=>{const was=rowOpen===c.id;rowOpen=was?'':c.id;
+    $$('#case-list .crow.open').forEach(r=>{r.classList.remove('open');r.querySelector('.cr-main').setAttribute('aria-expanded','false');const d=r.querySelector('.cr-more');d&&d.remove()});
+    if(!was){w.classList.add('open');w.querySelector('.cr-main').setAttribute('aria-expanded','true');w.append(caseMore(c))}});
+  if(rowOpen===c.id)w.append(caseMore(c));
+  return w}
+function caseMore(c){const d=document.createElement('div');d.className='cr-more';
+  const addr=addrTxt(c),tel=String(c.phone||'').replace(/[^\d+]/g,'');
+  const rows=[['ต้องการ',(c.needs||[]).join(' · ')||'ขอความช่วยเหลือ'],['สถานะ',STATUS_TH[c.status]||'รอช่วย'],['จำนวนคน',(c.people||1)+' คน'],c.level&&LEVEL_TH[c.level]?['ระดับน้ำ',LEVEL_TH[c.level]]:null,['ที่อยู่',addr||(S.volunteer?'ไม่ระบุที่อยู่':'ไม่ระบุเขต')],
+    S.volunteer&&(c.name||c.phone)?['ผู้แจ้ง',[c.name,c.phone].filter(Boolean).join(' · ')]:null,S.volunteer&&c.photos&&c.photos.length?['รูป',c.photos.length+' รูป']:null,c.notes?['หมายเหตุ',c.notes]:null,['แจ้งเมื่อ',ago(c.createdAt)+' · #'+c.id]].filter(Boolean);
+  d.innerHTML=`<dl>${rows.map(([k,v])=>`<div><dt>${k}</dt><dd>${esc(String(v))}</dd></div>`).join('')}</dl><div class="cr-act">`+
+    (S.volunteer&&tel.length>=9?`<a class="pill pill-sos" href="tel:${esc(tel)}">${ic('phone')}โทร</a>`:'')+
+    (hasPin(c)&&S.volunteer?`<a class="pill pill-ghost" href="https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}" target="_blank" rel="noopener">${ic('nav')}นำทาง</a>`:'')+
+    `<button type="button" class="pill pill-ghost cr-open">${ic('next')}เปิดเคส</button></div>`;
+  d.querySelector('.cr-open').addEventListener('click',()=>openCase(c.id));return d}
 function renderList(){
-  const list=filteredCases(),el=$('#case-list');el.replaceChildren(...list.map(caseCard));
+  const list=filteredCases(),el=$('#case-list');el.replaceChildren(...(list.length?[caseHead()]:[]),...list.map(caseRow));
   if(!list.length)el.innerHTML=`<p class="empty">${S.loaded?(FL.q?'ไม่พบเคสที่ค้นหา':'ไม่มีเคสในตัวกรองนี้'):'กำลังโหลด…'}</p>`;
   /* คนทั่วไปไม่เห็นจำนวนเคส */
   const txt=S.volunteer?(FL.q?`พบ ${list.length} เคส (ค้นจากทุกเคส)`:`${list.length} เคส`):(FL.q?'ผลการค้นหา':'รายการเคส');$('#case-count').textContent=txt;S.listTxt=txt;sheetLabel();
@@ -902,7 +926,7 @@ function drawTrip(){const m=S.maps.map;if(!m||!window.L)return;if(!TRIP.layer)TR
   const pts=[];tripCases().forEach((c,i)=>{if(c.missing||!hasPin(c))return;const p=[+c.lat,+c.lng];pts.push(p);
     L.marker(p,{icon:L.divIcon({className:'trip-pin',html:`<span>${i+1}</span>`,iconSize:[24,24],iconAnchor:[12,48]}),interactive:false,zIndexOffset:2500}).addTo(TRIP.layer)});
   if(pts.length>1)L.polyline(pts,{color:'#0F2188',weight:4,opacity:.8,dashArray:'8 8',interactive:false}).addTo(TRIP.layer)}
-function tripBadges(){$$('#case-list .case').forEach(b=>{const i=tripIndex(b.dataset.id);let t=b.querySelector('.trip-badge');if(i<0||!S.volunteer){t&&t.remove();return}if(!t){t=document.createElement('span');t.className='trip-badge';b.append(t)}t.textContent='จุดที่ '+(i+1)})}
+function tripBadges(){$$('#case-list .crow').forEach(b=>{const i=tripIndex(b.dataset.id);let t=b.querySelector('.trip-badge');if(i<0||!S.volunteer){t&&t.remove();return}if(!t){t=document.createElement('span');t.className='trip-badge';b.append(t)}t.textContent='จุดที่ '+(i+1)})}
 function tripRefresh(){renderTrip();drawTrip();tripBadges();sheetLabel()}
 function sheetLabel(){let n=0;try{n=S.volunteer?TRIP.ids.length:0}catch(e){}$('#sheet-count').textContent=(n?`แผนเดินทาง ${n} จุด · `:'')+(S.listTxt||'')}
 
@@ -1019,7 +1043,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='198';let appNewer=false;
+const APP_V='199';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
