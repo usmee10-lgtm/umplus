@@ -634,10 +634,10 @@ function sentScreen(id,queued){
 $('#form-back').addEventListener('click',()=>{if(F.sending)return;if(F.step===2)showStep(1);else go('home')});
 
 /* ---------- แผนที่/รายการ ---------- */
-const FL=Object.assign({status:'active',types:[],people:[],level:[],urg:[],q:'',sort:'prio',age:''},store.json('uh_filters3',{}),{q:''});
-const saveFL=()=>store.put('uh_filters3',{status:FL.status,types:FL.types,people:FL.people,level:FL.level,urg:FL.urg,sort:FL.sort,age:FL.age});
+const FL=Object.assign({status:'active',types:[],people:[],level:[],urg:[],q:'',sort:'new',age:''},store.json('uh_filters4',{}),{q:''});
+const saveFL=()=>store.put('uh_filters4',{status:FL.status,types:FL.types,people:FL.people,level:FL.level,urg:FL.urg,sort:FL.sort,age:FL.age});
 /* เรียงลำดับ + ช่วงเวลาที่แจ้ง */
-const SORTS=[['prio','สำคัญก่อน'],['new','ใหม่ล่าสุด'],['old','รอนานสุด']];
+const SORTS=[['new','ใหม่ล่าสุด'],['prio','สำคัญก่อน'],['old','รอนานสุด']];
 const AGES=[['','ทั้งหมด'],['today','วันนี้'],['24h','24 ชม.'],['3d','3 วัน'],['7d','7 วัน'],['older','เก่ากว่า 7 วัน']];
 function ageOk(c){if(!FL.age)return true;const t=Number(c.createdAt)||Date.parse(c.createdAt)||0,now=Date.now(),H=3600000;
   if(FL.age==='today'){const d=new Date();d.setHours(0,0,0,0);return t>=d.getTime()}
@@ -1047,7 +1047,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='201';let appNewer=false;
+const APP_V='202';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
