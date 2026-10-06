@@ -654,12 +654,12 @@ function renderFilters(){
     '<h4>จำนวนคน</h4><div class="chips">'+PEOPLE_R.map(([k,t])=>`<label><input type="checkbox" data-pp="${k}" ${FL.people.includes(k)?'checked':''}><span>${t}</span></label>`).join('')+'</div>'+
     '<h4>ระดับน้ำ</h4><div class="chips">'+Object.entries({...LEVEL_TH,none:'ไม่ระบุ'}).map(([k,t])=>`<label><input type="checkbox" data-lv="${k}" ${FL.level.includes(k)?'checked':''}><span>${t}</span></label>`).join('')+'</div>'+
     '<button type="button" class="pill pill-ghost small" id="clear-filter">ล้างตัวกรอง</button>';
-  const n=FL.types.length+FL.people.length+FL.level.length+(FL.age?1:0);$('#more-filter').lastChild.textContent=n?`ตัวกรองเพิ่ม (${n})`:'ตัวกรองเพิ่ม';
+  const n=FL.types.length+FL.people.length+FL.level.length+(FL.age?1:0);$('#more-filter').lastChild.textContent=n?`ตัวกรอง ${n}`:'ตัวกรอง';$('#more-filter').classList.toggle('on',n>0);
 }
 $('#status-tabs').addEventListener('click',e=>{const b=e.target.closest('[data-st]');if(!b)return;FL.status=b.dataset.st;saveFL();renderFilters();applyFilters()});
 $('#sort-row').addEventListener('click',e=>{const b=e.target.closest('[data-sort]');if(!b)return;FL.sort=b.dataset.sort;saveFL();renderFilters();applyFilters();$('#case-list').scrollIntoView({block:'nearest'})});
 $('#type-chips').addEventListener('click',e=>{const b=e.target.closest('[data-ty]');if(!b)return;const k=b.dataset.ty;FL.types=FL.types.includes(k)?FL.types.filter(x=>x!==k):[...FL.types,k];saveFL();renderFilters();applyFilters()});
-$('#more-filter').addEventListener('click',()=>{const p=$('#more-filter-panel');p.hidden=!p.hidden;$('#more-filter').setAttribute('aria-expanded',String(!p.hidden))});
+$('#more-filter').addEventListener('click',()=>{const p=$('#fl-drawer');p.hidden=!p.hidden;$('#more-filter').setAttribute('aria-expanded',String(!p.hidden))});
 $('#more-filter-panel').addEventListener('change',e=>{const i=e.target;if(i.dataset.pp){FL.people=i.checked?[...FL.people,i.dataset.pp]:FL.people.filter(x=>x!==i.dataset.pp)}if(i.dataset.lv){FL.level=i.checked?[...FL.level,i.dataset.lv]:FL.level.filter(x=>x!==i.dataset.lv)}if(i.dataset.age!=null&&i.checked)FL.age=i.dataset.age;saveFL();renderFilters();applyFilters()});
 $('#more-filter-panel').addEventListener('click',e=>{if(e.target.id==='clear-filter'){FL.types=[];FL.people=[];FL.level=[];FL.age='';FL.status='active';saveFL();renderFilters();applyFilters()}});
 let qTimer;$('#case-search').addEventListener('input',()=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{FL.q=srchNorm($('#case-search').value.trim());applyFilters(true)},200)});
@@ -1043,7 +1043,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='199';let appNewer=false;
+const APP_V='200';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */

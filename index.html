@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=100">
+<link rel="stylesheet" href="./app.css?v=101">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -189,11 +189,17 @@
         </div>
         <div class="vol-panel card" id="vol-panel" hidden></div>
         <label class="search-field"><span data-icon="search"></span><input id="case-search" type="search" autocomplete="off" placeholder="ค้นหาเคส: เขต ที่อยู่ ความต้องการ เลขเคส" aria-label="ค้นหาเคส"></label>
-        <div class="status-tabs" id="status-tabs" role="group" aria-label="กรองตามสถานะ"></div>
-        <div class="type-chips" id="type-chips" role="group" aria-label="กรองตามประเภท"></div>
-        <div class="sort-row" id="sort-row" role="group" aria-label="เรียงลำดับเคส"></div>
-        <button type="button" class="pill pill-ghost small" id="more-filter" data-icon="filter" aria-expanded="false" aria-controls="more-filter-panel">ตัวกรองเพิ่ม</button>
-        <div class="more-filter card" id="more-filter-panel" hidden></div>
+        <div class="fl-row">
+          <div class="status-tabs" id="status-tabs" role="group" aria-label="กรองตามสถานะ"></div>
+          <button type="button" class="fl-btn" id="more-filter" data-icon="filter" aria-expanded="false" aria-controls="fl-drawer">ตัวกรอง</button>
+        </div>
+        <div class="fl-drawer card" id="fl-drawer" hidden>
+          <h4>เรียงลำดับ</h4>
+          <div class="sort-row" id="sort-row" role="group" aria-label="เรียงลำดับเคส"></div>
+          <h4>ประเภทความช่วยเหลือ</h4>
+          <div class="type-chips" id="type-chips" role="group" aria-label="กรองตามประเภท"></div>
+          <div class="more-filter" id="more-filter-panel"></div>
+        </div>
         <div class="trip card" id="trip-panel" hidden></div>
         <p class="count" id="case-count" aria-live="polite"></p>
         <div class="case-list" id="case-list"></div>
@@ -243,13 +249,13 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=100"></script>
-<script src="./geocode.js?v=100"></script>
-<script src="./location.js?v=100"></script>
-<script src="./pickmap.js?v=100"></script>
-<script src="./stats.js?v=100"></script>
-<script src="./hotlines.js?v=100"></script>
-<script src="./script.js?v=100"></script>
+<script src="./icons.js?v=101"></script>
+<script src="./geocode.js?v=101"></script>
+<script src="./location.js?v=101"></script>
+<script src="./pickmap.js?v=101"></script>
+<script src="./stats.js?v=101"></script>
+<script src="./hotlines.js?v=101"></script>
+<script src="./script.js?v=101"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
