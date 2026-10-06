@@ -62,16 +62,17 @@ function renderHotlines(){
   const term=document.getElementById('hotline-search').value.trim().toLowerCase();
   const matches=hotlines.filter(h=>{const o=hlOrgs[h.org]||{};return (hlCat==='all'||h.group===hlCat)&&(!term||`${h.number} ${h.name} ${h.agency} ${h.note} ${o.name||''} ${o.abbr||''} ${o.about||''}`.toLowerCase().includes(term))});
   const root=document.getElementById('hotline-directory');root.replaceChildren();
-  hotlineGroups.forEach(g=>{const list=matches.filter(h=>h.group===g.id);if(!list.length)return;
+  /* หน่วยงานละ 1 การ์ด: อยู่ในหมวดของเบอร์แรก (ด่วนสุด) และรวมทุกเบอร์ของหน่วยงานนั้นไว้ในการ์ดเดียว */
+  const orgs=new Map();matches.forEach(h=>{const k=h.org||h.number;if(!orgs.has(k))orgs.set(k,{group:h.group,nums:[]});orgs.get(k).nums.push(h)});
+  hotlineGroups.forEach(g=>{const list=[...orgs].filter(([,v])=>v.group===g.id);if(!list.length)return;
     const h2=document.createElement('h2');h2.textContent=g.title;root.append(h2);
-    const byOrg=new Map();list.forEach(h=>{const k=h.org||h.number;if(!byOrg.has(k))byOrg.set(k,[]);byOrg.get(k).push(h)});
-    byOrg.forEach((nums,k)=>{const o=hlOrgs[k]||{name:nums[0].agency,abbr:nums[0].agency.slice(0,3),color:'#5B6386',about:''};
+    list.forEach(([k,{nums}])=>{const o=hlOrgs[k]||{name:nums[0].agency,abbr:nums[0].agency.slice(0,3),color:'#5B6386',about:''};
       const card=document.createElement('article');card.className='hl-org';card.style.setProperty('--c',o.color);
       const head=document.createElement('div');head.className='hl-head';head.append(hlLogo(o));
       const t=document.createElement('div');t.className='hl-org-t';t.innerHTML='<b></b><small></small>';t.querySelector('b').textContent=o.name;t.querySelector('small').textContent=o.about||nums[0].note;head.append(t);card.append(head);
       nums.forEach(h=>{const row=document.createElement('div');row.className='hl';
         row.innerHTML=`<div class="hl-txt"><b><span class="hl-num"></span><button type="button" class="hl-info" aria-label="แหล่งที่มาของเบอร์ ${h.number}" aria-expanded="false">${ic('info')}</button></b><small class="hl-name"></small><div class="hl-src" hidden></div></div><a class="hl-call">${ic('phone')}โทร</a>`;
-        row.querySelector('.hl-num').textContent=h.number;row.querySelector('.hl-name').textContent=h.name+(h.note&&nums.length>1?' · '+h.note:'');
+        row.querySelector('.hl-num').textContent=h.number;row.querySelector('.hl-name').textContent=h.name;
         const call=row.querySelector('.hl-call');call.href='tel:'+h.number;call.setAttribute('aria-label','โทร '+h.number+' '+h.name);
         const src=row.querySelector('.hl-src');src.innerHTML='ที่มา: <a target="_blank" rel="noopener noreferrer"></a>';const a=src.querySelector('a');a.href=h.source;a.textContent=(h.sourceName||'แหล่งข้อมูล')+' ↗';
         const info=row.querySelector('.hl-info');info.onclick=()=>{src.hidden=!src.hidden;info.setAttribute('aria-expanded',String(!src.hidden))};
