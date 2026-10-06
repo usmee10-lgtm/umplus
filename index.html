@@ -22,7 +22,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=94">
+<link rel="stylesheet" href="./app.css?v=95">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -38,10 +38,8 @@
     <button type="button" class="fab glass" data-act="layers" aria-label="เปลี่ยนแบบแผนที่" aria-haspopup="dialog" aria-expanded="false" aria-controls="layer-menu" data-icon="layers"></button>
     <button type="button" class="fab glass" data-act="locate" aria-label="ตำแหน่งของฉัน" data-icon="locate"></button>
   </div>
-  <section class="home-sheet" aria-labelledby="sheet-title">
-    <h2 id="sheet-title" class="sheet-head">ต้องการความช่วยเหลือแบบไหน?</h2>
+  <section class="home-sheet" aria-label="ขอความช่วยเหลือ หรือ อยากช่วย">
     <div class="sheet-body">
-      <div class="type-grid" id="type-grid"></div>
       <div class="sheet-actions">
         <button type="button" class="pill pill-sos" id="btn-use-gps" data-icon="alert">ขอความช่วยเหลือ</button>
         <button type="button" class="pill pill-ghost" id="btn-help" data-icon="heart">อยากช่วย</button>
@@ -245,13 +243,13 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=94"></script>
-<script src="./geocode.js?v=94"></script>
-<script src="./location.js?v=94"></script>
-<script src="./pickmap.js?v=94"></script>
-<script src="./stats.js?v=94"></script>
-<script src="./hotlines.js?v=94"></script>
-<script src="./script.js?v=94"></script>
+<script src="./icons.js?v=95"></script>
+<script src="./geocode.js?v=95"></script>
+<script src="./location.js?v=95"></script>
+<script src="./pickmap.js?v=95"></script>
+<script src="./stats.js?v=95"></script>
+<script src="./hotlines.js?v=95"></script>
+<script src="./script.js?v=95"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>

@@ -891,3 +891,11 @@ h1[tabindex="-1"]:focus,.view:focus,[tabindex="-1"]:focus:not(:focus-visible){ou
 
 /* ไม่มีกล่อง "ต้องการความช่วยเหลือที่ไหน?" แล้ว · ปุ่มลอยขยับขึ้นใต้แถบโลโก้ (ค้นหาใช้ปุ่มแว่นขยายมุมขวาบน) */
 @media (max-width:1023px){#view-home .live-badge,#view-home .map-fabs{top:calc(var(--safe-t) + 84px)}}
+
+/* หน้าแรก: เหลือ 2 ปุ่มซ้อนกัน · ขอความช่วยเหลือ (แดง) บน · อยากช่วย ล่าง */
+.home-sheet .sheet-body{padding:16px}
+.home-sheet .sheet-actions{grid-template-columns:1fr;gap:10px;margin-top:0}
+.home-sheet .sheet-actions .pill{min-height:56px;font-size:17px;justify-content:center}
+.home-sheet .sheet-actions .pill .ic{width:22px;height:22px}
+.home-sheet .sheet-actions .pill-sos{min-height:64px;font-size:19px}
+.home-sheet .sheet-actions .all-cases{justify-content:space-between;font-size:15.5px;min-height:52px}

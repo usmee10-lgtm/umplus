@@ -311,8 +311,8 @@ async function toggleCctv(on){store.set('uh_lay_cctv',on?'1':'');$('#lay-cctv').
 $('#lay-teams').addEventListener('change',e=>toggleTeams(e.target.checked));
 
 /* ---------- หน้าแรก ---------- */
-$('#type-grid').innerHTML=NEED_TYPES.map(t=>`<button type="button" class="type-btn" data-type="${t.key}">${ic(t.icon)}<span>${t.label}</span></button>`).join('');
-$('#type-grid').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(b)startForm({type:b.dataset.type,gps:true})});
+if($('#type-grid')){$('#type-grid').innerHTML=NEED_TYPES.map(t=>`<button type="button" class="type-btn" data-type="${t.key}">${ic(t.icon)}<span>${t.label}</span></button>`).join('');
+$('#type-grid').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(b)startForm({type:b.dataset.type,gps:true})})}
 $('#btn-use-gps').addEventListener('click',()=>startForm({gps:true}));
 $('#btn-all-cases').addEventListener('click',()=>{if(!S.volunteer)return;FL.status='all';FL.types=[];FL.people=[];FL.level=[];FL.q='';$('#case-search').value='';saveFL();renderFilters();go('map');setSheet(true);applyFilters()});
 $('#btn-help').addEventListener('click',()=>{go('map');setSheet(true);if(!S.volunteer){$('#vol-panel').hidden=false;renderVol(true)}});
