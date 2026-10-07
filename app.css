@@ -1167,3 +1167,7 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .pin-confirm{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;margin-top:8px;border:0;border-radius:14px;background:#1E9E5A;color:#fff;font-size:15.5px;font-weight:800;box-shadow:0 8px 16px -10px #0E7A47}
 .pin-confirm .ic{width:20px;height:20px;stroke-width:2.6}
 .pin-confirm.done{background:#E7F6EE;color:#0E7A47;box-shadow:inset 0 0 0 1.5px #9AD7B6}
+/* ปุ่มคัดลอก/แชร์ตำแหน่ง: เล็ก ไม่เด่น (v236) */
+.loc-share{justify-content:flex-end;gap:6px;margin-top:6px}
+.loc-share .pill{flex:0 0 auto;min-height:32px;padding:0 12px;gap:5px;font-size:13px;font-weight:600;background:transparent!important;color:var(--muted)!important;box-shadow:inset 0 0 0 1px var(--line)!important}
+.loc-share .pill .ic{width:15px;height:15px;color:var(--muted)}
