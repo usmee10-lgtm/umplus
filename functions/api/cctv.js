@@ -19,7 +19,7 @@ export async function onRequestGet(ctx) {
 
   const results = await Promise.all(FEEDS.map(async (f, i) => {
     try {
-      const r = await fetch(BASE + f.url, { cf: { cacheTtl: TTL }, headers: { 'User-Agent': 'HelpMe-flood-help (helpme-th.pages.dev)' } });
+      const r = await fetch(BASE + f.url, { cf: { cacheTtl: TTL }, headers: { 'User-Agent': 'HelpMe-flood-help (helpme4u.com)' } });
       if (!r.ok) return [];
       const j = await r.json();
       return (j.cams || [])

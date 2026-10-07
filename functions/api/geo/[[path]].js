@@ -18,7 +18,7 @@ const ALLOWED = {
   api: ['q', 'limit', 'lang', 'lat', 'lon', 'location_bias_scale', 'zoom', 'bbox', 'layer', 'osm_tag'],
   reverse: ['lat', 'lon', 'limit', 'lang', 'layer', 'radius', 'osm_tag']
 };
-const UA = 'HelpMe-flood-help/1.0 (+https://helpme-th.pages.dev)';
+const UA = 'HelpMe-flood-help/1.0 (+https://helpme4u.com)';
 
 const json = (obj, status, extra = {}) => new Response(JSON.stringify(obj), {
   status, headers: { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', ...extra }
