@@ -75,11 +75,11 @@ const PUB_ACTIONS=['list','teams','network','outreach'];
 const API_ALT='https://umplus-help.pages.dev';
 function apiShapeOk(j,action){if(!j||!j.ok||j.service)return false;if(action==='list')return Array.isArray(j.cases);return true}
 /* โหมดอาสา: list/teams ผ่านแคชที่ Cloudflare (กุญแจแคชเป็นค่าแฮชของรหัส ไม่เก็บรหัส) */
-async function volGet(params){return null;  /* ปิดชั่วคราว: /api บน helpme4u.com ถูกบริการอื่นดักอยู่ ห้ามส่งรหัสอาสาไปที่นั่น · เรียก Apps Script ตรงแทน */
+async function volGet(params){  /* ผ่านแคช Cloudflare ของเราเอง (umplus-help.pages.dev) — ไม่ใช้ /api บน helpme4u.com ที่ยังถูกบริการอื่นดักอยู่ */
   if(S.lastWrite&&Date.now()-S.lastWrite<60000)return null;  /* เพิ่งแก้ข้อมูล → อ่านตรงจาก Apps Script ให้เห็นค่าล่าสุดแน่ ๆ */
   if(!params.key||!['list','teams'].includes(params.action)||!/^https?:/.test(location.protocol)||location.hostname==='localhost')return null;
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
-  try{const r=await fetch('/api/vol?action='+params.action,{signal:ctl.signal,headers:{'x-vol-key':params.key}});if(!r.ok)return null;const j=await r.json();return apiShapeOk(j,params.action)?j:null}catch(e){return null}finally{clearTimeout(tm)}}
+  try{const r=await fetch(API_ALT+'/api/vol?action='+params.action,{signal:ctl.signal,headers:{'x-vol-key':params.key}});if(!r.ok)return null;const j=await r.json();return apiShapeOk(j,params.action)?j:null}catch(e){return null}finally{clearTimeout(tm)}}
 async function pubGet(params){if(params.key||!PUB_ACTIONS.includes(params.action)||!/^https?:/.test(location.protocol)||location.hostname==='localhost')return null;
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
   try{for(const base of [API_ALT]){try{const r=await fetch(base+'/api/pub?action='+params.action,{signal:ctl.signal});if(!r.ok)continue;const j=await r.json();if(apiShapeOk(j,params.action))return j}catch(e){if(e.name==='AbortError')return null}}return null}finally{clearTimeout(tm)}}
@@ -1117,7 +1117,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='241';let appNewer=false;
+const APP_V='242';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */

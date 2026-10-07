@@ -16,13 +16,18 @@ async function pull(action, key) {
   const txt = await r.text();
   try { const j = JSON.parse(txt); return { txt, ok: !!(j && j.ok), vol: !!(j && j.volunteer) }; } catch (e) { return null; }
 }
+const ORIGINS = /^https:\/\/((www\.)?helpme4u\.com|([a-z0-9-]+\.)?(umplus-help|umplus|helpme-th)\.pages\.dev)$/;
+let CORS = {};
+function cors(req) { const o = req.headers.get('origin') || ''; CORS = ORIGINS.test(o) ? { 'access-control-allow-origin': o, 'access-control-allow-headers': 'x-vol-key', 'access-control-allow-methods': 'GET, OPTIONS', 'access-control-max-age': '86400', 'access-control-expose-headers': 'x-at, x-cache', vary: 'origin' } : {}; }
+export async function onRequestOptions(ctx) { cors(ctx.request); return new Response(null, { status: 204, headers: CORS }); }
 function out(body, at, state) {
-  return new Response(body, { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store, private', 'x-at': String(at), 'x-cache': state } });
+  return new Response(body, { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store, private', 'x-at': String(at), 'x-cache': state, ...CORS } });
 }
 export async function onRequestGet(ctx) {
+  cors(ctx.request);
   const action = new URL(ctx.request.url).searchParams.get('action') || 'list';
   const key = (ctx.request.headers.get('x-vol-key') || '').trim();
-  if (!ALLOW.includes(action) || !key || key.length > 80) return new Response('{"ok":false,"error":"bad"}', { status: 400, headers: { 'content-type': 'application/json' } });
+  if (!ALLOW.includes(action) || !key || key.length > 80) return new Response('{"ok":false,"error":"bad"}', { status: 400, headers: { 'content-type': 'application/json', ...CORS } });
   const cache = caches.default;
   const ck = new Request('https://helpme4u.com/__vol/' + action + '/' + await sha(key));
   const refresh = async () => {
@@ -37,5 +42,5 @@ export async function onRequestGet(ctx) {
     if (age < STALE) { ctx.waitUntil(refresh().catch(() => {})); return out(body, at, 'stale'); }
   }
   try { const r = await refresh(); if (r && r.ok) return out(r.txt, Date.now(), 'miss'); } catch (e) {}
-  return new Response('{"ok":false,"error":"upstream"}', { status: 502, headers: { 'content-type': 'application/json' } });
+  return new Response('{"ok":false,"error":"upstream"}', { status: 502, headers: { 'content-type': 'application/json', ...CORS } });
 }
