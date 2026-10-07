@@ -1171,3 +1171,9 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .loc-share{justify-content:flex-end;gap:6px;margin-top:6px}
 .loc-share .pill{flex:0 0 auto;min-height:32px;padding:0 12px;gap:5px;font-size:13px;font-weight:600;background:transparent!important;color:var(--muted)!important;box-shadow:inset 0 0 0 1px var(--line)!important}
 .loc-share .pill .ic{width:15px;height:15px;color:var(--muted)}
+/* สถานะหมุด + ปุ่มคัดลอก/แชร์ บรรทัดเดียวกัน (v237) */
+.pin-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.pin-row #pin-status{flex:1;min-width:0;margin:0}
+.pin-row .loc-share{flex:none;margin:0;flex-wrap:nowrap}
+.pin-row .loc-share .pill{min-height:30px;padding:0 10px;font-size:12.5px}
+@media (max-width:360px){.pin-row .loc-share .pill span,.pin-row .loc-share .pill{font-size:0;gap:0;padding:0 8px}.pin-row .loc-share .pill .ic{width:16px;height:16px}}

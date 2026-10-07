@@ -1117,7 +1117,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='236';let appNewer=false;
+const APP_V='237';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1169,7 +1169,7 @@ async function resolveShortLink(v){const st=$('#addr-status'),url=(String(v).mat
 const PIN_ACC_OK=30;
 function pinNeedsConfirm(){return F.lat!=null&&!F.pinOk&&(F.pinSrc==='addr'||(F.pinSrc==='gps'&&(F.pinAcc||999)>PIN_ACC_OK))}
 function pinConfirmUI(){let b=$('#pin-confirm');if(!b){b=document.createElement('button');b.type='button';b.id='pin-confirm';b.className='pin-confirm';
-    b.innerHTML=ic('check')+'<span>หมุดตรงบ้านแล้ว</span>';$('#pin-status').after(b);
+    b.innerHTML=ic('check')+'<span>หมุดตรงบ้านแล้ว</span>';$('#pin-status').closest('.pin-row').after(b);
     b.addEventListener('click',()=>{F.pinOk=true;pinConfirmUI();markOk('loc');$('#addr-status').textContent='ยืนยันตำแหน่งแล้ว ✓'})}
   const need=F.lat!=null&&(F.pinSrc==='addr'||(F.pinSrc==='gps'&&(F.pinAcc||999)>PIN_ACC_OK));
   b.hidden=!need;b.classList.toggle('done',!!F.pinOk);b.querySelector('span').textContent=F.pinOk?'ยืนยันแล้ว · หมุดตรงบ้าน':'หมุดตรงบ้านแล้ว';
