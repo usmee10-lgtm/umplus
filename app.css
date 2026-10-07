@@ -1187,3 +1187,10 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .form-foot{padding-bottom:max(10px,calc(var(--safe-b) - 14px))}
 #view-form,#view-detail,#view-emergency,#view-sent,#view-stats,#view-doctor{padding-bottom:calc(var(--tab-h) + var(--dock-b) + 24px)}
 .list-body{padding-bottom:calc(var(--tab-h) + var(--dock-b) + 16px)}
+/* v241: มือถือ — ตัวเล่นเรดาร์ฝน (ซ้าย) และปุ่ม i ที่มาแผนที่ (ขวา) ย้ายลงมาชิดเหนือแผงปุ่มหน้าแรก */
+@media (max-width:1023px){
+  #home-map .leaflet-bottom.leaflet-left,#home-map .leaflet-bottom.leaflet-right{top:auto;bottom:calc(var(--tab-h) + var(--dock-b) + 10px + var(--hs-h,300px) + 8px)}
+  #home-map .leaflet-bottom.leaflet-right{right:0}
+  #home-map .leaflet-bottom.leaflet-left .leaflet-control{margin:0 0 0 10px}
+  #home-map .leaflet-bottom.leaflet-right .leaflet-control-attribution.attr-min{margin:0 10px 0 0}
+}
