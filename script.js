@@ -702,7 +702,7 @@ function filteredCases(){
   const rank={open:0,going:1,done:2,skip:3};
   if(!S.volunteer)return visibleCases().sort((a,b)=>(Number(b.createdAt)||0)-(Number(a.createdAt)||0));
   return S.cases.filter(c=>{
-    if(FL.q)return caseMatches(c,FL.q);
+    if(FL.q){if(!caseMatches(c,FL.q))return false;return (FL.status==='done'||FL.status==='skip')?c.status===FL.status:!isClosed(c)}
     if(FL.status==='active'&&isClosed(c))return false;
     if(FL.status==='danger'&&!isDanger(c))return false;
     if(['open','going','done','skip'].includes(FL.status)&&c.status!==FL.status)return false;
@@ -758,7 +758,7 @@ function renderList(){
   const list=filteredCases(),el=$('#case-list');el.replaceChildren(...(list.length?[caseHead()]:[]),...list.map(caseRow));
   if(!list.length)el.innerHTML=`<p class="empty">${!S.volunteer?'ยังไม่มีคำขอที่ส่งจากเครื่องนี้ · กด "ขอความช่วยเหลือ" ที่หน้าแรก':S.loaded?(FL.q?'ไม่พบเคสที่ค้นหา':'ไม่มีเคสในตัวกรองนี้'):'กำลังโหลด…'}</p>`;
   /* คนทั่วไปไม่เห็นจำนวนเคส */
-  const txt=S.volunteer?(FL.q?`พบ ${list.length} เคส (ค้นจากทุกเคส)`:`${list.length} เคส`):'คำขอของฉัน';$('#case-count').textContent=txt;S.listTxt=txt;sheetLabel();
+  const txt=S.volunteer?(FL.q?`พบ ${list.length} เคส${(FL.status==='done'||FL.status==='skip')?'':' (ไม่รวมเคสที่ปิดแล้ว)'}`:`${list.length} เคส`):'คำขอของฉัน';$('#case-count').textContent=txt;S.listTxt=txt;sheetLabel();
   if(typeof tripBadges==='function')tripBadges();
 }
 function renderLegend(){$('#legend').innerHTML=`<span><i style="background:var(--red)"></i>ด่วน</span><span><i style="background:var(--open)"></i>รอช่วย</span><span><i style="background:var(--going)"></i>กำลังไป</span><span><i style="background:var(--ok)"></i>ช่วยแล้ว</span><span><i style="background:var(--skip)"></i>ไม่เข้าเกณฑ์</span>`}
@@ -1088,7 +1088,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='210';let appNewer=false;
+const APP_V='211';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
