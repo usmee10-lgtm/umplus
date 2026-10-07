@@ -59,7 +59,7 @@ const orgOpts=sel=>ORGS.map(o=>`<option value="${esc(o.name)}" ${o.name===sel?'s
 function statusChip(c){const k=pinKind(c);const txt=STATUS_TH[c.status]||'รอช่วย';return `<span class="st st-${k}">${esc(txt)}</span>`}
 
 /* ---------- API (POST แบบ text/plain JSON) ---------- */
-async function apiPost(body,timeout=20000){const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),timeout);
+async function apiPost(body,timeout=20000){if(body&&body.action!=='track')S.lastWrite=Date.now();const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),timeout);
   try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:ctl.signal});return await r.json()}finally{clearTimeout(tm)}}
 /* ส่งคำขอ (create) แบบทนทาน: หลังบ้านตอบช้า/สะดุดเป็นช่วง ๆ → ลองซ้ำ 3 ครั้ง (หลังบ้านกันเคสซ้ำด้วย clientId อยู่แล้ว)
  * onTry(n) ให้หน้าจอบอกผู้ใช้ว่ากำลังลองครั้งที่เท่าไร · คืนผลจากหลังบ้าน หรือ throw ถ้าติดต่อไม่ได้ทั้ง 3 ครั้ง */
@@ -71,10 +71,15 @@ async function postCreate(body,onTry){const photos=(body.photos||[]).length,wait
 /* GET อ่านอย่างเดียว ปลอดภัยที่จะลองซ้ำ: Apps Script บางครั้งตอบหน้า error (HTML) หรือช้าตอนเพิ่งตื่น → ลองใหม่ 1 ครั้ง */
 /* ข้อมูลสาธารณะ (ไม่มีรหัสอาสา) ดึงผ่านแคชของ Cloudflare ก่อน → เร็วกว่าเรียก Apps Script ตรงมาก · ถ้าแคชล่มค่อยเรียกตรง */
 const PUB_ACTIONS=['list','teams','network','outreach'];
+/* โหมดอาสา: list/teams ผ่านแคชที่ Cloudflare (กุญแจแคชเป็นค่าแฮชของรหัส ไม่เก็บรหัส) */
+async function volGet(params){if(S.lastWrite&&Date.now()-S.lastWrite<60000)return null;  /* เพิ่งแก้ข้อมูล → อ่านตรงจาก Apps Script ให้เห็นค่าล่าสุดแน่ ๆ */
+  if(!params.key||!['list','teams'].includes(params.action)||!/^https?:/.test(location.protocol)||location.hostname==='localhost')return null;
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
+  try{const r=await fetch('/api/vol?action='+params.action,{signal:ctl.signal,headers:{'x-vol-key':params.key}});if(!r.ok)return null;const j=await r.json();return j&&j.ok?j:null}catch(e){return null}finally{clearTimeout(tm)}}
 async function pubGet(params){if(params.key||!PUB_ACTIONS.includes(params.action)||!/^https?:/.test(location.protocol)||location.hostname==='localhost')return null;
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
   try{const r=await fetch('/api/pub?action='+params.action,{signal:ctl.signal});if(!r.ok)return null;const j=await r.json();return j&&j.ok?j:null}catch(e){return null}finally{clearTimeout(tm)}}
-async function apiGet(params,timeout=25000,retry=1){const pj=await pubGet(params);if(pj)return pj;
+async function apiGet(params,timeout=25000,retry=1){const pj=params.key?await volGet(params):await pubGet(params);if(pj)return pj;
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),timeout);
   try{const r=await fetch(API_URL+'?'+new URLSearchParams(params),{signal:ctl.signal});const t=await r.text();return JSON.parse(t)}
   catch(e){if(retry>0&&navigator.onLine){await new Promise(z=>setTimeout(z,800));return apiGet(params,timeout,retry-1)}throw e}
@@ -1107,7 +1112,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='225';let appNewer=false;
+const APP_V='226';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
