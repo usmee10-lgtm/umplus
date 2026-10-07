@@ -1006,3 +1006,10 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .moved-card p{margin:0;color:var(--muted);line-height:1.6}
 .moved-card .btn{width:100%;background:var(--primary);color:#fff;text-decoration:none}
 .moved-sub{font-size:13.5px}
+
+/* โซนเคสใกล้กัน: หุบไว้ก่อน กดหัวเพื่อกาง */
+.zone-tog{width:100%;border:0;background:none;padding:2px;margin:2px 0 8px;text-align:left;cursor:pointer;align-items:center;font:inherit;position:relative;padding-right:28px}
+.zone-tog>.ic:last-child{position:absolute;right:2px;top:50%;width:18px;height:18px;color:var(--muted);transform:translateY(-50%);transition:transform .2s}
+.zone-tog[aria-expanded="true"]>.ic:last-child{transform:translateY(-50%) rotate(180deg)}
+#trip-panel.z-closed .zone-tog{margin-bottom:0}
+.zone-cnt{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--primary);color:#fff;font-size:12px;font-weight:700}

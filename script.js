@@ -929,8 +929,9 @@ function tripPlanZone(z){
   const m=S.maps.map;if(m&&window.L){m.fitBounds(L.latLngBounds(order.map(p=>[p.lat,p.lng])),{padding:[50,50],maxZoom:16})}
 }
 function zoneListHTML(zones){
-  return `<div class="zone-head"><b>${ic('layers')} โซนเคสใกล้กัน</b><small>รัศมี ~${ZONE_KM} กม. · แตะเพื่อวางเส้นทาง</small></div>`+
-    (zones.length?`<div class="zone-list">${zones.map((z,i)=>`<button type="button" class="zone" data-z="${i}"><span class="zone-n">${z.cases.length}</span><span class="zone-t"><b>${esc(z.area)}</b><small>${z.people} คน${z.urgent?` · <em>ด่วน ${z.urgent}</em>`:''}${z.km!=null?` · ห่าง ~${z.km.toFixed(1)} กม.`:''}</small></span>${ic('route')}</button>`).join('')}</div>`
+  const n=zones.length;
+  return `<button type="button" class="zone-head zone-tog" id="zone-tog" aria-expanded="${TRIP.zOpen?'true':'false'}"><b>${ic('layers')} โซนเคสใกล้กัน${n?` <span class="zone-cnt">${n}</span>`:''}</b><small>${TRIP.zOpen?`รัศมี ~${ZONE_KM} กม. · แตะเพื่อวางเส้นทาง`:'แตะเพื่อดูโซนและจัดเส้นทาง'}</small>${ic('chev')}</button>`+
+    (!TRIP.zOpen?'':zones.length?`<div class="zone-list">${zones.map((z,i)=>`<button type="button" class="zone" data-z="${i}"><span class="zone-n">${z.cases.length}</span><span class="zone-t"><b>${esc(z.area)}</b><small>${z.people} คน${z.urgent?` · <em>ด่วน ${z.urgent}</em>`:''}${z.km!=null?` · ห่าง ~${z.km.toFixed(1)} กม.`:''}</small></span>${ic('route')}</button>`).join('')}</div>`
     :`<p class="hint">ยังไม่มีเคสรอช่วยที่อยู่ใกล้กัน 2 เคสขึ้นไป</p>`);
 }
 function bindZones(el,zones){el.querySelectorAll('[data-z]').forEach(b=>b.onclick=()=>tripPlanZone(zones[+b.dataset.z]))}
@@ -939,8 +940,11 @@ function renderTrip(){
   if(!S.volunteer||!S.cases.length){el.hidden=true;return}
   el.hidden=false;el.classList.toggle('empty',!list.length);
   if(!list.length){const zones=tripZones();TRIP.zones=zones;
-    el.innerHTML=zoneListHTML(zones)+`<button type="button" class="trip-auto" id="trip-auto">${ic('route')}<span><b>จัดเส้นทางอัตโนมัติ</b><small>เลือกเคสใกล้คุณ คนเยอะก่อน แล้วเรียงให้</small></span></button>`;
-    $('#trip-auto').onclick=tripAuto;bindZones(el,zones);drawZones();return}
+    el.classList.toggle('z-closed',!TRIP.zOpen);
+    el.innerHTML=zoneListHTML(zones)+(TRIP.zOpen?`<button type="button" class="trip-auto" id="trip-auto">${ic('route')}<span><b>จัดเส้นทางอัตโนมัติ</b><small>เลือกเคสใกล้คุณ คนเยอะก่อน แล้วเรียงให้</small></span></button>`:'');
+    $('#zone-tog').onclick=()=>{TRIP.zOpen=!TRIP.zOpen;renderTrip()};
+    if(TRIP.zOpen){$('#trip-auto').onclick=tripAuto;bindZones(el,zones)}drawZones();return}
+  el.classList.remove('z-closed');
   TRIP.zones=[];
   let km=0,prev=null;list.forEach(c=>{if(!c.missing&&hasPin(c)){const p={lat:+c.lat,lng:+c.lng};if(prev)km+=tripDist(prev,p);prev=p}});
   el.innerHTML=`<div class="trip-head"><b>${ic('route')} แผนเดินทาง · ${list.length} จุด</b><span class="trip-note" id="trip-note">${km?'ระยะตรงรวม ~'+km.toFixed(1)+' กม.':''}</span></div><ol class="trip-list"></ol>`;
@@ -1088,7 +1092,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='211';let appNewer=false;
+const APP_V='212';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
