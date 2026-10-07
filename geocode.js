@@ -3,8 +3,10 @@
 const GEO={proxy:'/api/geo',direct:'https://photon.komoot.io',bbox:'97.3,5.6,105.7,20.5',bkk:{lat:13.7563,lng:100.5018}};
 /* เรียก Photon: ผ่าน proxy ก่อน (แคช + self-hosted) ถ้า proxy ใช้ไม่ได้ (เช่น เปิดไฟล์ในเครื่อง) ค่อยเรียก Photon สาธารณะตรง ๆ */
 let GEO_PROXY_OK=!/^(file:|http:\/\/(localhost|127\.))/.test(location.href);
+/* ถ้า /api ของโดเมนหลักตอบผิดรูปแบบ (เช่น มี Worker อื่นมาดัก) → ลอง proxy เดียวกันบน pages.dev → สุดท้ายเรียก Photon ตรง */
+const GEO_ALT='https://umplus-help.pages.dev/api/geo';
 async function photonGet(path,signal){
-  if(GEO_PROXY_OK){try{const r=await fetch(GEO.proxy+path,{signal});if(r.ok)return await r.json();if(r.status===404)GEO_PROXY_OK=false}catch(e){if(e.name==='AbortError')throw e}}
+  if(GEO_PROXY_OK){for(const base of [GEO.proxy,GEO_ALT]){try{const r=await fetch(base+path,{signal});if(r.ok){const j=await r.json();if(j&&Array.isArray(j.features))return j}}catch(e){if(e.name==='AbortError')throw e}}}
   const r=await fetch(GEO.direct+path,{signal});if(!r.ok)throw new Error('geo '+r.status);return r.json()}
 const GEO_ABBR=[[/(^|\s)ถ\.\s*/g,'$1ถนน'],[/(^|\s)ซ\.\s*/g,'$1ซอย'],[/(^|\s)ต\.\s*/g,'$1ตำบล'],[/(^|\s)อ\.\s*/g,'$1อำเภอ'],[/(^|\s)จ\.\s*/g,'$1จังหวัด'],[/กทม\.?/g,'กรุงเทพมหานคร'],
   [/รพ\.?\s*สต\.\s*/g,'โรงพยาบาลส่งเสริมสุขภาพตำบล'],[/(^|\s)รพ\.\s*/g,'$1โรงพยาบาล'],[/(^|\s)รร\.\s*/g,'$1โรงเรียน'],[/(^|\s)(มบ|หมบ)\.\s*/g,'$1หมู่บ้าน'],

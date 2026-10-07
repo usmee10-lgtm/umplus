@@ -30,7 +30,7 @@ export async function onRequestGet(ctx) {
   const cams = results.flat();
   const body = JSON.stringify({ ok: cams.length > 0, at: Math.floor(Date.now() / 1000), base: BASE, feeds: FEEDS.map(f => ({ org: f.org, path: f.path })), cams });
   const res = new Response(body, {
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=' + TTL }
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=' + TTL, 'access-control-allow-origin': '*' }
   });
   if (cams.length) ctx.waitUntil(cache.put(key, res.clone()));
   return res;
