@@ -1061,3 +1061,7 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .lay-card .lay-list:not(.in-menu) .lay-link .lay-ic{filter:grayscale(1);opacity:.38;box-shadow:none}
 .lay-card .lay-list:not(.in-menu) .lay-link .lay-s{color:var(--muted);font-weight:500}
 .lay-card .lay-list:not(.in-menu) .lay-link:hover .lay-ic,.lay-card .lay-list:not(.in-menu) .lay-link:active .lay-ic,.lay-card .lay-list:not(.in-menu) .lay-link:focus-visible .lay-ic{filter:none;opacity:1}
+/* 4 ชั้นข้อมูล → 4 คอลัมน์แถวเดียว */
+.lay-card .lay-list:not(.in-menu){grid-template-columns:repeat(4,minmax(0,1fr));gap:12px 6px}
+.lay-card .lay-list:not(.in-menu) .lay-ic,.lay-card .lay-list:not(.in-menu) .sw-in:checked+.lay-row .lay-ic{width:60px;height:60px;border-radius:19px}
+@media (max-width:360px){.lay-card .lay-list:not(.in-menu) .lay-ic,.lay-card .lay-list:not(.in-menu) .sw-in:checked+.lay-row .lay-ic{width:52px;height:52px;border-radius:16px}.lay-card .lay-list:not(.in-menu) .lay-ic .ic{width:26px;height:26px}}
