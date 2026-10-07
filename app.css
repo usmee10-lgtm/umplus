@@ -1178,3 +1178,10 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .pin-row .loc-share .pill{min-height:30px;padding:0 10px;font-size:12.5px}
 @media (max-width:360px){.pin-row .loc-share .pill span,.pin-row .loc-share .pill{font-size:0;gap:0;padding:0 8px}.pin-row .loc-share .pill .ic{width:16px;height:16px}}
 .pin-row #pin-status{font-size:13px;line-height:1.35}
+/* ===== ชิดขอบล่างแบบ iOS (v239): แถบเมนู/ปุ่มล่างลงไปซ้อนในพื้นที่ home indicator ===== */
+:root{--dock-b:max(8px,calc(var(--safe-b) - 20px))}
+.tabbar{bottom:var(--dock-b)}
+.home-sheet{bottom:calc(var(--tab-h) + var(--dock-b) + 10px)}
+.form-foot{padding-bottom:max(10px,calc(var(--safe-b) - 14px))}
+#view-form,#view-detail,#view-emergency,#view-sent,#view-stats,#view-doctor{padding-bottom:calc(var(--tab-h) + var(--dock-b) + 24px)}
+.list-body{padding-bottom:calc(var(--tab-h) + var(--dock-b) + 16px)}
