@@ -69,7 +69,13 @@ async function postCreate(body,onTry){const photos=(body.photos||[]).length,wait
     if(!navigator.onLine)break}
   throw last||new Error('send_failed')}
 /* GET อ่านอย่างเดียว ปลอดภัยที่จะลองซ้ำ: Apps Script บางครั้งตอบหน้า error (HTML) หรือช้าตอนเพิ่งตื่น → ลองใหม่ 1 ครั้ง */
-async function apiGet(params,timeout=25000,retry=1){const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),timeout);
+/* ข้อมูลสาธารณะ (ไม่มีรหัสอาสา) ดึงผ่านแคชของ Cloudflare ก่อน → เร็วกว่าเรียก Apps Script ตรงมาก · ถ้าแคชล่มค่อยเรียกตรง */
+const PUB_ACTIONS=['list','teams','network','outreach'];
+async function pubGet(params){if(params.key||!PUB_ACTIONS.includes(params.action)||!/^https?:/.test(location.protocol)||location.hostname==='localhost')return null;
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
+  try{const r=await fetch('/api/pub?action='+params.action,{signal:ctl.signal});if(!r.ok)return null;const j=await r.json();return j&&j.ok?j:null}catch(e){return null}finally{clearTimeout(tm)}}
+async function apiGet(params,timeout=25000,retry=1){const pj=await pubGet(params);if(pj)return pj;
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),timeout);
   try{const r=await fetch(API_URL+'?'+new URLSearchParams(params),{signal:ctl.signal});const t=await r.text();return JSON.parse(t)}
   catch(e){if(retry>0&&navigator.onLine){await new Promise(z=>setTimeout(z,800));return apiGet(params,timeout,retry-1)}throw e}
   finally{clearTimeout(tm)}}
@@ -1101,7 +1107,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='224';let appNewer=false;
+const APP_V='225';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
