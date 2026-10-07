@@ -51,6 +51,10 @@ const ICONS={
   pause:'<path d="M8 5v14M16 5v14"/>',
   share:'<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="m8.2 10.8 7.6-4.4M8.2 13.2l7.6 4.4"/>',
   chev:'<path d="m6 9 6 6 6-6"/>',
+  tabhome:'<path class="f" d="M3.8 10.4 12 3.9l8.2 6.5v8.6a1.7 1.7 0 0 1-1.7 1.7h-3.8v-5.4a1.2 1.2 0 0 0-1.2-1.2h-3a1.2 1.2 0 0 0-1.2 1.2v5.4H5.5a1.7 1.7 0 0 1-1.7-1.7z"/>',
+  tablist:'<rect class="f" x="4" y="3.5" width="16" height="17" rx="3.5"/><path class="in" d="M8.3 8.6h7.4M8.3 12h7.4M8.3 15.4h4.4"/>',
+  tabphone:'<path class="f" d="M8.6 3.6 6.4 3.4c-1.2-.1-2.3.8-2.5 2-.4 3.2.8 7 4 10.4 3.4 3.4 7.4 4.7 10.6 4.2 1.2-.2 2-1.3 1.9-2.5l-.2-2.1a1.6 1.6 0 0 0-1.2-1.4l-2.6-.7a1.6 1.6 0 0 0-1.6.5l-.9 1a11.7 11.7 0 0 1-4.9-4.9l1-.9c.4-.4.6-1 .5-1.6l-.7-2.6a1.6 1.6 0 0 0-1.4-1.2z"/><path d="M14.6 3.8a6.4 6.4 0 0 1 5.6 5.6M14.3 7.2a3 3 0 0 1 2.5 2.5"/>',
+  tabchart:'<rect class="f" x="4" y="12" width="4" height="8" rx="1.4"/><rect class="f" x="10" y="5" width="4" height="15" rx="1.4"/><rect class="f" x="16" y="9" width="4" height="11" rx="1.4"/>',
   chart:'<path d="M4 20h16"/><path d="M7 16v-5M12 16V6M17 16v-8"/>'
 };
 function ic(name,cls){return `<svg class="ic${cls?' '+cls:''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`}

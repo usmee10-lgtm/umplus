@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=123">
+<link rel="stylesheet" href="./app.css?v=124">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -261,10 +261,10 @@
 
 <!-- เมนูล่าง -->
 <nav class="tabbar" id="tabbar" aria-label="เมนูหลัก">
-  <button type="button" data-go="home" class="active" data-icon="home"><span>หน้าแรก</span></button>
-  <button type="button" data-go="map" data-icon="list"><span>รายการ</span></button>
-  <button type="button" data-go="stats" data-icon="chart" style="display:none"><span>สรุป</span></button>
-  <button type="button" data-go="emergency" data-icon="phone"><span>ฉุกเฉิน</span></button>
+  <button type="button" data-go="home" class="active" data-icon="tabhome"><span>หน้าแรก</span></button>
+  <button type="button" data-go="map" data-icon="tablist"><span>รายการ</span></button>
+  <button type="button" data-go="stats" data-icon="tabchart" style="display:none"><span>สรุป</span></button>
+  <button type="button" data-go="emergency" data-icon="tabphone"><span>ฉุกเฉิน</span></button>
 </nav>
 
 <div class="layer-menu glass" id="layer-menu" hidden role="dialog" aria-label="แบบแผนที่และชั้นข้อมูล">
@@ -275,13 +275,13 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=123"></script>
-<script src="./geocode.js?v=123"></script>
-<script src="./location.js?v=123"></script>
-<script src="./pickmap.js?v=123"></script>
-<script src="./stats.js?v=123"></script>
-<script src="./hotlines.js?v=123"></script>
-<script src="./script.js?v=123"></script>
+<script src="./icons.js?v=124"></script>
+<script src="./geocode.js?v=124"></script>
+<script src="./location.js?v=124"></script>
+<script src="./pickmap.js?v=124"></script>
+<script src="./stats.js?v=124"></script>
+<script src="./hotlines.js?v=124"></script>
+<script src="./script.js?v=124"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>

@@ -1095,3 +1095,13 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .home-sheet .sheet-actions>#btn-proxy .ic,.home-sheet .sheet-actions>#btn-help .ic{flex:none;width:19px;height:19px}
 @media (max-width:350px){.home-sheet .sheet-actions>#btn-proxy,.home-sheet .sheet-actions>#btn-help{font-size:13.5px;padding:0 8px}}
 .home-sheet .sheet-actions>#btn-proxy,.home-sheet .sheet-actions>#btn-help{white-space:nowrap}
+/* ไอคอนแถบเมนูล่าง (v223): ปกติเป็นเส้น · หน้าที่เปิดอยู่เป็นไอคอนทึบสีแดง */
+.tabbar button .ic{width:25px;height:25px;stroke-width:1.9;transition:transform .2s ease}
+.tabbar button .ic .f{fill:transparent;transition:fill .2s}
+.tabbar button.active .ic .f{fill:currentColor}
+.tabbar button.active .ic .in{stroke:#fff}
+.tabbar button.active .ic{transform:translateY(-1px) scale(1.04)}
+.tabbar button span{font-size:12.5px;letter-spacing:.1px}
+.tabbar button.active span{font-weight:700}
+.tabbar button:active .ic{transform:scale(.9)}
+@media (prefers-reduced-motion:reduce){.tabbar button .ic{transition:none}}
