@@ -1088,3 +1088,10 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .proxy-note b{display:block;font-size:15px;color:#B8141B}
 .proxy-note u{text-decoration-color:rgba(184,20,27,.5);text-underline-offset:3px}
 #rep-name.mt-s{margin-top:8px}
+/* ปุ่มแจ้งแทน + โหมดอาสา อยู่แถวเดียวกัน (v221) */
+.home-sheet .sheet-actions{grid-template-columns:1fr 1fr}
+.home-sheet .sheet-actions>*{grid-column:1/-1}
+.home-sheet .sheet-actions>#btn-proxy,.home-sheet .sheet-actions>#btn-help{grid-column:auto;min-height:56px;font-size:15px;padding:0 10px;gap:6px;white-space:normal;line-height:1.2;text-align:center}
+.home-sheet .sheet-actions>#btn-proxy .ic,.home-sheet .sheet-actions>#btn-help .ic{flex:none;width:19px;height:19px}
+@media (max-width:350px){.home-sheet .sheet-actions>#btn-proxy,.home-sheet .sheet-actions>#btn-help{font-size:13.5px;padding:0 8px}}
+.home-sheet .sheet-actions>#btn-proxy,.home-sheet .sheet-actions>#btn-help{white-space:nowrap}
