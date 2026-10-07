@@ -34,9 +34,9 @@ const HEADERS_TH = ['รหัสเคส', 'เวลาแจ้ง', 'สถ
   'ที่อยู่', 'ละติจูด', 'ลองจิจูด', 'ระดับน้ำ', 'ต้องการ', 'กลุ่มเปราะบาง', 'รายละเอียด',
   'ทีมอาสา', 'อัปเดตล่าสุด', 'รหัสติดตาม (ห้ามแก้)'];
 const TEAM_HEADERS_TH = ['ทีม', 'ละติจูด', 'ลองจิจูด', 'ความแม่นยำ (ม.)', 'อัปเดตล่าสุด', 'กำลังแชร์'];
-const STATUSES = ['open', 'going', 'done'];
+const STATUSES = ['open', 'going', 'done', 'skip'];
 // ในชีตเก็บสถานะเป็นภาษาไทย (เลือกจาก dropdown ได้) แต่ส่งให้แอปเป็นรหัส open/going/done
-const STATUS_TH = { open: 'รอช่วย', going: 'กำลังไป', done: 'ช่วยแล้ว' };
+const STATUS_TH = { open: 'รอช่วย', going: 'กำลังไป', done: 'ช่วยแล้ว', skip: 'ไม่เข้าเกณฑ์' };   // skip = ปิดเคสโดยไม่ไปช่วย (ไม่เข้าเกณฑ์) พร้อมหมายเหตุ
 const LEVEL_TH = { dry: 'แห้ง / ต่ำกว่าข้อเท้า (<10 ซม.)', ankle: 'ข้อเท้า–เข่า (10–50 ซม.)', knee: 'เข่า–เอว (50–100 ซม.)', waist: 'เอว–อก (100–130 ซม.)', chest: 'อกขึ้นไป (130–180 ซม.)', roof: 'มิดหัว / ท่วมหลังคา (>180 ซม.)' };
 /* ป้ายระดับน้ำแบบเก่าที่อาจยังอยู่ในชีต */
 const LEVEL_OLD = { 'ข้อเท้า': 'ankle', 'เข่า': 'knee', 'เอว': 'waist', 'อก': 'chest', 'มิดหัว': 'roof', 'แห้ง': 'dry' };
@@ -193,9 +193,11 @@ function updateCase_(b) {
     if (!r) return { ok: false, error: 'not_found' };
     const m = cols_(sh), col = function (name) { return m[name]; };
     const prev = statusCode_(sh.getRange(r, col('status')).getValue()), now = new Date();
+    if (b.status === 'skip') ensureStatusRule_(sh, col('status'));
     sh.getRange(r, col('status')).setValue(STATUS_TH[b.status]);
     // เวลารับเคส / เวลาช่วยเสร็จ (ครั้งแรก) · เปิดเคสใหม่ (กลับเป็นรอช่วย) = ล้างเวลา
     if (b.status === 'open') { if (col('goingAt')) sh.getRange(r, col('goingAt')).setValue(''); if (col('doneAt')) sh.getRange(r, col('doneAt')).setValue(''); }
+    else if (b.status === 'skip') { if (col('doneAt')) sh.getRange(r, col('doneAt')).setValue(''); }   // ไม่เข้าเกณฑ์: ไม่นับเป็นเวลาช่วยเสร็จ
     else {
       if (col('goingAt') && !sh.getRange(r, col('goingAt')).getValue()) sh.getRange(r, col('goingAt')).setValue(now);
       if (b.status === 'done' && prev !== 'done' && col('doneAt')) sh.getRange(r, col('doneAt')).setValue(now);
@@ -208,6 +210,11 @@ function updateCase_(b) {
     if (col('org')) {
       if (b.status === 'open') sh.getRange(r, col('org')).setValue('');
       else if (b.org) sh.getRange(r, col('org')).setValue(safeCell_(clean_(b.org, MAX.org)));
+    }
+    // หมายเหตุปิดเคส: บันทึกเมื่อปิดแบบ "ไม่เข้าเกณฑ์" · ล้างเมื่อเปิดเคสใหม่
+    if (col('closeNote')) {
+      if (b.status === 'skip') sh.getRange(r, col('closeNote')).setValue(safeCell_(clean_(b.note, 300)));
+      else if (b.status === 'open') sh.getRange(r, col('closeNote')).setValue('');
     }
     if (col('updatedAt')) sh.getRange(r, col('updatedAt')).setValue(new Date());
     clearListCache_();
@@ -366,7 +373,7 @@ const ALIASES = {
   district: ['เขต', 'district'], people: ['จำนวนคน', 'people'], address: ['ที่อยู่', 'address'],
   lat: ['ละติจูด', 'lat'], lng: ['ลองจิจูด', 'lng'], level: ['ระดับน้ำ', 'level'], needs: ['ต้องการ', 'needs'],
   vulnerable: ['กลุ่มเปราะบาง', 'vulnerable'], notes: ['รายละเอียด', 'notes'], volunteer: ['ทีมอาสา', 'volunteer'],
-  updatedAt: ['อัปเดตล่าสุด', 'updatedAt'], org: ['หน่วยงาน', 'org'], photos: ['รูปภาพ', 'photos'], pinsrc: ['ที่มาของหมุด', 'pinsrc'], goingAt: ['เวลารับเคส', 'goingAt'], doneAt: ['เวลาช่วยเสร็จ', 'doneAt'], token: ['รหัสติดตาม (ห้ามแก้)', 'รหัสติดตาม', 'token']
+  updatedAt: ['อัปเดตล่าสุด', 'updatedAt'], org: ['หน่วยงาน', 'org'], photos: ['รูปภาพ', 'photos'], pinsrc: ['ที่มาของหมุด', 'pinsrc'], goingAt: ['เวลารับเคส', 'goingAt'], doneAt: ['เวลาช่วยเสร็จ', 'doneAt'], closeNote: ['หมายเหตุปิดเคส', 'closeNote'], token: ['รหัสติดตาม (ห้ามแก้)', 'รหัสติดตาม', 'token']
 };
 let COLS_ = null;
 /** {key: เลขคอลัมน์} จากแถวหัวตาราง (ชื่อซ้ำ ใช้คอลัมน์แรก) · คอลัมน์ token ถ้าไม่มี เพิ่มต่อท้ายให้ */
@@ -384,6 +391,7 @@ function cols_(sh) {
   if (!m.pinsrc) { m.pinsrc = m._width + 1; sh.getRange(1, m.pinsrc).setValue(ALIASES.pinsrc[0]).setFontWeight('bold'); m._width = m.pinsrc; }
   // เวลารับเคส / เวลาช่วยเสร็จ: บันทึกอัตโนมัติเมื่อเปลี่ยนสถานะในแอป (ใช้คำนวณหน้าสรุปให้แม่น)
   ['goingAt', 'doneAt'].forEach(function (k) { if (!m[k]) { m[k] = m._width + 1; sh.getRange(1, m[k]).setValue(ALIASES[k][0]).setFontWeight('bold'); sh.getRange(2, m[k], Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('d/m/yyyy HH:mm'); m._width = m[k]; } });
+  if (!m.closeNote) { m.closeNote = m._width + 1; sh.getRange(1, m.closeNote).setValue(ALIASES.closeNote[0]).setFontWeight('bold'); m._width = m.closeNote; }
   COLS_ = m;
   return m;
 }
@@ -423,6 +431,14 @@ function urgCode_(v) {
   if (n >= 1 && n <= 4) return n;
   for (const k in URG_TH) if (URG_TH[k] === String(v || '').trim()) return Number(k);
   return 1;
+}
+
+/** ช่องสถานะในชีตมี dropdown แบบห้ามค่าอื่น → เพิ่ม "ไม่เข้าเกณฑ์" ให้ก่อนเขียน (ทำครั้งเดียว) */
+function ensureStatusRule_(sh, c) {
+  const cell = sh.getRange(2, c), dv = cell.getDataValidation();
+  if (dv) { const vals = (dv.getCriteriaValues() || [])[0] || []; if (vals.indexOf(STATUS_TH.skip) >= 0) return; }
+  const rule = SpreadsheetApp.newDataValidation().requireValueInList([STATUS_TH.open, STATUS_TH.going, STATUS_TH.done, STATUS_TH.skip], true).setAllowInvalid(false).setHelpText('เลือก: รอช่วย / กำลังไป / ช่วยแล้ว / ไม่เข้าเกณฑ์').build();
+  sh.getRange(2, c, Math.max(1, sh.getMaxRows() - 1), 1).setDataValidation(rule);
 }
 
 /** รหัสสถานะจากค่าในชีต (รับได้ทั้งไทยและอังกฤษ) */
@@ -477,7 +493,7 @@ function formatSheet_(sh) {
   const list = function (vals, help) { const b = SpreadsheetApp.newDataValidation().requireValueInList(vals, true).setAllowInvalid(false); if (help) b.setHelpText(help); return b.build(); };
   // 1) แปลงค่าเดิมเป็นไทย + dropdown (เฉพาะคอลัมน์ที่มีอยู่)
   if (colStatus) {
-    sh.getRange(2, colStatus, maxRows - 1, 1).setDataValidation(list([STATUS_TH.open, STATUS_TH.going, STATUS_TH.done], 'เลือก: รอช่วย / กำลังไป / ช่วยแล้ว'))
+    sh.getRange(2, colStatus, maxRows - 1, 1).setDataValidation(list([STATUS_TH.open, STATUS_TH.going, STATUS_TH.done, STATUS_TH.skip], 'เลือก: รอช่วย / กำลังไป / ช่วยแล้ว / ไม่เข้าเกณฑ์'))
       .setFontWeight('bold').setHorizontalAlignment('center');
     if (n > 0) { const rng = sh.getRange(2, colStatus, n, 1); rng.setValues(rng.getValues().map(function (r) { const c = statusCode_(r[0]); return [c ? STATUS_TH[c] : r[0]]; })); }
     sh.setColumnWidth(colStatus, 90);
@@ -505,13 +521,14 @@ function formatSheet_(sh) {
       if (font) b.setFontColor(font);
       return b.build();
     };
-    const notDone = S + '<>"' + STATUS_TH.done + '",' + S + '<>""';
+    const notDone = S + '<>"' + STATUS_TH.done + '",' + S + '<>"' + STATUS_TH.skip + '",' + S + '<>""';
     const urg = function (n) { return 'AND(' + notDone + ',OR(' + U + '="' + URG_TH[n] + '",' + U + '=' + n + '))'; };
     const stArea = sh.getRange(2, colStatus, maxRows - 1, 1);
     sh.setConditionalFormatRules([
       // ช่องสถานะ "กำลังไป" = ฟ้า (ให้เห็นว่ามีทีมรับแล้ว)
       SpreadsheetApp.newConditionalFormatRule().whenFormulaSatisfied('=' + S + '="' + STATUS_TH.going + '"').setBackground('#0F2188').setFontColor('#FFFFFF').setRanges([stArea]).build(),
       cf('=' + S + '="' + STATUS_TH.done + '"', '#DFF8E7', '#1B5E20'),          // ช่วยแล้ว = เขียว
+      cf('=' + S + '="' + STATUS_TH.skip + '"', '#EEEAF6', '#4B3B73'),          // ไม่เข้าเกณฑ์ = ม่วงเทา
       cf('=' + urg(4), '#B91C1C', '#FFFFFF'),                                   // วิกฤต = แดงเข้ม
       cf('=' + urg(3), '#FCA5A5', '#7F1D1D'),                                   // ด่วนมาก = แดง
       cf('=' + urg(2), '#FED7AA', '#7C2D12'),                                   // เร่งด่วน = ส้ม

@@ -17,7 +17,7 @@ function levelSvg(k){const y=LEVEL_Y[k],c=LEVEL_COLOR[k];
 function levelLabel(k){return LEVEL_TH[k]?LEVEL_TH[k]+' ('+LEVEL_CM[k]+')':'ไม่ระบุ'}
 document.addEventListener('change',e=>{if(e.target.name==='level'&&typeof markOk==='function')markOk('level')});
 (function(){const g=document.getElementById('level-chips');if(!g)return;g.innerHTML=Object.keys(LEVEL_TH).map(k=>`<label style="--lv:${LEVEL_COLOR[k]}"><input type="radio" name="level" value="${k}"><span>${levelSvg(k)}<b>${LEVEL_TH[k]}</b><small>${LEVEL_CM[k]}</small></span></label>`).join('')})();
-const STATUS_TH={open:'รอช่วย',going:'กำลังไป',done:'ช่วยแล้ว'};
+const STATUS_TH={open:'รอช่วย',going:'กำลังไป',done:'ช่วยแล้ว',skip:'ไม่เข้าเกณฑ์'};
 function iconify(root=document){root.querySelectorAll('[data-icon]').forEach(el=>{if(el.dataset.iconDone)return;el.insertAdjacentHTML('afterbegin',ic(el.dataset.icon));el.dataset.iconDone='1'})}
 function toast(msg,opt={}){const t=document.createElement('div');t.className='toast'+(opt.ok?' ok':'');t.setAttribute('role','status');
   t.innerHTML=ic(opt.icon||(opt.ok?'check':'info'))+'<span></span>';t.querySelector('span').textContent=msg;
@@ -26,8 +26,9 @@ function toast(msg,opt={}){const t=document.createElement('div');t.className='to
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
 function ago(ts){const t=Number(ts)||Date.parse(ts);if(!t)return '';const m=Math.round((Date.now()-t)/60000);if(m<1)return 'เมื่อสักครู่';if(m<60)return m+' นาทีที่แล้ว';const h=Math.round(m/60);if(h<24)return h+' ชั่วโมงที่แล้ว';return new Date(t).toLocaleDateString('th-TH',{day:'numeric',month:'short'})+' '+new Date(t).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'})}
 const hasPin=c=>c&&c.lat!==''&&c.lat!=null&&c.lng!==''&&c.lng!=null&&!isNaN(+c.lat)&&!isNaN(+c.lng);
-const isDanger=c=>Number(c.urgency)>=3&&c.status!=='done';  /* ด่วนมาก + วิกฤต */
-const pinKind=c=>c.status==='done'?'done':c.status==='going'?'going':isDanger(c)?'danger':'open';
+const isClosed=c=>c.status==='done'||c.status==='skip';   /* ปิดแล้ว = ช่วยแล้ว หรือ ไม่เข้าเกณฑ์ */
+const isDanger=c=>Number(c.urgency)>=3&&!isClosed(c);  /* ด่วนมาก + วิกฤต */
+const pinKind=c=>c.status==='skip'?'skip':c.status==='done'?'done':c.status==='going'?'going':isDanger(c)?'danger':'open';
 const sevOf=c=>Math.min(4,Math.max(1,Number(c.urgency)||1));
 /* ความเร่งด่วน 3 ระดับ: ทั่วไป · ปานกลาง · ด่วน (ค่าที่ส่งเข้าชีตยังเป็นข้อความเดิม เพื่อให้ Code.gs ใช้ได้เหมือนเดิม) */
 const URG_TH={1:'ทั่วไป',2:'เร่งด่วน',3:'ด่วนมาก',4:'วิกฤต'};
@@ -143,7 +144,7 @@ function drawPins(which){
   const m=S.maps[which],lg=PIN_LAYER[which];if(!m||!lg)return;
   if(m._popup&&m.hasLayer(m._popup)){m._pinsStale=true;if(!m._pinsHook){m._pinsHook=1;m.on('popupclose',()=>{if(m._pinsStale){m._pinsStale=false;setTimeout(()=>drawPins(which),0)}})}return}  /* อาสากำลังอ่าน popup อยู่ → ค่อยวาดใหม่ตอนปิด */
   lg.clearLayers();
-  const list=which==='home'?visibleCases().filter(c=>c.status!=='done'):filteredCases();
+  const list=which==='home'?visibleCases().filter(c=>!isClosed(c)):filteredCases();
   const pts=[];
   list.filter(hasPin).forEach(c=>{const k=pinKind(c);pts.push([+c.lat,+c.lng]);
     L.marker([+c.lat,+c.lng],{icon:pinIcon(k),zIndexOffset:k==='danger'?1000:k==='open'?500:0,title:[k==='danger'?'ด่วน':STATUS_TH[c.status]||'รอช่วย',((c.needs||[]).join(', ')||'ขอความช่วยเหลือ'),(c.people||1)+' คน'].join(' · ')}).bindPopup(()=>popupHtml(c)).addTo(lg)});
@@ -157,11 +158,11 @@ function drawPins(which){
 function popupHtml(c){
   const addr=addrTxt(c)||(S.volunteer?'':'ไม่ระบุเขต');
   const tel=String(c.phone||'').replace(/[^\d+]/g,'');
-  return `<div class="pop">${c.status!=='done'?urgChip(c)+' ':''}${statusChip(c)}<br><b>${esc((c.needs||[]).join(', ')||'ขอความช่วยเหลือ')}</b> · ${esc(c.people||1)} คน`+
+  return `<div class="pop">${!isClosed(c)?urgChip(c)+' ':''}${statusChip(c)}<br><b>${esc((c.needs||[]).join(', ')||'ขอความช่วยเหลือ')}</b> · ${esc(c.people||1)} คน`+
     (c.level?`<br>ระดับน้ำ: ${esc(LEVEL_TH[c.level]||c.level)}`:'')+(addr?`<br>${esc(addr)}`:'')+(S.volunteer?'':'<br><small>ตำแหน่งโดยประมาณ</small>')+
     (S.volunteer&&(c.name||c.phone)?`<br>${c.name?esc(c.name)+' ':''}${c.phone?(S.volunteer&&tel.length>=9?`<a href="tel:${esc(tel)}">${esc(c.phone)}</a>`:esc(c.phone)):''}`:'')+
     `<div class="pop-act"><a href="#" data-open="${esc(c.id)}">ดูรายละเอียด</a>`+
-    (S.volunteer&&c.status!=='done'&&hasPin(c)?` · <a href="#" data-trip="${esc(c.id)}">${typeof tripIndex==='function'&&tripIndex(c.id)>=0?'อยู่ในแผนแล้ว':'+ แผนเดินทาง'}</a>`:'')+`</div></div>`;
+    (S.volunteer&&!isClosed(c)&&hasPin(c)?` · <a href="#" data-trip="${esc(c.id)}">${typeof tripIndex==='function'&&tripIndex(c.id)>=0?'อยู่ในแผนแล้ว':'+ แผนเดินทาง'}</a>`:'')+`</div></div>`;
 }
 document.addEventListener('click',e=>{const a=e.target.closest('[data-open]');if(a){e.preventDefault();openCase(a.dataset.open)}
   const t=e.target.closest('[data-trip]');if(t){e.preventDefault();tripToggle(t.dataset.trip);t.textContent=tripIndex(t.dataset.trip)>=0?'อยู่ในแผนแล้ว':'+ แผนเดินทาง'}});
@@ -643,12 +644,13 @@ $('#form-back').addEventListener('click',()=>{if(F.sending)return;if(F.step===2)
 const FL=Object.assign({status:'active',types:[],people:[],level:[],urg:[],q:'',sort:'new',age:''},store.json('uh_filters4',{}),{q:''});
 const saveFL=()=>store.put('uh_filters4',{status:FL.status,types:FL.types,people:FL.people,level:FL.level,urg:FL.urg,sort:FL.sort,age:FL.age});
 /* เรียงลำดับ + ช่วงเวลาที่แจ้ง */
+const SKIP_REASONS=['น้ำลดแล้ว / ไม่ท่วม','ช่วยเหลือตัวเองได้','มีหน่วยงานอื่นดูแลแล้ว','ติดต่อไม่ได้','ข้อมูลไม่ครบ / เคสซ้ำ','อยู่นอกพื้นที่ที่ทีมดูแล'];
 const SORTS=[['new','ใหม่ล่าสุด'],['prio','สำคัญก่อน'],['old','รอนานสุด']];
 const AGES=[['','ทั้งหมด'],['today','วันนี้'],['24h','24 ชม.'],['3d','3 วัน'],['7d','7 วัน'],['older','เก่ากว่า 7 วัน']];
 function ageOk(c){if(!FL.age)return true;const t=Number(c.createdAt)||Date.parse(c.createdAt)||0,now=Date.now(),H=3600000;
   if(FL.age==='today'){const d=new Date();d.setHours(0,0,0,0);return t>=d.getTime()}
   if(FL.age==='older')return t&&t<now-168*H;return t>=now-({'24h':24,'3d':72,'7d':168}[FL.age])*H}
-const STATUS_TABS=[['active','ยังไม่เสร็จ'],['danger','ด่วน'],['open','รอช่วย'],['going','กำลังไป'],['done','ช่วยแล้ว'],['all','ทั้งหมด']];
+const STATUS_TABS=[['active','ยังไม่เสร็จ'],['danger','ด่วน'],['open','รอช่วย'],['going','กำลังไป'],['done','ช่วยแล้ว'],['skip','ไม่เข้าเกณฑ์'],['all','ทั้งหมด']];
 const PEOPLE_R=[['1-5','1–5 คน'],['6-20','6–20 คน'],['21-99999','มากกว่า 20 คน']];
 function renderFilters(){
   const fk=document.activeElement&&document.activeElement.closest&&document.activeElement.closest('[data-st],[data-ty]');const keep=fk?(fk.dataset.st?'[data-st="'+fk.dataset.st+'"]':'[data-ty="'+fk.dataset.ty+'"]'):null;
@@ -682,22 +684,22 @@ function caseMatches(c,q){const hay=caseHay(c);if(q.length>=3&&hay.replace(/\s+/
 /* คนทั่วไปเห็นเฉพาะคำขอที่ตัวเองแจ้งจากเครื่องนี้ · ทีมอาสาเห็นทุกเคส */
 function visibleCases(){if(S.volunteer)return S.cases;const mine=new Set(myReqs().map(m=>String(m.id)));return S.cases.filter(c=>mine.has(String(c.id)))}
 function filteredCases(){
-  const rank={open:0,going:1,done:2};
+  const rank={open:0,going:1,done:2,skip:3};
   if(!S.volunteer)return visibleCases().sort((a,b)=>(Number(b.createdAt)||0)-(Number(a.createdAt)||0));
   return S.cases.filter(c=>{
     if(FL.q)return caseMatches(c,FL.q);
-    if(FL.status==='active'&&c.status==='done')return false;
+    if(FL.status==='active'&&isClosed(c))return false;
     if(FL.status==='danger'&&!isDanger(c))return false;
-    if(['open','going','done'].includes(FL.status)&&c.status!==FL.status)return false;
+    if(['open','going','done','skip'].includes(FL.status)&&c.status!==FL.status)return false;
     if(FL.types.length&&!FL.types.some(k=>(c.needs||[]).some(v=>needKey(v)===k)))return false;
     if(FL.people.length){const p=Number(c.people)||1;if(!FL.people.some(r=>{const [a,b]=r.split('-').map(Number);return p>=a&&p<=b}))return false}
     if(FL.level.length&&!FL.level.includes(c.level||'none'))return false;
-    if(FL.urg.length&&(c.status==='done'||!FL.urg.includes(String(sevOf(c)))))return false;
+    if(FL.urg.length&&(isClosed(c)||!FL.urg.includes(String(sevOf(c)))))return false;
     if(!ageOk(c))return false;
     return true}).sort((a,b)=>{const ta=Number(a.createdAt)||0,tb=Number(b.createdAt)||0;
       if(FL.sort==='old')return ta-tb;
       /* สำคัญก่อน: ยังไม่เสร็จก่อน → ความด่วนสูงก่อน → ยังไม่มีทีมไป (รอช่วย) ก่อน "กำลังไป" → รอนานกว่าก่อน → คนเยอะกว่าก่อน */
-      if(FL.sort==='prio'||FL.sort==='urgent')return ((a.status==='done')-(b.status==='done'))||(sevOf(b)-sevOf(a))||(rank[a.status]-rank[b.status])||(ta-tb)||((Number(b.people)||1)-(Number(a.people)||1));
+      if(FL.sort==='prio'||FL.sort==='urgent')return (isClosed(a)-isClosed(b))||(sevOf(b)-sevOf(a))||(rank[a.status]-rank[b.status])||(ta-tb)||((Number(b.people)||1)-(Number(a.people)||1));
       return tb-ta});
 }
 function caseCard(c){
@@ -718,9 +720,9 @@ function caseHead(){const h=document.createElement('div');h.className='crow-head
 function agoShort(ts){const t=Number(ts)||Date.parse(ts);if(!t)return '';const m=Math.round((Date.now()-t)/60000);if(m<60)return Math.max(1,m)+' น.';const h=Math.round(m/60);if(h<24)return h+' ชม.';return Math.round(h/24)+' วัน'}
 let rowOpen='';
 function caseRow(c){
-  const w=document.createElement('div');w.className='crow'+(c.status==='done'?' is-done':' u'+sevOf(c))+(isDanger(c)?' danger':'')+(rowOpen===c.id?' open':'');w.dataset.id=c.id;
+  const w=document.createElement('div');w.className='crow'+(isClosed(c)?' is-done'+(c.status==='skip'?' is-skip':''):' u'+sevOf(c))+(isDanger(c)?' danger':'')+(rowOpen===c.id?' open':'');w.dataset.id=c.id;
   const needs=c.needs&&c.needs.length?c.needs:['ขอความช่วยเหลือ'],v=sevOf(c),area=areaOf(c)||'–';
-  const lvl=c.status==='done'?'<span class="cr-u done">เสร็จ</span>':`<span class="cr-u urg-${v}"><i></i>${URG_TH[v]}</span>`;
+  const lvl=c.status==='skip'?'<span class="cr-u cr-skip">ไม่เข้าเกณฑ์</span>':c.status==='done'?'<span class="cr-u done">เสร็จ</span>':`<span class="cr-u urg-${v}"><i></i>${URG_TH[v]}</span>`;
   const st=c.status==='going'?'<i class="cr-st going" title="กำลังไป"></i>':'';
   w.innerHTML=`<button type="button" class="cr-main" aria-expanded="${rowOpen===c.id}">${lvl}<span class="cr-ics">${needs.slice(0,2).map(n=>ic(needIcon(n))).join('')}${needs.length>2?`<em>+${needs.length-2}</em>`:''}</span><span class="cr-ppl">${esc(String(c.people||1))}</span><span class="cr-area">${st}${esc(area)}</span><span class="cr-time">${esc(agoShort(c.createdAt))}</span><span class="cr-chev">${ic('chev')}</span></button>`;
   w.querySelector('.cr-main').addEventListener('click',()=>{const was=rowOpen===c.id;rowOpen=was?'':c.id;
@@ -731,10 +733,10 @@ function caseRow(c){
 function caseMore(c){const d=document.createElement('div');d.className='cr-more';
   const addr=addrTxt(c),tel=String(c.phone||'').replace(/[^\d+]/g,'');
   const rows=[['ต้องการ',(c.needs||[]).join(' · ')||'ขอความช่วยเหลือ'],['สถานะ',STATUS_TH[c.status]||'รอช่วย'],['จำนวนคน',(c.people||1)+' คน'],c.level&&LEVEL_TH[c.level]?['ระดับน้ำ',LEVEL_TH[c.level]]:null,['ที่อยู่',addr||(S.volunteer?'ไม่ระบุที่อยู่':'ไม่ระบุเขต')],
-    S.volunteer&&(c.name||c.phone)?['ผู้แจ้ง',[c.name,c.phone].filter(Boolean).join(' · ')]:null,S.volunteer&&c.photos&&c.photos.length?['รูป',c.photos.length+' รูป']:null,c.notes?['หมายเหตุ',c.notes]:null,['แจ้งเมื่อ',ago(c.createdAt)+' · #'+c.id]].filter(Boolean);
+    S.volunteer&&(c.name||c.phone)?['ผู้แจ้ง',[c.name,c.phone].filter(Boolean).join(' · ')]:null,S.volunteer&&c.photos&&c.photos.length?['รูป',c.photos.length+' รูป']:null,c.notes?['หมายเหตุ',c.notes]:null,c.status==='skip'?['เหตุผลที่ปิด',c.closeNote||'ไม่ได้ระบุ']:null,['แจ้งเมื่อ',ago(c.createdAt)+' · #'+c.id]].filter(Boolean);
   d.innerHTML=`<dl>${rows.map(([k,v])=>`<div><dt>${k}</dt><dd>${esc(String(v))}</dd></div>`).join('')}</dl><div class="cr-act">`+
     (S.volunteer&&tel.length>=9?`<a class="pill pill-sos" href="tel:${esc(tel)}">${ic('phone')}โทร</a>`:'')+
-    (hasPin(c)&&S.volunteer?`<a class="pill pill-ghost" href="https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}" target="_blank" rel="noopener">${ic('nav')}นำทาง</a>`:'')+
+    (hasPin(c)&&S.volunteer&&!isClosed(c)?`<a class="pill pill-ghost" href="https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}" target="_blank" rel="noopener">${ic('nav')}นำทาง</a>`:'')+
     `<button type="button" class="pill pill-ghost cr-open">${ic('next')}เปิดเคส</button></div>`;
   d.querySelector('.cr-open').addEventListener('click',()=>openCase(c.id));return d}
 function renderList(){
@@ -744,7 +746,7 @@ function renderList(){
   const txt=S.volunteer?(FL.q?`พบ ${list.length} เคส (ค้นจากทุกเคส)`:`${list.length} เคส`):'คำขอของฉัน';$('#case-count').textContent=txt;S.listTxt=txt;sheetLabel();
   if(typeof tripBadges==='function')tripBadges();
 }
-function renderLegend(){$('#legend').innerHTML=`<span><i style="background:var(--red)"></i>ด่วน</span><span><i style="background:var(--open)"></i>รอช่วย</span><span><i style="background:var(--going)"></i>กำลังไป</span><span><i style="background:var(--ok)"></i>ช่วยแล้ว</span>`}
+function renderLegend(){$('#legend').innerHTML=`<span><i style="background:var(--red)"></i>ด่วน</span><span><i style="background:var(--open)"></i>รอช่วย</span><span><i style="background:var(--going)"></i>กำลังไป</span><span><i style="background:var(--ok)"></i>ช่วยแล้ว</span><span><i style="background:var(--skip)"></i>ไม่เข้าเกณฑ์</span>`}
 function setSheet(open){const s=$('#list-sheet');s.classList.toggle('open',open);$('#sheet-handle').setAttribute('aria-expanded',String(open))}
 $('#sheet-handle').addEventListener('click',()=>setSheet(!$('#list-sheet').classList.contains('open')));
 (function(){let y0=null;const h=$('#sheet-handle');h.addEventListener('touchstart',e=>{y0=e.touches[0].clientY},{passive:true});h.addEventListener('touchend',e=>{if(y0==null)return;const dy=e.changedTouches[0].clientY-y0;if(dy<-30)setSheet(true);else if(dy>30)setSheet(false);y0=null},{passive:true})})();
@@ -829,19 +831,27 @@ function renderDetail(full){
   if(ti>=0){const nav=document.createElement('div');nav.className='trip-nav';const n=TRIP.ids.length;
     nav.innerHTML=`<button type="button" ${ti===0?'disabled':''} aria-label="จุดก่อนหน้า">${ic('back')}</button><span>${ic('route')}จุดที่ <b>${ti+1}</b> จาก ${n} ในแผนเดินทาง</span><button type="button" ${ti===n-1?'disabled':''} aria-label="จุดถัดไป">${ic('next')}</button>`;
     const [pv,nx]=nav.querySelectorAll('button');pv.onclick=()=>stepTrip(ti-1);nx.onclick=()=>stepTrip(ti+1);act.before(nav)}
-  if(S.volunteer&&hasPin(c)&&c.status!=='done'){const tb=document.createElement('button');tb.type='button';tb.className='pill pill-ghost full';const upd=()=>{tb.innerHTML=ic('route')+(tripIndex(c.id)>=0?'อยู่ในแผนเดินทาง (แตะเพื่อเอาออก)':'เพิ่มในแผนเดินทาง')};upd();tb.onclick=()=>{tripToggle(c.id);upd()};act.append(tb)}
+  if(S.volunteer&&hasPin(c)&&!isClosed(c)){const tb=document.createElement('button');tb.type='button';tb.className='pill pill-ghost full';const upd=()=>{tb.innerHTML=ic('route')+(tripIndex(c.id)>=0?'อยู่ในแผนเดินทาง (แตะเพื่อเอาออก)':'เพิ่มในแผนเดินทาง')};upd();tb.onclick=()=>{tripToggle(c.id);upd()};act.append(tb)}
   if(S.volunteer){
     const fs=document.createElement('fieldset');fs.className='status-pick';
-    fs.innerHTML=`<legend>สถานะเคส (ติ๊กเพื่อเปลี่ยน)</legend><div class="status-opts">${[['open','รอช่วย'],['going','กำลังไป · รับเคส'],['done','ช่วยแล้ว · ปิดเคส']].map(([v,t])=>`<label><input type="radio" name="cst" value="${v}" ${c.status===v?'checked':''}><span>${t}</span></label>`).join('')}</div>
+    fs.innerHTML=`<legend>สถานะเคส (ติ๊กเพื่อเปลี่ยน)</legend><div class="status-opts">${[['open','รอช่วย'],['going','กำลังไป · รับเคส'],['done','ช่วยแล้ว · ปิดเคส'],['skip','ไม่เข้าเกณฑ์ · ปิดโดยไม่ไปช่วย']].map(([v,t])=>`<label class="cst-${v}"><input type="radio" name="cst" value="${v}" ${c.status===v?'checked':''}><span>${t}</span></label>`).join('')}</div>${c.status==='skip'?`<p class="skip-note-now"><b>เหตุผลที่ปิด:</b> ${esc(c.closeNote||'ไม่ได้ระบุ')}</p>`:''}
+      <div class="skip-box" id="skip-box" hidden><b>ทำไมไม่เข้าเกณฑ์?</b><div class="skip-chips">${SKIP_REASONS.map(r=>`<button type="button" data-skr="${esc(r)}">${esc(r)}</button>`).join('')}</div><textarea id="skip-note" rows="2" maxlength="300" placeholder="โน้ตสั้น ๆ เช่น โทรคุยแล้ว น้ำลดแล้ว อยู่ได้" aria-label="เหตุผลที่ปิดเคส"></textarea><div class="row"><button type="button" class="pill pill-ghost" id="skip-cancel">ยกเลิก</button><button type="button" class="pill skip-ok" id="skip-ok">ปิดเคส</button></div></div>
       <input id="d-team" placeholder="ชื่อทีม / อาสา" value="${esc(c.volunteer||store.get('uh_team',''))}" maxlength="40" aria-label="ชื่อทีม">
       <select id="d-org" aria-label="หน่วยงาน"><option value="">— หน่วยงาน —</option>${orgOpts(c.org||store.get('uh_org',''))}</select>`;
-    fs.addEventListener('change',async e=>{if(e.target.name!=='cst')return;const v=e.target.value;if(!v||v===c.status)return;const team=$('#d-team').value.trim();
-      if(v==='going'&&!team){toast('ใส่ชื่อทีมก่อนรับเคส');e.target.checked=false;const o=fs.querySelector(`input[value="${c.status}"]`);if(o)o.checked=true;$('#d-team').focus();return}
-      if(team)store.set('uh_team',team);fs.disabled=true;
-      const org=$('#d-org').value;if(org)store.set('uh_org',org);
-      try{const r=await apiPost({action:'update',key:volKey(),id:c.id,status:v,volunteer:v==='open'?'':team,org:v==='open'?'':org});if(!r||!r.ok)throw new Error(r&&r.error);
-        c.status=v;c.volunteer=v==='open'?'':team||c.volunteer;c.org=v==='open'?'':org||c.org;toast(v==='going'?'รับเคสแล้ว':v==='done'?'ปิดเคสแล้ว':'คืนเคสแล้ว',{ok:true});renderDetail(true);loadCases()}
-      catch(err){toast('อัปเดตไม่สำเร็จ ลองอีกครั้ง');fs.disabled=false;const o=fs.querySelector(`input[value="${c.status}"]`);if(o)o.checked=true;else e.target.checked=false}});
+    const restore=()=>{const o=fs.querySelector(`input[value="${c.status}"]`);if(o)o.checked=true};
+    const send=async(v,note)=>{const team=$('#d-team').value.trim();if(team)store.set('uh_team',team);fs.disabled=true;const org=$('#d-org').value;if(org)store.set('uh_org',org);
+      try{const r=await apiPost({action:'update',key:volKey(),id:c.id,status:v,volunteer:v==='open'?'':team,org:v==='open'?'':org,note:note||''});if(!r||!r.ok)throw new Error(r&&r.error);
+        c.status=v;c.closeNote=v==='skip'?note:v==='open'?'':c.closeNote;c.volunteer=v==='open'?'':team||c.volunteer;c.org=v==='open'?'':org||c.org;toast(v==='going'?'รับเคสแล้ว':v==='done'?'ปิดเคสแล้ว':v==='skip'?'ปิดเคสแล้ว · ไม่เข้าเกณฑ์':'คืนเคสแล้ว',{ok:true});renderDetail(true);loadCases()}
+      catch(err){toast(err&&err.message==='bad_status'?'หลังบ้านยังไม่รองรับสถานะนี้':'อัปเดตไม่สำเร็จ ลองอีกครั้ง');fs.disabled=false;restore()}};
+    /* ไม่เข้าเกณฑ์: เลือกเหตุผล/พิมพ์โน้ต แล้วกด "ปิดเคส" ก่อนจึงส่ง */
+    fs.addEventListener('click',e=>{const ch=e.target.closest('[data-skr]');if(ch){const t=$('#skip-note'),cur=t.value.trim();t.value=cur.includes(ch.dataset.skr)?cur:(cur?cur+' · ':'')+ch.dataset.skr;fs.querySelectorAll('[data-skr]').forEach(b=>b.setAttribute('aria-pressed',String(t.value.includes(b.dataset.skr))));return}
+      if(e.target.id==='skip-cancel'){$('#skip-box').hidden=true;restore();return}
+      if(e.target.id==='skip-ok'){const note=$('#skip-note').value.trim();if(!note){toast('เลือกเหตุผล หรือพิมพ์โน้ตสั้น ๆ ก่อน');$('#skip-note').focus();return}$('#skip-box').hidden=true;send('skip',note)}});
+    fs.addEventListener('change',e=>{if(e.target.name!=='cst')return;const v=e.target.value;if(!v||v===c.status)return;
+      if(v==='skip'){$('#skip-box').hidden=false;$('#skip-note').focus();return}
+      $('#skip-box').hidden=true;const team=$('#d-team').value.trim();
+      if(v==='going'&&!team){toast('ใส่ชื่อทีมก่อนรับเคส');restore();$('#d-team').focus();return}
+      send(v,'')});
     act.after(fs);
   }else act.insertAdjacentHTML('afterend','<p class="hint">ทีมอาสาที่มีรหัสจะเห็นที่อยู่เต็ม เบอร์โทร และรับเคสได้ในหน้าแผนที่</p>');
   const caseLoc=()=>locText({lat:c.lat,lng:c.lng,title:(c.needs||[]).join(' · ')||'ขอความช่วยเหลือ',address:(addrTxt(c)||'')+' · เคส #'+c.id,note:V&&c.pinsrc?c.pinsrc:'',approx:!V});
@@ -873,7 +883,7 @@ function tripAuto(){const me=tripOrigin();let pool=S.cases.filter(c=>c.status===
   pool.sort((a,b)=>(b.sev-a.sev)||(b.people-a.people)||((a.km||0)-(b.km||0)));const pick=pool.slice(0,8);
   tripApply(tripPriority(pick,me),[],'จัดอัตโนมัติ '+pick.length+' จุด · เคสหนักก่อน')}
 /* Google Maps รับได้ครั้งละ 10 จุด → แบ่งเป็นช่วง ช่วงถัดไปเริ่มจากจุดสุดท้ายของช่วงก่อน */
-function tripLegs(){const all=tripCases(),ok=all.map((c,i)=>({c,n:i+1})).filter(({c})=>!c.missing&&hasPin(c)&&c.status!=='done'),pts=ok.map(({c})=>(+c.lat).toFixed(6)+','+(+c.lng).toFixed(6));const legs=[];
+function tripLegs(){const all=tripCases(),ok=all.map((c,i)=>({c,n:i+1})).filter(({c})=>!c.missing&&hasPin(c)&&!isClosed(c)),pts=ok.map(({c})=>(+c.lat).toFixed(6)+','+(+c.lng).toFixed(6));const legs=[];
   for(let i=0;i<pts.length;i+=10){const use=pts.slice(i,i+10);const origin=i?pts[i-1]:'';const dest=use.pop();
     legs.push({from:ok[i].n,to:ok[Math.min(i+10,pts.length)-1].n,url:'https://www.google.com/maps/dir/?api=1&travelmode=driving'+(origin?'&origin='+encodeURIComponent(origin):'')+'&destination='+encodeURIComponent(dest)+(use.length?'&waypoints='+encodeURIComponent(use.join('|')):'')})}
   return legs}
@@ -996,6 +1006,7 @@ function renderStats(soft){
     <div class="stiles">${tile(open.length,'รอช่วย','',`data-sgo="open"`)}${tile(urgent.length,'ด่วนมาก + วิกฤต','is-red',`data-sgo="danger"`)}${tile(going.length,'กำลังไป','',`data-sgo="going"`)}${tile(done.length,'ช่วยแล้ว','is-green',`data-sgo="done"`)}</div>
     <div class="sprog" role="img" aria-label="สัดส่วนสถานะ รอช่วย ${open.length} กำลังไป ${going.length} ช่วยแล้ว ${done.length}">${[[open.length,'var(--open)'],[going.length,'var(--going)'],[done.length,'var(--ok)']].map(([n,c])=>n?`<i style="flex:${n};background:${c}"></i>`:'').join('')}</div>
     ${line('list','<b>รวมทั้งหมด</b>',`${N(R.total)} เคส · ${pplNote(people.allRaw,people.all)}`,'is-total')}
+    ${R.skipped&&R.skipped.length?line('close','ไม่เข้าเกณฑ์ (ปิดโดยไม่ไปช่วย · ไม่นับในตัวเลขอื่น)',N(R.skipped.length)+' เคส','is-skip'):''}
     ${line('users','คนที่ยังรอความช่วยเหลือ',pplNote(people.act,people.actUnique))}
     ${line('alert','คนในเคสด่วนมาก/วิกฤต',N(people.urgent)+' คน',urgent.length?'is-red':'')}
     ${line('check','คนที่ช่วยแล้ว',pplNote(people.done,people.doneUnique))}
@@ -1060,7 +1071,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='206';let appNewer=false;
+const APP_V='207';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */

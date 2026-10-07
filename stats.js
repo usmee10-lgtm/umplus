@@ -54,7 +54,8 @@ function otherNeedItems(list) {
 function computeStats(all, opt = {}) {
   const now = opt.now || Date.now(), areaOf = opt.areaOf || (c => c.district || ''), sev = opt.sev || (c => Math.min(4, Math.max(1, Number(c.urgency) || 1)));
   const needKey = opt.needKey || (x => x), P = c => Math.max(1, Number(c.people) || 1), sumP = l => l.reduce((a, c) => a + P(c), 0);
-  const tests = all.filter(isTestCase), base = all.filter(c => !isTestCase(c));
+  /* เคส "ไม่เข้าเกณฑ์" (skip) ปิดโดยไม่ไปช่วย → แยกนับต่างหาก ไม่รวมในตัวเลขช่วยเหลือ */
+  const tests = all.filter(isTestCase), real = all.filter(c => !isTestCase(c)), skipped = real.filter(c => c.status === 'skip'), base = real.filter(c => c.status !== 'skip');
   const open = base.filter(c => c.status === 'open'), going = base.filter(c => c.status === 'going'), done = base.filter(c => c.status === 'done');
   const act = open.concat(going), urgent = act.filter(c => sev(c) >= 3);
   const dup = findDuplicates(base), root = c => { let id = c.id, k = 0; while (dup.has(id) && k++ < 20) id = dup.get(id); return id };
@@ -101,7 +102,7 @@ function computeStats(all, opt = {}) {
   act.forEach(c => { if (!stHasPin(c)) pinSrc.none++; else pinSrc[src(c.pinsrc || '') || 'old']++ });
   const dupList = base.filter(c => dup.has(c.id)).map(c => ({ id: c.id, of: dup.get(c.id), status: c.status }));
   return {
-    now, t0, total: base.length, tests, open, going, done, act, urgent, dupList,
+    now, t0, total: base.length, tests, skipped, open, going, done, act, urgent, dupList,
     rate: base.length ? done.length / base.length : 0,
     people: { allRaw: sumP(base), act: sumP(act), actUnique: uniqP(act), urgent: uniqP(urgent), done: sumP(done), doneUnique: uniqP(done), all: uniqP(base) },
     times: { pickupMed: stMedian(pick), pickupN: pick.length, doneMed: stMedian(fin), doneP90: stPct(fin, 90), doneN: fin.length, doneEstimated: estDone },
