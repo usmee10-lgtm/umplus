@@ -53,6 +53,13 @@ function statusChip(c){const k=pinKind(c);const txt=STATUS_TH[c.status]||'รอ
 /* ---------- API (POST แบบ text/plain JSON) ---------- */
 async function apiPost(body,timeout=20000){const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),timeout);
   try{const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(body),signal:ctl.signal});return await r.json()}finally{clearTimeout(tm)}}
+/* ส่งคำขอ (create) แบบทนทาน: หลังบ้านตอบช้า/สะดุดเป็นช่วง ๆ → ลองซ้ำ 3 ครั้ง (หลังบ้านกันเคสซ้ำด้วย clientId อยู่แล้ว)
+ * onTry(n) ให้หน้าจอบอกผู้ใช้ว่ากำลังลองครั้งที่เท่าไร · คืนผลจากหลังบ้าน หรือ throw ถ้าติดต่อไม่ได้ทั้ง 3 ครั้ง */
+async function postCreate(body,onTry){const photos=(body.photos||[]).length,waits=[0,2500,6000];let last;
+  for(let i=0;i<waits.length;i++){if(waits[i])await new Promise(z=>setTimeout(z,waits[i]));onTry&&onTry(i+1);
+    try{const r=await apiPost(body,photos?75000:30000);if(r&&(r.ok||r.error==='missing'||r.error==='rate'))return r;last=new Error(r&&r.error||'bad_response')}catch(e){last=e}
+    if(!navigator.onLine)break}
+  throw last||new Error('send_failed')}
 /* GET อ่านอย่างเดียว ปลอดภัยที่จะลองซ้ำ: Apps Script บางครั้งตอบหน้า error (HTML) หรือช้าตอนเพิ่งตื่น → ลองใหม่ 1 ครั้ง */
 async function apiGet(params,timeout=25000,retry=1){const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),timeout);
   try{const r=await fetch(API_URL+'?'+new URLSearchParams(params),{signal:ctl.signal});const t=await r.text();return JSON.parse(t)}
@@ -351,7 +358,7 @@ const TRACK={};
 function renderMyReq(){
   const q=queue(),mine=myReqs();const box=$('#my-req'),list=$('#my-req-list');box.hidden=!q.length&&!mine.length;if(box.hidden)return;
   list.replaceChildren();
-  q.forEach(x=>list.append(reqRow(x.data,'<span class="st st-queue">รอส่ง · ไม่มีสัญญาณ</span>',null)));
+  q.forEach(x=>list.append(reqRow(x.data,'<span class="st st-queue">ยังไม่ถึงทีม · กำลังส่งใหม่</span>',null)));
   mine.slice().reverse().forEach(m=>{const c=S.cases.find(c=>String(c.id)===String(m.id))||TRACK[m.id]||{};
     const st=c.status?statusChip({...c,urgency:c.urgency||m.urgency}):'<span class="st st-open">ส่งแล้ว</span>';
     const extra=c.status==='going'&&(c.volunteer||c.team)?'ทีม '+(c.volunteer||'')+' กำลังไป':'';
@@ -369,16 +376,16 @@ let flushing=false;
 async function flushQueue(){
   const q=queue();if(!q.length||flushing||!navigator.onLine)return;flushing=true;
   try{for(const item of q){
-      try{const r=await apiPost({action:'create',clientId:item.clientId,...item.data},(item.data.photos||[]).length?60000:20000);
+      try{const r=await postCreate({action:'create',clientId:item.clientId,...item.data});
         if(r&&r.ok){saveQueue(queue().filter(x=>x.clientId!==item.clientId));saveMy([...myReqs(),{id:r.id,token:r.token,clientId:item.clientId,urgency:r.urgency,needs:item.data.needs,address:item.data.address,at:Date.now()}]);toast('ส่งคำขอที่ค้างไว้แล้ว #'+r.id,{ok:true})}
         else{const tries=(item.tries||0)+1;  /* เซิร์ฟเวอร์ไม่รับ: ลองใหม่ไม่เกิน 5 ครั้ง แล้วแจ้งผู้ใช้ */
-          if(r&&r.error==='missing'||tries>=5){saveQueue(queue().filter(x=>x.clientId!==item.clientId));toast('คำขอที่ค้างไว้ส่งไม่สำเร็จ กรุณาส่งใหม่')}
+          if(r&&r.error==='missing'){saveQueue(queue().filter(x=>x.clientId!==item.clientId));toast('คำขอที่ค้างไว้ข้อมูลไม่ครบ กรุณาส่งใหม่')}   /* ไม่ทิ้งคำขอเพราะระบบสะดุด · ลองต่อไปเรื่อย ๆ */
           else saveQueue(queue().map(x=>x.clientId===item.clientId?{...x,tries}:x))}
       }catch(e){break}}
   }finally{flushing=false;renderMyReq();loadCases()}
 }
 addEventListener('online',()=>{netbar();flushQueue();loadCases()});addEventListener('offline',netbar);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){flushQueue();loadCases()}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){flushQueue();if(S.volunteer||myReqs().length)loadCases()}});
 setInterval(flushQueue,QUEUE_MS);
 function netbar(){const n=$('#netbar');if(navigator.onLine){n.hidden=true}else{n.hidden=false;n.innerHTML=ic('wifi')+'ไม่มีสัญญาณ · คำขอจะถูกส่งเองเมื่อออนไลน์'}}
 
@@ -621,12 +628,12 @@ $('#req-form').addEventListener('submit',async e=>{
   e.preventDefault();
   if(F.step===1){if(!validate())return;renderReview(formData());showStep(2);return}
   if(F.sending)return;
-  const d=formData(),clientId=F.clientId||(F.clientId=uid()),btn=$('#form-next');F.sending=true;btn.disabled=true;btn.textContent='กำลังส่ง…';store.set('uh_phone',d.phone);
+  const d=formData(),clientId=F.clientId||(F.clientId=uid()),btn=$('#form-next');F.sending=true;btn.disabled=true;btn.textContent=d.photos&&d.photos.length?'กำลังส่ง… (มีรูป อาจใช้เวลาถึง 1 นาที)':'กำลังส่ง…';store.set('uh_phone',d.phone);
   const done=()=>{F.sending=false;F.done=true};
   const queueIt=()=>{if(!queue().some(x=>x.clientId===clientId))saveQueue([...queue(),{clientId,data:d,at:Date.now(),tries:0}]);done();sentScreen(null,true)};
   if(!navigator.onLine){queueIt();return}
   let r;
-  try{r=await apiPost({action:'create',clientId,...d},d.photos&&d.photos.length?60000:20000)}catch(err){queueIt();return}  /* เน็ตหลุด/หมดเวลา → เก็บไว้ส่งทีหลัง */
+  try{r=await postCreate({action:'create',clientId,...d},n=>{if(n>1)btn.textContent=`ระบบตอบช้า กำลังลองส่งอีกครั้ง (${n}/3)…`})}catch(err){queueIt();return}  /* ลอง 3 ครั้งแล้วยังไม่ได้ → เก็บไว้ส่งเองอัตโนมัติ */
   if(r&&r.ok){saveMy([...myReqs(),{id:r.id,token:r.token,clientId,urgency:r.urgency,needs:d.needs,address:d.address,at:Date.now()}]);done();sentScreen(r.id,false);loadCases();return}
   F.sending=false;btn.disabled=false;btn.textContent='ส่งคำขอ';
   if(r&&r.error==='missing'){showStep(1);validate();return}
@@ -634,8 +641,8 @@ $('#req-form').addEventListener('submit',async e=>{
   toast(r&&r.error==='rate'?'ส่งถี่เกินไป รอสักครู่แล้วลองใหม่':'ส่งไม่สำเร็จ ลองอีกครั้ง หรือโทรสายด่วน 1669 / 199');
 });
 function sentScreen(id,queued){
-  $('#sent-title').textContent=queued?'บันทึกคำขอไว้แล้ว':'ส่งคำขอแล้ว';
-  $('#sent-text').textContent=queued?'ตอนนี้ส่งไม่ได้ (สัญญาณไม่ดี) ระบบจะส่งให้เองเมื่อออนไลน์ ดูสถานะได้ที่หน้าแรก':'ทีมอาสาเห็นคำขอของคุณแล้ว ติดตามสถานะได้ที่หน้าแรก';
+  $('#sent-title').textContent=queued?'คำขอยังไม่ถึงทีมอาสา':'ส่งคำขอแล้ว';document.getElementById('view-sent').classList.toggle('is-queued',!!queued);
+  $('#sent-text').textContent=queued?'ตอนนี้ส่งไม่สำเร็จ (สัญญาณหรือระบบช้า) แอปเก็บคำขอไว้แล้วและจะส่งให้อัตโนมัติ กรุณาเปิดหน้านี้ค้างไว้ · ถ้าอันตรายถึงชีวิต โทร 1669 หรือ 191 ทันที':'ทีมอาสาเห็นคำขอของคุณแล้ว ติดตามสถานะได้ที่หน้าแรก';
   $('#sent-id').textContent=id?'เลขคำขอ #'+id:'';renderMyReq();go('sent');
 }
 $('#form-back').addEventListener('click',()=>{if(F.sending)return;if(F.step===2)showStep(1);else go('home')});
@@ -1065,13 +1072,15 @@ go(['home','map','emergency','stats'].includes(startView)?startView:'home',false
 history.replaceState({view:S.view},'','#'+S.view);
 renderAll();loadCases();flushQueue();trackMine();
 $$('.view').forEach(v=>v.hidden=!v.classList.contains('active'));setTimeout(()=>{A11Y.ready=true},0);
-setInterval(()=>{if(!document.hidden)loadCases()},REFRESH_MS);
+/* ลดภาระหลังบ้าน: ทีมอาสาโหลดทุก 30 วิ · คนทั่วไปเห็นแค่คำขอตัวเอง → โหลดทุก 2 นาที และเฉพาะเมื่อมีคำขอของตัวเอง */
+let lastPubLoad=0;
+setInterval(()=>{if(document.hidden)return;if(S.volunteer)return loadCases();if(!myReqs().length||Date.now()-lastPubLoad<120000)return;lastPubLoad=Date.now();loadCases()},REFRESH_MS);
 setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='207';let appNewer=false;
+const APP_V='208';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */

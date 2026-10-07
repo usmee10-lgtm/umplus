@@ -993,3 +993,8 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .skip-box .pill{min-height:44px;justify-content:center}
 .skip-ok{background:var(--skip);color:#fff}
 .sline.is-skip{color:var(--skip-ink)}.sline.is-skip .ic{color:var(--skip)}
+
+/* คำขอยังส่งไม่สำเร็จ (เข้าคิว): เตือนให้ชัด ไม่ให้เข้าใจผิดว่าส่งถึงทีมแล้ว */
+#view-sent.is-queued .sent-ic{background:#FFF3C4;color:#7A5A00}
+#view-sent.is-queued #sent-text{color:#7A5A00;font-weight:600}
+.st-queue{background:#FFF3C4;color:#7A5A00}
