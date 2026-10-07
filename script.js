@@ -481,7 +481,7 @@ function pinSrcText(){const s=F.pinSrc||'';
   return s==='gps'?'GPS ±'+F.pinAcc+' ม.':s==='gps+drag'?'GPS ±'+F.pinAcc+' ม. แล้วลากปรับเอง':s==='manual'?'ปักเองบนแผนที่':s==='link'?'จากลิงก์/พิกัดที่วาง':s==='addr'?'จากที่อยู่ (โดยประมาณ)':''}
 function accInfo(a){return a<=20?{cls:'good',txt:'แม่นยำมาก ±'+a+' ม.'}:a<=60?{cls:'ok',txt:'แม่นยำพอใช้ ±'+a+' ม. · ซูมดูว่าตรงบ้านไหม'}:{cls:'bad',txt:'ยังไม่แม่น ±'+a+' ม. · ลากหมุดให้ตรงบ้าน'}}
 function pinNote(){const el=$('#pin-status');if(!el)return;const s=F.pinSrc;const ls=$('#loc-share');if(ls)ls.hidden=F.lat==null;
-  if(s==='gps'){const a=accInfo(F.pinAcc);el.innerHTML=`<i class="acc-dot ${a.cls}"></i>ตำแหน่งจาก GPS · ${esc(a.txt)}`}
+  if(s==='gps'){const a=accInfo(F.pinAcc);el.innerHTML=`<i class="acc-dot ${a.cls}"></i>GPS · ${esc(a.txt)}`}
   else if(s==='gps+drag'||s==='manual')el.innerHTML='<i class="acc-dot good"></i>ปักหมุดเองแล้ว · ซูมเข้าเพื่อให้ตรงหลังคาบ้าน';
   else if(s==='link')el.innerHTML='<i class="acc-dot good"></i>ปักตามพิกัดที่วาง · ลากปรับได้';
   else if(s==='addr')el.innerHTML='<i class="acc-dot ok"></i>หมุดโดยประมาณจากที่อยู่ · ลากให้ตรงบ้าน';

@@ -1177,3 +1177,4 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .pin-row .loc-share{flex:none;margin:0;flex-wrap:nowrap}
 .pin-row .loc-share .pill{min-height:30px;padding:0 10px;font-size:12.5px}
 @media (max-width:360px){.pin-row .loc-share .pill span,.pin-row .loc-share .pill{font-size:0;gap:0;padding:0 8px}.pin-row .loc-share .pill .ic{width:16px;height:16px}}
+.pin-row #pin-status{font-size:13px;line-height:1.35}
