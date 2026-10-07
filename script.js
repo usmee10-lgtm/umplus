@@ -1117,7 +1117,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='239';let appNewer=false;
+const APP_V='240';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1176,3 +1176,6 @@ function pinConfirmUI(){let b=$('#pin-confirm');if(!b){b=document.createElement(
   const tip=$('#pin-tip')||(()=>{const p=document.createElement('p');p.id='pin-tip';p.className='pin-tip';b.before(p);return p})();
   tip.hidden=!need||F.pinOk;tip.textContent=F.pinSrc==='gps'?'GPS ยังคลาด ±'+F.pinAcc+' ม. · ดูภาพดาวเทียม แล้วลากหมุดไปที่หลังคาบ้าน':'หมุดจากการค้นหาเป็นแค่ตำแหน่งคร่าว ๆ · ดูภาพดาวเทียม แล้วลากหมุดไปที่หลังคาบ้าน'}
 async function pinSatFocus(){if(!pinNeedsConfirm())return;const m=await ensureFormMap();if(!m)return;try{if(m.isSat&&!m.isSat()){const btn=$('#form-map .map-sat-btn');if(btn)btn.click();else m.toggleSat()}if(m.getZoom()<18)m.view(F.lat,F.lng,18)}catch(e){}}
+
+/* iOS: หลังคีย์บอร์ดปิด บางครั้งหน้าจอค้างความสูงเดิม — สะกิดให้คำนวณใหม่ */
+window.addEventListener('focusout',()=>setTimeout(()=>{const a=document.activeElement;if(!a||a===document.body)window.scrollTo(window.scrollX,window.scrollY)},120));
