@@ -1105,3 +1105,16 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .tabbar button.active span{font-weight:700}
 .tabbar button:active .ic{transform:scale(.9)}
 @media (prefers-reduced-motion:reduce){.tabbar button .ic{transition:none}}
+/* สถานะเคส 4 ตัวเลือกแถวเดียว · สีตามสถานะ (v227) */
+.status-opts{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.status-opts span{min-height:64px;font-size:13px;padding:6px 2px;gap:6px;white-space:nowrap}
+.status-opts span::before{width:18px;height:18px}
+.status-opts .cst-open input:checked+span{background:var(--open);color:#fff}
+.status-opts .cst-going input:checked+span{background:var(--going);color:#fff}
+.status-opts .cst-done input:checked+span{background:#1E9E5A;color:#fff}
+.status-opts .cst-open input:checked+span::before{box-shadow:inset 0 0 0 4px var(--open)}
+.status-opts .cst-going input:checked+span::before{box-shadow:inset 0 0 0 4px var(--going)}
+.status-opts .cst-done input:checked+span::before{box-shadow:inset 0 0 0 4px #1E9E5A}
+.status-opts .cst-skip input:checked+span::before{box-shadow:inset 0 0 0 4px var(--skip)}
+@media (max-width:350px){.status-opts span{font-size:12px}}
+.status-opts span{font-size:12.5px;padding:6px 0}

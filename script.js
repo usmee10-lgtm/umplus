@@ -869,7 +869,7 @@ function renderDetail(full){
   if(S.volunteer&&hasPin(c)&&!isClosed(c)){const tb=document.createElement('button');tb.type='button';tb.className='pill pill-ghost full';const upd=()=>{tb.innerHTML=ic('route')+(tripIndex(c.id)>=0?'อยู่ในแผนเดินทาง (แตะเพื่อเอาออก)':'เพิ่มในแผนเดินทาง')};upd();tb.onclick=()=>{tripToggle(c.id);upd()};act.append(tb)}
   if(S.volunteer){
     const fs=document.createElement('fieldset');fs.className='status-pick';
-    fs.innerHTML=`<legend>สถานะเคส (ติ๊กเพื่อเปลี่ยน)</legend><div class="status-opts">${[['open','รอช่วย'],['going','กำลังไป · รับเคส'],['done','ช่วยแล้ว · ปิดเคส'],['skip','ไม่เข้าเกณฑ์ · ปิดโดยไม่ไปช่วย']].map(([v,t])=>`<label class="cst-${v}"><input type="radio" name="cst" value="${v}" ${c.status===v?'checked':''}><span>${t}</span></label>`).join('')}</div>${c.status==='skip'?`<p class="skip-note-now"><b>เหตุผลที่ปิด:</b> ${esc(c.closeNote||'ไม่ได้ระบุ')}</p>`:''}
+    fs.innerHTML=`<legend>สถานะเคส</legend><div class="status-opts">${[['open','รอช่วย'],['going','กำลังไป'],['done','ช่วยแล้ว'],['skip','ไม่เข้าเกณฑ์']].map(([v,t])=>`<label class="cst-${v}"><input type="radio" name="cst" value="${v}" ${c.status===v?'checked':''}><span>${t}</span></label>`).join('')}</div>${c.status==='skip'?`<p class="skip-note-now"><b>เหตุผลที่ปิด:</b> ${esc(c.closeNote||'ไม่ได้ระบุ')}</p>`:''}
       <div class="skip-box" id="skip-box" hidden><b>ทำไมไม่เข้าเกณฑ์?</b><div class="skip-chips">${SKIP_REASONS.map(r=>`<button type="button" data-skr="${esc(r)}">${esc(r)}</button>`).join('')}</div><textarea id="skip-note" rows="2" maxlength="300" placeholder="โน้ตสั้น ๆ เช่น โทรคุยแล้ว น้ำลดแล้ว อยู่ได้" aria-label="เหตุผลที่ปิดเคส"></textarea><div class="row"><button type="button" class="pill pill-ghost" id="skip-cancel">ยกเลิก</button><button type="button" class="pill skip-ok" id="skip-ok">ปิดเคส</button></div></div>
       <input id="d-team" placeholder="ชื่อทีม / อาสา" value="${esc(c.volunteer||store.get('uh_team',''))}" maxlength="40" aria-label="ชื่อทีม">
       <select id="d-org" aria-label="หน่วยงาน"><option value="">— หน่วยงาน —</option>${orgOpts(c.org||store.get('uh_org',''))}</select>`;
@@ -1112,7 +1112,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='226';let appNewer=false;
+const APP_V='227';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
