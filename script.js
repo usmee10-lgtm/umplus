@@ -117,7 +117,7 @@ async function loadCasesInner(){$('#sync-status').textContent='กำลัง�
 }
 function renderAll(){
   $('#live-badge').hidden=!(S.loaded&&Date.now()-S.loaded<REFRESH_MS*3);
-  drawPins('home');drawPins('map');renderList();$('#all-count').textContent=S.loaded&&S.volunteer?S.cases.filter(c=>!isTestCase(c)).length+' เคส':'';renderMyReq();renderVol();
+  drawPins('home');drawPins('map');renderList();$('#all-count').textContent=S.loaded&&S.volunteer?S.cases.filter(c=>!isTestCase(c)).length+' เคส':'';tabBadge();renderMyReq();renderVol();
   if(S.view==='detail'&&S.detailId)renderDetail(false);
   const stTab=$('.tabbar [data-go=stats]');if(stTab)stTab.style.display=S.volunteer?'':'none';
   if(S.view==='stats'){if(S.volunteer)renderStats();else go('home')}
@@ -354,7 +354,7 @@ $('#btn-proxy').addEventListener('click',()=>{startForm({proxy:true});setTimeout
 $('#btn-all-cases').addEventListener('click',()=>{if(!S.volunteer)return;FL.status='all';FL.types=[];FL.people=[];FL.level=[];FL.q='';$('#case-search').value='';saveFL();renderFilters();go('map');setSheet(true);applyFilters()});
 $('#btn-help').addEventListener('click',()=>{go('map');setSheet(true);
   if(!S.volunteer){const p=$('#vol-panel');p.dataset.mode='';renderVol(true);setTimeout(()=>{const k=$('#vol-key');k&&k.focus()},250)}   /* ครั้งแรก: ใส่รหัส */
-  else $('#vol-panel').hidden=true});   /* ใส่รหัสแล้ว: เข้ารายการเคสเลย ไม่ต้องใส่ซ้ำ */
+  else{const p=$('#vol-panel');p.dataset.mode='';renderVol(true);p.scrollIntoView({block:'nearest'})}});   /* ใส่รหัสแล้ว: ปุ่มนี้กลายเป็น "ทีม · ชื่อทีม" เปิดตั้งค่าทีม (รายการเคสอยู่ที่แท็บ "รายการ") */
 $('#btn-vol-set').addEventListener('click',()=>{if(!S.volunteer)return;go('map');setSheet(true);const p=$('#vol-panel');p.dataset.mode='';renderVol(true);p.scrollIntoView({block:'nearest'})});
 let searchFrom=null;
 const openSearch=e=>{searchFrom=(e&&e.currentTarget)||document.activeElement;$('#search-overlay').hidden=false;$$('.view.active,.tabbar').forEach(x=>x.inert=true);
@@ -789,7 +789,7 @@ $('#sheet-handle').addEventListener('click',()=>setSheet(!$('#list-sheet').class
 /* ---------- ทีมอาสา ---------- */
 function renderVol(forceOpen){
   /* ไม่มีสวิตช์ "ทีมอาสา" แล้ว: เข้าโหมดจากปุ่ม "อยากช่วย" (ใส่รหัสครั้งเดียว จำไว้ในเครื่อง) · ตั้งค่า/ออก จากปุ่ม "ตั้งค่าทีมอาสา" หน้าแรก */
-  const vs=$('#btn-vol-set');if(vs){vs.hidden=!S.volunteer;const t=vs.querySelector('span');if(t)t.textContent='ตั้งค่าทีมอาสา · '+(store.get('uh_team','')||'ยังไม่ตั้งชื่อทีม')}
+  helpLabel();const vs=$('#btn-vol-set');if(vs){vs.hidden=!S.volunteer;const t=vs.querySelector('span');if(t)t.textContent='ตั้งค่าทีมอาสา · '+(store.get('uh_team','')||'ยังไม่ตั้งชื่อทีม')}
   const p=$('#vol-panel');if(forceOpen)p.hidden=false;if(p.hidden)return;
   if(p.dataset.mode===(S.volunteer?'v':'p')&&p.children.length)return;p.dataset.mode=S.volunteer?'v':'p';
   if(!S.volunteer){p.innerHTML='<h3>ใส่รหัสทีมอาสา</h3><p class="hint">เพื่อดูเบอร์โทร รับเคส ปิดเคส หรือคืนเคส</p><div class="row"><input id="vol-key" type="password" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="รหัสอาสา" aria-label="รหัสอาสา" aria-describedby="vol-msg"><button type="button" class="pill pill-blue" id="vol-go">เข้า</button></div><p class="err" id="vol-msg" role="alert"></p>';
@@ -1112,7 +1112,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='231';let appNewer=false;
+const APP_V='232';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1145,3 +1145,9 @@ const NEW_HOME='https://helpme4u.com/';
 
 /* ปรึกษาหมอ: ปุ่มคัดลอกเบอร์ */
 document.addEventListener('click',e=>{const b=e.target.closest('.doc-copy');if(!b)return;const n=b.dataset.copy;(navigator.clipboard?navigator.clipboard.writeText(n):Promise.reject()).then(()=>toast('คัดลอกเบอร์แล้ว',{ok:true})).catch(()=>toast('เบอร์: '+n))});
+
+/* หน้าแรกบนมือถือแบบกระชับ (v232): ตัวเลขเคสค้างไปอยู่บนแท็บ "รายการ" · ปุ่มโหมดอาสากลายเป็นปุ่มทีม */
+function tabBadge(){const b=$('#tabbar [data-go=map]');if(!b)return;let el=b.querySelector('.tab-badge');const n=S.volunteer&&S.loaded?S.cases.filter(c=>!isClosed(c)&&!isTestCase(c)).length:0;
+  if(!n){if(el)el.remove();return}if(!el){el=document.createElement('b');el.className='tab-badge';b.append(el)}el.textContent=n>99?'99+':n;el.setAttribute('aria-label',n+' เคสยังไม่เสร็จ')}
+function helpLabel(){const b=$('#btn-help');if(!b)return;const t=[...b.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());const txt=S.volunteer?'ทีม · '+(store.get('uh_team','')||'ตั้งชื่อทีม'):'โหมดอาสา';
+  if(t)t.textContent=txt;else{const sp=b.querySelector('span:not(.ic)');if(sp)sp.textContent=txt}b.classList.toggle('is-team',!!S.volunteer)}

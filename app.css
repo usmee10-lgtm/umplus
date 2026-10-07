@@ -1141,3 +1141,24 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .doc-note{display:flex;align-items:center;gap:10px;margin:0;padding:12px 14px;border-radius:16px;background:#FFF1F1;color:#7A1015;font-size:13.5px;line-height:1.45}
 .doc-note .ic{flex:none;width:20px;height:20px;color:#C8161E}
 .doc-note a{color:#B8141B;font-weight:800}
+/* ===== หน้าแรกมือถือแบบกระชับ (v232): ให้แผนที่เห็นมากขึ้น ===== */
+.tabbar button{position:relative}
+.tab-badge{position:absolute;top:4px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#C8161E;color:#fff;font-size:11px;font-weight:800;line-height:18px;text-align:center;box-shadow:0 0 0 2px #fff;font-variant-numeric:tabular-nums}
+.home-sheet #btn-all-cases,.home-sheet #btn-vol-set{display:none!important}
+#btn-help.is-team{overflow:hidden;text-overflow:ellipsis}
+@media (max-width:767px){
+  .home-sheet .sheet-body{padding-top:12px;padding-bottom:12px}
+  .home-sheet .sheet-actions{gap:8px}
+  .home-sheet .sheet-actions .pill-sos{min-height:54px;font-size:18px}
+  .home-sheet .sheet-actions>#btn-proxy,.home-sheet .sheet-actions>#btn-help{min-height:44px;font-size:14.5px}
+  #lay-card.lay-card{margin-top:10px}
+  .lay-head{padding:0 2px 6px}
+  .lay-head .lay-sum-t b{font-size:13px}
+  .lay-head .lay-sum-t small{display:none}
+  .lay-card .lay-list:not(.in-menu){gap:6px}
+  .lay-card .lay-list:not(.in-menu) .lay-row,.lay-card .lay-list:not(.in-menu) .sw-in:checked+.lay-row{padding:2px;gap:4px}
+  .lay-card .lay-list:not(.in-menu) .lay-ic,.lay-card .lay-list:not(.in-menu) .sw-in:checked+.lay-row .lay-ic{width:44px;height:44px;border-radius:14px}
+  .lay-card .lay-list:not(.in-menu) .lay-ic .ic{width:22px;height:22px}
+  .lay-card .lay-list:not(.in-menu) .lay-s{font-size:11.5px}
+  .lay-card .lay-list:not(.in-menu) .lay-s::after{display:none!important}
+}
