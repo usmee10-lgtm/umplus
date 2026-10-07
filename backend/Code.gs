@@ -19,7 +19,7 @@
  * รหัสอาสา: Project Settings > Script properties > VOLUNTEER_KEY (setup() สร้างให้ครั้งแรก)
  */
 
-const SHEET_ID = '1GkGL0PrjuADwMmuSSj0KjW9WLH180eATD1RkmzEqGMs'; // Google Sheet "UM+ - เคสน้ำท่วม"
+const SHEET_ID = '1uI719ELNbVAP78o6baoJ04SWHB1dm-TU3VD7KVI6T3o'; // Google Sheet "Help Me - เคสน้ำท่วม" (ของ info@helpme4u.com)
 const SHEET_NAME = 'เคส';             // ชื่อแท็บ (เดิมชื่อ Cases ระบบเปลี่ยนชื่อให้เอง)
 const LEGACY_NAMES = { 'เคส': 'Cases', 'ทีม': 'Teams' };
 const TEAM_SHEET = 'ทีม';
@@ -836,3 +836,44 @@ function list_(a) { return (Array.isArray(a) ? a : []).map(function (x) { return
 function safeCell_(v) { return (typeof v === 'string' && /^[=+\-@]/.test(v)) ? "'" + v : v; }
 function maskPhone_(p) { const s = String(p || ''); const d = s.replace(/\D/g, ''); return d.length < 4 ? '***' : 'xxx-xxx-' + d.slice(-4); }
 function json_(o, raw) { return ContentService.createTextOutput(raw ? o : JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
+
+/* ---------- ย้ายชีต: ซิงก์เคสจากชีตเดิม (ของ usmee10) เข้าชีตใหม่ (ของ info@helpme4u.com) ----------
+ * เพิ่มเคสที่ยังไม่มีในชีตใหม่ และอัปเดตเคสที่ชีตเดิมแก้ล่าสุดกว่า (เทียบคอลัมน์ "อัปเดตล่าสุด")
+ * จับคู่คอลัมน์ตามชื่อหัวตาราง · กด Run ได้ซ้ำหลายครั้ง (ไม่สร้างแถวซ้ำ) */
+const OLD_SHEET_ID = '1GkGL0PrjuADwMmuSSj0KjW9WLH180eATD1RkmzEqGMs';
+function syncFromOld() {
+  if (OLD_SHEET_ID === SHEET_ID) throw new Error('SHEET_ID ยังเป็นชีตเดิม');
+  const lock = LockService.getScriptLock(); lock.waitLock(30000);
+  try {
+    const os = SpreadsheetApp.openById(OLD_SHEET_ID).getSheetByName(SHEET_NAME);
+    const ns = SpreadsheetApp.openById(SHEET_ID).getSheetByName(SHEET_NAME);
+    const ov = os.getDataRange().getValues(), nv = ns.getDataRange().getValues();
+    const oh = ov[0].map(function (h) { return String(h).trim(); });
+    const nh = nv[0].map(function (h) { return String(h).trim(); });
+    const idx = function (head, k) { for (let i = 0; i < head.length; i++) if (ALIASES[k].indexOf(head[i]) >= 0) return i; return -1; };
+    oh.forEach(function (h) { if (h && nh.indexOf(h) < 0) { nh.push(h); ns.getRange(1, nh.length).setValue(h).setFontWeight('bold'); } });
+    const oid = idx(oh, 'id'), nid = idx(nh, 'id'), oup = idx(oh, 'updatedAt'), nup = idx(nh, 'updatedAt');
+    const map = oh.map(function (h) { return h ? nh.indexOf(h) : -1; });
+    const t = function (x) { return x instanceof Date ? x.getTime() : (Number(new Date(x)) || 0); };
+    const rowOf = {};
+    for (let i = 1; i < nv.length; i++) { const id = String(nv[i][nid] || '').trim(); if (id) rowOf[id] = i; }
+    let updated = 0; const appends = [];
+    for (let i = 1; i < ov.length; i++) {
+      const r = ov[i], id = String(r[oid] || '').trim();
+      if (!id) continue;
+      if (rowOf[id] == null) {
+        const out = []; for (let c = 0; c < nh.length; c++) out.push('');
+        r.forEach(function (v, j) { if (map[j] >= 0) out[map[j]] = v; });
+        appends.push(out); rowOf[id] = -1;
+      } else if (rowOf[id] > 0 && oup >= 0 && nup >= 0 && t(r[oup]) > t(nv[rowOf[id]][nup])) {
+        const k = rowOf[id], cur = nv[k].slice(); while (cur.length < nh.length) cur.push('');
+        r.forEach(function (v, j) { if (map[j] >= 0) cur[map[j]] = v; });
+        ns.getRange(k + 1, 1, 1, nh.length).setValues([cur]); updated++;
+      }
+    }
+    if (appends.length) ns.getRange(ns.getLastRow() + 1, 1, appends.length, nh.length).setValues(appends);
+    try { CacheService.getScriptCache().removeAll(['list:vol', 'list:pub']); } catch (err) {}
+    Logger.log('ซิงก์จากชีตเดิม: เพิ่ม ' + appends.length + ' เคส, อัปเดต ' + updated + ' เคส');
+    return { added: appends.length, updated: updated };
+  } finally { lock.releaseLock(); }
+}
