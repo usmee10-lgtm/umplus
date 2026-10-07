@@ -149,7 +149,7 @@ const A11Y={ready:false};
 function focusView(view){const v=$('#view-'+view);if(!v)return;const t=v.querySelector('h1[tabindex]')||v;if(t===v)v.tabIndex=-1;
   setTimeout(()=>{if(!v.contains(document.activeElement)||document.activeElement===document.body)t.focus({preventScroll:true})},0)}
 $('#skip-link').addEventListener('click',e=>{e.preventDefault();focusView(S.view||'home')});
-addEventListener('popstate',()=>{const v=(location.hash||'#home').slice(1);go(['home','map','emergency','stats','form','detail','sent'].includes(v)?v:'home',false)});
+addEventListener('popstate',()=>{const v=(location.hash||'#home').slice(1);go(['home','map','emergency','doctor','stats','form','detail','sent'].includes(v)?v:'home',false)});
 document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(b){e.preventDefault();go(b.dataset.go);if(b.dataset.go==='map'&&b.closest('.tabbar'))setSheet(true)}});   /* แท็บ "รายการ" เปิดรายการขึ้นมาเลย */
 
 /* ---------- แผนที่หลัก ---------- */
@@ -1100,7 +1100,7 @@ $('#stats').addEventListener('click',e=>{const dm=e.target.closest('[data-dmore]
   saveFL();renderFilters();applyFilters();go('map');setSheet(true)});
 try{localStorage.removeItem('uh_no_track')}catch(e){}
 const startView=(location.hash||'#home').slice(1);
-go(['home','map','emergency','stats'].includes(startView)?startView:'home',false);
+go(['home','map','emergency','doctor','stats'].includes(startView)?startView:'home',false);
 history.replaceState({view:S.view},'','#'+S.view);
 renderAll();loadCases();flushQueue();trackMine();
 $$('.view').forEach(v=>v.hidden=!v.classList.contains('active'));setTimeout(()=>{A11Y.ready=true},0);
@@ -1112,7 +1112,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='227';let appNewer=false;
+const APP_V='228';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1142,3 +1142,6 @@ const NEW_HOME='https://helpme4u.com/';
     if(Date.now()-start>180000){$('#moved-msg').textContent='ยังส่งคำขอที่ค้างไม่สำเร็จ · เปิดหน้านี้ค้างไว้ ระบบจะลองส่งต่อ หรือกดปุ่มด้านล่างแล้วส่งคำขอใหม่ที่เว็บใหม่'}
     setTimeout(tick,8000)};
   setTimeout(tick,600)})();
+
+/* ปรึกษาหมอ: ปุ่มคัดลอกเบอร์ */
+document.addEventListener('click',e=>{const b=e.target.closest('.doc-copy');if(!b)return;const n=b.dataset.copy;(navigator.clipboard?navigator.clipboard.writeText(n):Promise.reject()).then(()=>toast('คัดลอกเบอร์แล้ว',{ok:true})).catch(()=>toast('เบอร์: '+n))});
