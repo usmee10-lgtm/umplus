@@ -449,7 +449,7 @@ function setProxy(on){F.proxy=on;$('#view-form').classList.toggle('is-proxy',on)
 function resetForm(){
   F.needs.clear();F.photos=[];if($('#photo-row')){renderPhotos();markOk('photos')}F.lat=F.lng=null;F.soi='';F.soiAuto='';F.soiPrev='';F.soiInfo=null;soiSeq++;if($('#soi-pick'))$('#soi-pick').hidden=true;if($('#loc-share'))$('#loc-share').hidden=true;F.pinSrc='';F.pinAcc=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
   $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
-  ['#addr-input','#phone-in','#rep-phone','#rep-name','#name-in','#details-in','#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');F.proxy=false;$('#view-form').classList.remove('is-proxy');$('#proxy-note').hidden=true;$('#sec-rep').hidden=true;MA.sub='';MA.picked=null;$('#ma-preview').hidden=true;$('#manual-addr').open=false;
+  ['#addr-input','#phone-in','#rep-phone','#rep-name','#name-in','#details-in','#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');F.proxy=false;F.pinOk=false;if($('#pin-confirm'))$('#pin-confirm').hidden=true;if($('#pin-tip'))$('#pin-tip').hidden=true;$('#view-form').classList.remove('is-proxy');$('#proxy-note').hidden=true;$('#sec-rep').hidden=true;MA.sub='';MA.picked=null;$('#ma-preview').hidden=true;$('#manual-addr').open=false;
   $('#ppl-out').value='1';$$('input[name=level]').forEach(i=>i.checked=false);markOk('level');
   $('#addr-status').textContent='';$('#pin-status').textContent='แตะแผนที่เพื่อปักหมุด หรือลากหมุดให้ตรง';
   if(S.formMap){S.formMap.removePin();S.formMap.clearAccuracy()}
@@ -523,13 +523,13 @@ async function fillSoi(){if(F.lat==null)return;const my=++soiSeq,lat=F.lat,lng=F
   renderSoi(info,auto?info.sois[0]:(info.sois.find(n=>geoKey(cur).includes(geoKey(n)))||''))}
 async function setPin(lat,lng,pan=true,reverse=true,src,acc){
   F.pinSeq=(F.pinSeq||0)+1;F.lat=+lat;F.lng=+lng;markOk('loc');
-  if(src){F.pinSrc=src;if(acc!=null)F.pinAcc=acc}
+  if(src){F.pinSrc=src;if(acc!=null)F.pinAcc=acc;F.pinOk=(src==='manual'||src==='gps+drag'||src==='link')}
   const m=await ensureFormMap();
   if(m){m.setPin(F.lat,F.lng);
     /* วงความแม่นยำ GPS (หายเมื่อปักเอง) */
     if(F.pinSrc==='gps'&&F.pinAcc)m.setAccuracy(F.lat,F.lng,F.pinAcc);else m.clearAccuracy();
     if(pan){const z=F.pinSrc==='gps'?(F.pinAcc<=30?18:F.pinAcc<=100?17:16):F.pinSrc==='addr'?17:18;m.view(F.lat,F.lng,z)}}
-  pinNote();
+  pinNote();pinConfirmUI();pinSatFocus();
   if(reverse)fillSoi();else renderSoi(null);
 }
 const IN_LINE=/\bLine\//i.test(navigator.userAgent),IN_FB=/FBAN|FBAV|Instagram/i.test(navigator.userAgent);
@@ -561,7 +561,7 @@ $('#addr-input').addEventListener('input',e=>{const v=$('#addr-input').value.tri
   const ll=parseLatLngText(v);
   if(ll&&(/^https?:\/\//i.test(v)||/^-?\d{1,2}\.\d+\s*[, ]\s*-?\d{2,3}\.\d+$/.test(v))){$('#addr-input').value='';F.addrDirty=false;
     e.stopImmediatePropagation();setPin(ll.lat,ll.lng,true,true,'link');$('#addr-status').textContent='ปักหมุดตามพิกัดที่วางแล้ว · ตรวจว่าหมุดตรงบ้าน';if(typeof geoCtl!=='undefined'&&geoCtl)geoCtl.clear();return}
-  if(isShortMapLink(v)){e.stopImmediatePropagation();if(typeof geoCtl!=='undefined'&&geoCtl)geoCtl.clear();$('#addr-status').textContent='ลิงก์แบบย่อเปิดในแอปไม่ได้ · ใน Google Maps ให้กดค้างที่บ้านจนมีหมุด แล้วคัดลอกตัวเลขพิกัด (เช่น 13.79, 100.62) มาวางแทน';return}
+  if(isShortMapLink(v)){e.stopImmediatePropagation();if(typeof geoCtl!=='undefined'&&geoCtl)geoCtl.clear();resolveShortLink(v);return}
   F.addrDirty=!!v;if(F.addrDirty)markOk('loc')});
 var geoCtl=geoAttach($('#addr-input'),$('#addr-list'),it=>{$('#addr-input').value=it.label||it.title;F.addrDirty=true;setPin(it.lat,it.lng,true,false,'addr');$('#addr-status').textContent='ปักหมุดตามที่อยู่แล้ว · ลากหมุดปรับได้'},{status:$('#addr-status'),
   onFree:(text,best)=>{$('#addr-input').value=text;F.addrDirty=true;markOk('loc');
@@ -632,7 +632,8 @@ function phoneOk(v){let d=String(v||'').replace(/\D/g,'');if(d.startsWith('66'))
 function validate(){const bad=[];if($('#ppl-out').value.trim())F.people=pplClamp($('#ppl-out').value);$('#ppl-out').value=F.people;
   if(!F.needs.size)bad.push('needs');
   else if(F.needs.has('other')&&!$('#other-in').value.trim()){bad.push('needs');$('#err-other').hidden=false}
-  if(!$('#addr-input').value.trim()&&F.lat==null)bad.push('loc');
+  if(!$('#addr-input').value.trim()&&F.lat==null){$('#err-loc').textContent='บอกที่อยู่ หรือปักหมุดบนแผนที่';bad.push('loc')}
+  else if(pinNeedsConfirm()){$('#err-loc').textContent='ลากหมุดให้ตรงหลังคาบ้านบนภาพดาวเทียม แล้วกด "หมุดตรงบ้านแล้ว"';bad.push('loc')}
   if(!phoneOk($('#phone-in').value))bad.push('phone');
   if(F.proxy&&!phoneOk($('#rep-phone').value))bad.push('rep');
   if(!$('input[name=level]:checked'))bad.push('level');
@@ -1116,7 +1117,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='234';let appNewer=false;
+const APP_V='235';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1155,3 +1156,23 @@ function tabBadge(){const b=$('#tabbar [data-go=map]');if(!b)return;let el=b.que
   if(!n){if(el)el.remove();return}if(!el){el=document.createElement('b');el.className='tab-badge';b.append(el)}el.textContent=n>99?'99+':n;el.setAttribute('aria-label',n+' เคสยังไม่เสร็จ')}
 function helpLabel(){const b=$('#btn-help');if(!b)return;const t=[...b.childNodes].find(n=>n.nodeType===3&&n.textContent.trim());const txt=S.volunteer?'ทีม · '+(store.get('uh_team','')||'ตั้งชื่อทีม'):'โหมดอาสา';
   if(t)t.textContent=txt;else{const sp=b.querySelector('span:not(.ic)');if(sp)sp.textContent=txt}b.classList.toggle('is-team',!!S.volunteer)}
+
+/* ===== ตำแหน่งแม่นขึ้น (v235) ===== */
+/* 1) ลิงก์ Google Maps แบบย่อ (maps.app.goo.gl) จาก LINE → ให้เซิร์ฟเวอร์ตามลิงก์แล้วอ่านพิกัด */
+async function resolveShortLink(v){const st=$('#addr-status'),url=(String(v).match(/https?:\/\/\S+/)||[v])[0];st.textContent='กำลังอ่านตำแหน่งจากลิงก์ Google Maps…';
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),12000);
+  try{for(const base of [API_ALT,'']){try{const r=await fetch(base+'/api/gmaps?u='+encodeURIComponent(url),{signal:ctl.signal});const j=await r.json();
+      if(j&&j.ok&&isFinite(j.lat)){$('#addr-input').value='';F.addrDirty=false;await setPin(j.lat,j.lng,true,true,j.approx?'addr':'link');st.textContent=j.approx?'ได้ตำแหน่งโดยประมาณจากลิงก์ · ลากหมุดให้ตรงบ้าน':'ปักหมุดตามลิงก์ Google Maps แล้ว · ตรวจว่าหมุดตรงบ้าน';return}}catch(e){if(e.name==='AbortError')break}}
+    st.textContent='อ่านพิกัดจากลิงก์นี้ไม่ได้ · ใน Google Maps กดค้างที่บ้านจนมีหมุด แล้วคัดลอกตัวเลขพิกัด (เช่น 13.79, 100.62) มาวางแทน'}
+  finally{clearTimeout(tm)}}
+/* 2) หมุดจากการค้นหา หรือ GPS ที่คลาดเกิน 30 ม. → สลับเป็นภาพดาวเทียมซูมใกล้ และต้องกด "หมุดตรงบ้านแล้ว" ก่อนไปต่อ */
+const PIN_ACC_OK=30;
+function pinNeedsConfirm(){return F.lat!=null&&!F.pinOk&&(F.pinSrc==='addr'||(F.pinSrc==='gps'&&(F.pinAcc||999)>PIN_ACC_OK))}
+function pinConfirmUI(){let b=$('#pin-confirm');if(!b){b=document.createElement('button');b.type='button';b.id='pin-confirm';b.className='pin-confirm';
+    b.innerHTML=ic('check')+'<span>หมุดตรงบ้านแล้ว</span>';$('#pin-status').after(b);
+    b.addEventListener('click',()=>{F.pinOk=true;pinConfirmUI();markOk('loc');$('#addr-status').textContent='ยืนยันตำแหน่งแล้ว ✓'})}
+  const need=F.lat!=null&&(F.pinSrc==='addr'||(F.pinSrc==='gps'&&(F.pinAcc||999)>PIN_ACC_OK));
+  b.hidden=!need;b.classList.toggle('done',!!F.pinOk);b.querySelector('span').textContent=F.pinOk?'ยืนยันแล้ว · หมุดตรงบ้าน':'หมุดตรงบ้านแล้ว';
+  const tip=$('#pin-tip')||(()=>{const p=document.createElement('p');p.id='pin-tip';p.className='pin-tip';b.before(p);return p})();
+  tip.hidden=!need||F.pinOk;tip.textContent=F.pinSrc==='gps'?'GPS ยังคลาด ±'+F.pinAcc+' ม. · ดูภาพดาวเทียม แล้วลากหมุดไปที่หลังคาบ้าน':'หมุดจากการค้นหาเป็นแค่ตำแหน่งคร่าว ๆ · ดูภาพดาวเทียม แล้วลากหมุดไปที่หลังคาบ้าน'}
+async function pinSatFocus(){if(!pinNeedsConfirm())return;const m=await ensureFormMap();if(!m)return;try{if(m.isSat&&!m.isSat()){const btn=$('#form-map .map-sat-btn');if(btn)btn.click();else m.toggleSat()}if(m.getZoom()<18)m.view(F.lat,F.lng,18)}catch(e){}}
