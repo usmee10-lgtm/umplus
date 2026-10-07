@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=129">
+<link rel="stylesheet" href="./app.css?v=130">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -253,26 +253,27 @@
   <div id="hotline-directory" class="hl-list"></div>
 </main>
 
-<!-- ===== ปรึกษาหมอ ===== -->
-<main id="view-doctor" class="view" aria-label="ปรึกษาหมอ" hidden>
-  <header class="page-top plain"><h1 tabindex="-1">ปรึกษาหมอ</h1></header>
+<!-- ===== หมอ ===== -->
+<main id="view-doctor" class="view" aria-label="หมอ" hidden>
+  <header class="page-top plain"><h1 tabindex="-1">หมอ</h1></header>
   <div class="doc-wrap">
     <article class="doc-card">
-      <div class="doc-head">
+      <div class="doc-hero">
         <span class="doc-av" data-icon="tabdoc" aria-hidden="true"></span>
-        <div class="doc-who">
-          <small>ปรึกษาแพทย์ทางโทรศัพท์</small>
-          <h2>แพทย์หญิง โศภิณา วงศ์เสงี่ยม</h2>
-          <span class="doc-tag">ความเชี่ยวชาญพิเศษ ด้าน หู คอ จมูก</span>
+        <small class="doc-kicker">ปรึกษาแพทย์ทางโทรศัพท์</small>
+        <h2>พญ. โศภิณา วงศ์เสงี่ยม</h2>
+        <span class="doc-tag">หู คอ จมูก</span>
+      </div>
+      <div class="doc-body">
+        <small class="doc-lbl">เบอร์ติดต่อ</small>
+        <b class="doc-num">098-940-6537</b>
+        <div class="doc-acts">
+          <a class="doc-call" href="tel:0989406537" aria-label="โทรหา แพทย์หญิง โศภิณา วงศ์เสงี่ยม 098 940 6537"><span data-icon="phone" aria-hidden="true"></span>โทรเลย</a>
+          <button type="button" class="doc-copy" data-copy="0989406537" aria-label="คัดลอกเบอร์"><span data-icon="copy" aria-hidden="true"></span>คัดลอก</button>
         </div>
       </div>
-      <a class="doc-call" href="tel:0989406537" aria-label="โทรหา แพทย์หญิง โศภิณา วงศ์เสงี่ยม 098 940 6537">
-        <span data-icon="phone" aria-hidden="true"></span>
-        <span class="doc-num"><small>แตะเพื่อโทร</small><b>098-940-6537</b></span>
-      </a>
-      <button type="button" class="doc-copy" data-copy="0989406537"><span data-icon="copy" aria-hidden="true"></span>คัดลอกเบอร์</button>
     </article>
-    <p class="doc-note">กรณีฉุกเฉิน หมดสติ หายใจลำบาก หรือเลือดออกมาก โทร <a href="tel:1669"><b>1669</b></a> ทันที</p>
+    <p class="doc-note"><span data-icon="alert" aria-hidden="true"></span><span>หมดสติ หายใจลำบาก หรือเลือดออกมาก โทร <a href="tel:1669">1669</a> ทันที</span></p>
   </div>
 </main>
 
@@ -288,7 +289,7 @@
   <button type="button" data-go="map" data-icon="tablist"><span>รายการ</span></button>
   <button type="button" data-go="stats" data-icon="tabchart" style="display:none"><span>สรุป</span></button>
   <button type="button" data-go="emergency" data-icon="tabphone"><span>ฉุกเฉิน</span></button>
-  <button type="button" data-go="doctor" data-icon="tabdoc"><span>ปรึกษาหมอ</span></button>
+  <button type="button" data-go="doctor" data-icon="tabdoc"><span>หมอ</span></button>
 </nav>
 
 <div class="layer-menu glass" id="layer-menu" hidden role="dialog" aria-label="แบบแผนที่และชั้นข้อมูล">
@@ -299,13 +300,13 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=129"></script>
-<script src="./geocode.js?v=129"></script>
-<script src="./location.js?v=129"></script>
-<script src="./pickmap.js?v=129"></script>
-<script src="./stats.js?v=129"></script>
-<script src="./hotlines.js?v=129"></script>
-<script src="./script.js?v=129"></script>
+<script src="./icons.js?v=130"></script>
+<script src="./geocode.js?v=130"></script>
+<script src="./location.js?v=130"></script>
+<script src="./pickmap.js?v=130"></script>
+<script src="./stats.js?v=130"></script>
+<script src="./hotlines.js?v=130"></script>
+<script src="./script.js?v=130"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
