@@ -998,3 +998,11 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 #view-sent.is-queued .sent-ic{background:#FFF3C4;color:#7A5A00}
 #view-sent.is-queued #sent-text{color:#7A5A00;font-weight:600}
 .st-queue{background:#FFF3C4;color:#7A5A00}
+
+/* โดเมนเก่า: หน้าบอกย้ายเว็บ */
+.moved{position:fixed;inset:0;z-index:99999;background:#fff;display:grid;place-items:center;padding:24px}
+.moved-card{max-width:420px;width:100%;display:grid;gap:14px;text-align:center;justify-items:center}
+.moved-card h1{font-size:22px;color:var(--ink)}
+.moved-card p{margin:0;color:var(--muted);line-height:1.6}
+.moved-card .btn{width:100%;background:var(--primary);color:#fff;text-decoration:none}
+.moved-sub{font-size:13.5px}

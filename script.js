@@ -4,6 +4,14 @@ const REFRESH_MS=30000,QUEUE_MS=20000;
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set(k,v){try{v==null||v===''?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}},
   json(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},put(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+/* ย้ายโดเมน: รับรายการ "คำขอของฉัน" ที่ส่งต่อมาจากโดเมนเก่า (#mig=...) แล้วรวมเข้ากับของในเครื่องนี้ */
+(function(){const h=location.hash||'';if(h.indexOf('#mig=')!==0)return;
+  try{const j=JSON.parse(decodeURIComponent(escape(atob(h.slice(5).replace(/-/g,'+').replace(/_/g,'/')))));
+    const cur=store.json('uh_my_cases',[])||[],ids=new Set(cur.map(m=>String(m.id)));
+    const add=(j.my||[]).filter(m=>m&&m.id&&!ids.has(String(m.id)));if(add.length)store.put('uh_my_cases',[...cur,...add].slice(-8));
+    if(j.team&&!store.get('uh_team',''))store.set('uh_team',j.team);if(j.org&&!store.get('uh_org',''))store.set('uh_org',j.org);
+  }catch(e){}
+  try{history.replaceState(null,'',location.pathname+'#home')}catch(e){location.hash='#home'}})();
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const LEVEL_TH={dry:'แห้ง / ต่ำกว่าข้อเท้า',ankle:'ข้อเท้า–เข่า',knee:'เข่า–เอว',waist:'เอว–อก',chest:'อกขึ้นไป',roof:'มิดหัว / ท่วมหลังคา'};
 const LEVEL_CM={dry:'< 10 ซม.',ankle:'10–50 ซม.',knee:'50–100 ซม.',waist:'100–130 ซม.',chest:'130–180 ซม.',roof:'> 180 ซม.'};
@@ -1080,7 +1088,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='209';let appNewer=false;
+const APP_V='210';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1089,3 +1097,24 @@ async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Dat
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkAppVersion()});
 setInterval(()=>{if(!document.hidden)checkAppVersion()},5*60e3);
 setTimeout(checkAppVersion,3000);
+
+/* โดเมนเก่า (*.pages.dev) ปิดใช้แล้ว → พาไป helpme4u.com
+ * ก่อนย้าย: ส่งคำขอที่ค้างในเครื่องให้เสร็จก่อน (ข้อมูลในเบราว์เซอร์แยกตามโดเมน ย้ายตามไปไม่ได้) แล้วส่งรายการ "คำขอของฉัน" ไปด้วย */
+const NEW_HOME='https://helpme4u.com/';
+(function(){if(!/\.pages\.dev$/.test(location.hostname))return;
+  const ov=document.createElement('div');ov.className='moved';ov.setAttribute('role','alertdialog');ov.setAttribute('aria-live','polite');
+  ov.innerHTML='<div class="moved-card"><img src="./assets/helpme-logo.png" alt="Help Me ช่วยด้วย" width="180"><h1>ย้ายไปที่ helpme4u.com แล้ว</h1><p id="moved-msg">กำลังพาไปที่เว็บใหม่…</p><a class="btn btn-blue" id="moved-go" href="'+NEW_HOME+'">ไปที่ helpme4u.com</a><p class="moved-sub">ถ้าอันตรายถึงชีวิต โทร 1669 หรือ 191 ทันที</p></div>';
+  document.body.append(ov);
+  const go2=()=>{let my=[];try{my=(store.json('uh_my_cases',[])||[]).map(m=>({id:m.id,token:m.token,clientId:m.clientId,at:m.at,needs:m.needs,urgency:m.urgency}))}catch(e){}
+    const data={my,team:store.get('uh_team',''),org:store.get('uh_org','')};
+    let url=NEW_HOME;if(my.length||data.team){try{url+='#mig='+btoa(unescape(encodeURIComponent(JSON.stringify(data)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}catch(e){}}
+    location.replace(url)};
+  $('#moved-go').addEventListener('click',e=>{e.preventDefault();go2()});
+  const start=Date.now();
+  const tick=async()=>{if(!queue().length)return go2();
+    $('#moved-msg').textContent='กำลังส่งคำขอที่ค้างอยู่ในเครื่องนี้ให้ทีมอาสา (มี '+queue().length+' รายการ) กรุณาอย่าเพิ่งปิดหน้านี้…';
+    try{await flushQueue()}catch(e){}
+    if(!queue().length)return go2();
+    if(Date.now()-start>180000){$('#moved-msg').textContent='ยังส่งคำขอที่ค้างไม่สำเร็จ · เปิดหน้านี้ค้างไว้ ระบบจะลองส่งต่อ หรือกดปุ่มด้านล่างแล้วส่งคำขอใหม่ที่เว็บใหม่'}
+    setTimeout(tick,8000)};
+  setTimeout(tick,600)})();
