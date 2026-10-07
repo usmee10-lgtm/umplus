@@ -336,6 +336,7 @@ $('#lay-cctv').addEventListener('change',e=>toggleCctv(e.target.checked));
 if($('#type-grid')){$('#type-grid').innerHTML=NEED_TYPES.map(t=>`<button type="button" class="type-btn" data-type="${t.key}">${ic(t.icon)}<span>${t.label}</span></button>`).join('');
 $('#type-grid').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(b)startForm({type:b.dataset.type,gps:true})})}
 $('#btn-use-gps').addEventListener('click',()=>startForm({gps:true}));
+$('#btn-proxy').addEventListener('click',()=>{startForm({proxy:true});setTimeout(()=>{const a=$('#addr-input');if(a)a.focus({preventScroll:true})},350)});
 $('#btn-all-cases').addEventListener('click',()=>{if(!S.volunteer)return;FL.status='all';FL.types=[];FL.people=[];FL.level=[];FL.q='';$('#case-search').value='';saveFL();renderFilters();go('map');setSheet(true);applyFilters()});
 $('#btn-help').addEventListener('click',()=>{go('map');setSheet(true);
   if(!S.volunteer){const p=$('#vol-panel');p.dataset.mode='';renderVol(true);setTimeout(()=>{const k=$('#vol-key');k&&k.focus()},250)}   /* ครั้งแรก: ใส่รหัส */
@@ -422,12 +423,15 @@ function startForm(opt={}){
   resetForm();if(opt.type){F.needs.add(opt.type);$(`[data-need="${opt.type}"]`).setAttribute('aria-pressed','true')}
   go('form');syncOther(opt.type==='other');
   if(opt.loc){$('#addr-input').value=opt.loc.label||opt.loc.title;F.addrDirty=true;setPin(opt.loc.lat,opt.loc.lng,true,false,'addr')}
-  if(opt.gps)useGPS();
+  setProxy(!!opt.proxy);
+  if(opt.gps&&!opt.proxy)useGPS();
 }
+/* แจ้งแทนญาติ/คนรู้จัก: ไม่ใช้ GPS ของผู้แจ้ง · ขอเบอร์ผู้แจ้งเพิ่ม · ใส่ข้อมูลผู้แจ้งไว้หัวรายละเอียดให้ทีมอาสาเห็น */
+function setProxy(on){F.proxy=on;$('#view-form').classList.toggle('is-proxy',on);$('#proxy-note').hidden=!on;$('#sec-rep').hidden=!on;if(F.step)showStep(F.step)}
 function resetForm(){
   F.needs.clear();F.photos=[];if($('#photo-row')){renderPhotos();markOk('photos')}F.lat=F.lng=null;F.soi='';F.soiAuto='';F.soiPrev='';F.soiInfo=null;soiSeq++;if($('#soi-pick'))$('#soi-pick').hidden=true;if($('#loc-share'))$('#loc-share').hidden=true;F.pinSrc='';F.pinAcc=null;F.addrDirty=false;F.people=1;F.step=1;F.clientId=uid();F.sending=false;F.done=false;F.pinSeq=(F.pinSeq||0)+1;
   $$('#need-grid [data-need]').forEach(b=>b.setAttribute('aria-pressed','false'));$('#other-box').hidden=true;$('#other-in').value='';$('#err-other').hidden=true;
-  ['#addr-input','#phone-in','#name-in','#details-in','#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');MA.sub='';MA.picked=null;$('#ma-preview').hidden=true;$('#manual-addr').open=false;
+  ['#addr-input','#phone-in','#rep-phone','#rep-name','#name-in','#details-in','#ma-street','#ma-no','#ma-dist','#ma-mark'].forEach(s=>$(s).value='');F.proxy=false;$('#view-form').classList.remove('is-proxy');$('#proxy-note').hidden=true;$('#sec-rep').hidden=true;MA.sub='';MA.picked=null;$('#ma-preview').hidden=true;$('#manual-addr').open=false;
   $('#ppl-out').value='1';$$('input[name=level]').forEach(i=>i.checked=false);markOk('level');
   $('#addr-status').textContent='';$('#pin-status').textContent='แตะแผนที่เพื่อปักหมุด หรือลากหมุดให้ตรง';
   if(S.formMap){S.formMap.removePin();S.formMap.clearAccuracy()}
@@ -601,8 +605,9 @@ $('#ppl-out').addEventListener('focus',e=>{const t=e.target;t.placeholder=String
 $('#ppl-out').addEventListener('blur',e=>{const t=e.target;if(t.value.trim())F.people=pplClamp(t.value);t.value=F.people;t.placeholder=''});
 $('#ppl-out').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur()}});
 $('#phone-in').addEventListener('input',()=>markOk('phone'));
-const FIELD={needs:'#need-grid',loc:'#addr-input',phone:'#phone-in',level:'#level-chips',photos:'#photo-in'};
-const SECS={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone',level:'#sec-level',photos:'#sec-photos'};
+$('#rep-phone').addEventListener('input',()=>markOk('rep'));
+const FIELD={needs:'#need-grid',loc:'#addr-input',phone:'#phone-in',rep:'#rep-phone',level:'#level-chips',photos:'#photo-in'};
+const SECS={needs:'#sec-needs',loc:'#sec-loc',phone:'#sec-phone',rep:'#sec-rep',level:'#sec-level',photos:'#sec-photos'};
 function markOk(k){const sec=SECS[k];$(sec).classList.remove('invalid');$('#err-'+k).hidden=true;$(FIELD[k]).removeAttribute('aria-invalid')}
 function markBad(k){const sec=SECS[k];$(sec).classList.add('invalid');$('#err-'+k).hidden=false;$(FIELD[k]).setAttribute('aria-invalid','true')}
 function phoneOk(v){let d=String(v||'').replace(/\D/g,'');if(d.startsWith('66'))d='0'+d.slice(2);return /^0\d{8,9}$/.test(d)}
@@ -611,6 +616,7 @@ function validate(){const bad=[];if($('#ppl-out').value.trim())F.people=pplClamp
   else if(F.needs.has('other')&&!$('#other-in').value.trim()){bad.push('needs');$('#err-other').hidden=false}
   if(!$('#addr-input').value.trim()&&F.lat==null)bad.push('loc');
   if(!phoneOk($('#phone-in').value))bad.push('phone');
+  if(F.proxy&&!phoneOk($('#rep-phone').value))bad.push('rep');
   if(!$('input[name=level]:checked'))bad.push('level');
   if(!F.photos.length)bad.push('photos');
   bad.forEach(markBad);if(F.needs.size)$('#err-needs').hidden=true;
@@ -621,13 +627,13 @@ function formData(){
   return {needs:[...F.needs].map(k=>k==='other'&&other?'อื่น ๆ: '+other:NEED_TYPES.find(t=>t.key===k).value),urgencyLabel:'รอได้',
     people:F.people,level:($('input[name=level]:checked')||{}).value||'',address:$('#addr-input').value.trim(),
     lat:F.lat!=null?+F.lat.toFixed(6):'',lng:F.lng!=null?+F.lng.toFixed(6):'',phone:$('#phone-in').value.trim(),name:$('#name-in').value.trim(),
-    details:$('#details-in').value.trim(),website:$('.hp').value,photos:F.photos.slice(0,PHOTO_MAX),pinSrc:F.lat!=null?pinSrcText():''}}
+    details:(F.proxy?`[แจ้งแทน] ผู้แจ้ง: ${$('#rep-name').value.trim()||'-'} · โทร ${$('#rep-phone').value.trim()}`+($('#details-in').value.trim()?'\n':''):'')+$('#details-in').value.trim(),website:$('.hp').value,photos:F.photos.slice(0,PHOTO_MAX),pinSrc:F.lat!=null?pinSrcText():''}}
 function showStep(n){F.step=n;$('#step1').hidden=n!==1;$('#step2').hidden=n!==2;$('#form-step').textContent=n+'/2';
-  $('#form-title').textContent=n===1?'ขอความช่วยเหลือ':'ตรวจก่อนส่ง';
+  $('#form-title').textContent=n===1?(F.proxy?'แจ้งแทนญาติ / คนรู้จัก':'ขอความช่วยเหลือ'):'ตรวจก่อนส่ง';
   const b=$('#form-next');b.className='btn '+(n===1?'btn-blue':'btn-green');b.textContent=n===1?'ถัดไป':'ส่งคำขอ';b.disabled=false;window.scrollTo(0,0);
   if(A11Y.ready&&S.view==='form')setTimeout(()=>$('#form-title').focus({preventScroll:true}),0)}
 function renderReview(d){
-  const rows=[['list','ต้องการ',d.needs.join(', ')],['pin','ที่อยู่',[d.address,d.lat!==''?'· ปักหมุดแล้ว':''].filter(Boolean).join(' ')||'ปักหมุดแล้ว'],['phone','เบอร์โทร',d.phone],
+  const rows=[['list','ต้องการ',d.needs.join(', ')],['pin','ที่อยู่',[d.address,d.lat!==''?'· ปักหมุดแล้ว':''].filter(Boolean).join(' ')||'ปักหมุดแล้ว'],['phone',F.proxy?'เบอร์คนที่ต้องการความช่วยเหลือ':'เบอร์โทร',d.phone],
 ['users','จำนวนคน',d.people+' คน'],['wave','ระดับน้ำ',levelLabel(d.level)],['user','ชื่อ',d.name||'-'],['note','รายละเอียด',d.details||'-']];
   if(d.photos&&d.photos.length)rows.push(['image','รูปภาพ',d.photos.length+' รูป']);
   $('#review').innerHTML=rows.map(([i,k,v])=>`<div class="rv">${ic(i)}<span><small>${k}</small><b>${esc(v)}</b></span></div>`).join('');
@@ -1092,7 +1098,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='219';let appNewer=false;
+const APP_V='220';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */

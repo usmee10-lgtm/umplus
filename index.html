@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=120">
+<link rel="stylesheet" href="./app.css?v=121">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -43,7 +43,8 @@
     <div class="sheet-body">
       <div class="sheet-actions">
         <button type="button" class="pill pill-sos" id="btn-use-gps" data-icon="alert">ขอความช่วยเหลือ</button>
-        <button type="button" class="pill pill-ghost" id="btn-help" data-icon="heart">อยากช่วย</button>
+        <button type="button" class="pill pill-proxy" id="btn-proxy" data-icon="users">แจ้งแทนญาติ / คนรู้จัก</button>
+        <button type="button" class="pill pill-ghost" id="btn-help" data-icon="heart">โหมดอาสา</button>
         <button type="button" class="pill all-cases" id="btn-all-cases" data-icon="list" hidden><span>ดูเคสทั้งหมด</span><b id="all-count"></b></button>
         <button type="button" class="pill vol-set" id="btn-vol-set" data-icon="users" hidden><span>ตั้งค่าทีมอาสา</span></button>
       </div>
@@ -99,6 +100,7 @@
   </header>
   <form id="req-form" novalidate>
     <div id="step1">
+      <div class="proxy-note" id="proxy-note" hidden><span data-icon="users"></span><p><b>แจ้งแทนคนอื่น</b>ใส่ที่อยู่และข้อมูลของ<u>คนที่ติดอยู่ในพื้นที่</u> ไม่ใช่ตำแหน่งของคุณ · ทีมอาสาจะติดต่อทั้งเขาและคุณ</p></div>
       <section class="card" id="sec-needs">
         <h2 id="h-needs">ต้องการให้เราช่วยอะไรบ้าง <em aria-hidden="true">*</em><span class="sr">(จำเป็น)</span></h2>
         <div class="need-grid" id="need-grid" role="group" aria-labelledby="h-needs" aria-describedby="err-needs"></div>
@@ -110,7 +112,7 @@
         <p class="err" id="err-needs" role="alert" hidden>เลือกอย่างน้อย 1 อย่าง</p>
       </section>
       <section class="card" id="sec-loc">
-        <h2 id="h-loc">อยู่ที่ไหน <em aria-hidden="true">*</em><span class="sr">(จำเป็น)</span></h2>
+        <h2 id="h-loc"><span class="t-self">อยู่ที่ไหน</span><span class="t-proxy">เขาอยู่ที่ไหน</span> <em aria-hidden="true">*</em><span class="sr">(จำเป็น)</span></h2>
         <label class="search-field"><span data-icon="search"></span><input id="addr-input" name="address" aria-labelledby="h-loc" aria-describedby="addr-status err-loc" autocomplete="street-address" placeholder="ค้นหาที่อยู่ ถนน ซอย หรือสถานที่" maxlength="300"></label>
         <div id="addr-list" class="sug-list inline" role="listbox" hidden></div>
         <p class="hint" id="addr-status" aria-live="polite"></p>
@@ -136,9 +138,16 @@
         <p class="err" id="err-loc" role="alert" hidden>บอกที่อยู่ หรือปักหมุดบนแผนที่</p>
       </section>
       <section class="card" id="sec-phone">
-        <h2 id="h-phone">เบอร์โทร <em aria-hidden="true">*</em><span class="sr">(จำเป็น)</span></h2>
+        <h2 id="h-phone"><span class="t-self">เบอร์โทร</span><span class="t-proxy">เบอร์ของคนที่ต้องการความช่วยเหลือ</span> <em aria-hidden="true">*</em><span class="sr">(จำเป็น)</span></h2>
+        <p class="hint t-proxy">ถ้าติดต่อเขาไม่ได้ ใส่เบอร์ญาติที่อยู่ด้วยกัน หรือเบอร์ของคุณ</p>
         <input id="phone-in" aria-labelledby="h-phone" aria-required="true" aria-describedby="err-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="เช่น 081 234 5678" maxlength="20">
         <p class="err" id="err-phone" role="alert" hidden>ใส่เบอร์โทร 9–10 หลัก</p>
+      </section>
+      <section class="card proxy-only" id="sec-rep" hidden>
+        <h2 id="h-rep">ข้อมูลของคุณ (ผู้แจ้งแทน) <em aria-hidden="true">*</em><span class="sr">(จำเป็น)</span></h2>
+        <input id="rep-phone" aria-labelledby="h-rep" aria-describedby="err-rep" name="rep-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="เบอร์ของคุณ เช่น 081 234 5678" maxlength="20">
+        <input id="rep-name" class="mt-s" aria-label="ชื่อของคุณและความเกี่ยวข้อง" name="rep-name" autocomplete="name" placeholder="ชื่อของคุณ · เกี่ยวข้องเป็น (เช่น ลูก, หลาน, เพื่อน)" maxlength="60">
+        <p class="err" id="err-rep" role="alert" hidden>ใส่เบอร์ของคุณ 9–10 หลัก</p>
       </section>
       <section class="card">
         <input type="hidden" name="urg" value="รอได้">
@@ -149,7 +158,7 @@
         <div class="level-grid" id="level-chips" role="radiogroup" aria-labelledby="h-level" aria-required="true"></div>
         <p class="err" id="err-level" role="alert" hidden>เลือกระดับน้ำ</p>
         </div>
-        <h2 class="mt" id="h-name">ชื่อ</h2>
+        <h2 class="mt" id="h-name"><span class="t-self">ชื่อ</span><span class="t-proxy">ชื่อคนที่ต้องการความช่วยเหลือ</span></h2>
         <input id="name-in" aria-labelledby="h-name" name="name" autocomplete="name" placeholder="ชื่อที่ให้ทีมเรียก" maxlength="60">
         <h2 class="mt" id="h-details">รายละเอียด</h2>
         <textarea id="details-in" aria-labelledby="h-details" name="details" rows="3" maxlength="500" placeholder="เช่น มีผู้สูงอายุติดเตียง ทางเข้าเป็นซอยแคบ"></textarea>
@@ -266,13 +275,13 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=120"></script>
-<script src="./geocode.js?v=120"></script>
-<script src="./location.js?v=120"></script>
-<script src="./pickmap.js?v=120"></script>
-<script src="./stats.js?v=120"></script>
-<script src="./hotlines.js?v=120"></script>
-<script src="./script.js?v=120"></script>
+<script src="./icons.js?v=121"></script>
+<script src="./geocode.js?v=121"></script>
+<script src="./location.js?v=121"></script>
+<script src="./pickmap.js?v=121"></script>
+<script src="./stats.js?v=121"></script>
+<script src="./hotlines.js?v=121"></script>
+<script src="./script.js?v=121"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
