@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=122">
+<link rel="stylesheet" href="./app.css?v=123">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -43,7 +43,7 @@
     <div class="sheet-body">
       <div class="sheet-actions">
         <button type="button" class="pill pill-sos" id="btn-use-gps" data-icon="alert">ขอความช่วยเหลือ</button>
-        <button type="button" class="pill pill-proxy" id="btn-proxy" data-icon="users" aria-label="แจ้งแทนญาติหรือคนรู้จัก">แจ้งแทนญาติ</button>
+        <button type="button" class="pill pill-proxy" id="btn-proxy" data-icon="users" aria-label="แจ้งแทนญาติหรือคนรู้จัก">แจ้งแทน</button>
         <button type="button" class="pill pill-ghost" id="btn-help" data-icon="heart">โหมดอาสา</button>
         <button type="button" class="pill all-cases" id="btn-all-cases" data-icon="list" hidden><span>ดูเคสทั้งหมด</span><b id="all-count"></b></button>
         <button type="button" class="pill vol-set" id="btn-vol-set" data-icon="users" hidden><span>ตั้งค่าทีมอาสา</span></button>
@@ -275,13 +275,13 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=122"></script>
-<script src="./geocode.js?v=122"></script>
-<script src="./location.js?v=122"></script>
-<script src="./pickmap.js?v=122"></script>
-<script src="./stats.js?v=122"></script>
-<script src="./hotlines.js?v=122"></script>
-<script src="./script.js?v=122"></script>
+<script src="./icons.js?v=123"></script>
+<script src="./geocode.js?v=123"></script>
+<script src="./location.js?v=123"></script>
+<script src="./pickmap.js?v=123"></script>
+<script src="./stats.js?v=123"></script>
+<script src="./hotlines.js?v=123"></script>
+<script src="./script.js?v=123"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
