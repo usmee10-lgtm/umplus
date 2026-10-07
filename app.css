@@ -1042,3 +1042,4 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .lay-card .lay-list:not(.in-menu) .lay-key:first-of-type{margin-top:4px}
 .lay-card .lay-list:not(.in-menu) .lay-key span{padding:0;background:none;font-size:11.5px;color:var(--muted)}
 @media (max-width:340px){.lay-card .lay-list:not(.in-menu){gap:8px}.lay-card .lay-list:not(.in-menu) .lay-ic{width:42px;height:42px}}
+.lay-card .lay-list:not(.in-menu) .lay-key{display:none!important}
