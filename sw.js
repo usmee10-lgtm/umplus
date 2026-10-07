@@ -1,5 +1,5 @@
 /* Service worker: network-first เก็บหน้าไว้ใช้ตอนสัญญาณแย่ · เปลี่ยน CACHE ทุกครั้งที่แก้ไฟล์ */
-const CACHE='ummatee-v134';
+const CACHE='ummatee-v135';
 const SHELL=['./','./index.html','./app.css','./icons.js','./geocode.js','./location.js','./pickmap.js','./stats.js','./hotlines.js','./script.js','./manifest.webmanifest','./assets/ummatee-logo.png','./assets/helpme-logo.png','./assets/hm-icon-192.png','./assets/hm-icon-512.png'];
 /* ถ้าโหลดไฟล์หลักไม่ครบ ให้ติดตั้งล้มเหลว → SW ตัวเก่า (และแคชเก่า) ยังใช้งานได้ ไม่หายทั้งชุด */
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
