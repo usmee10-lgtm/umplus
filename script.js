@@ -1045,31 +1045,37 @@ function renderStats(soft){
   const sumFoot=(label,t)=>`<tfoot><tr><th scope="row">${label}</th><td>${N(t.going)}</td><td>${N(t.done)}</td><td>${N(t.ppl)}</td></tr></tfoot>`;
   const orgRows=Object.entries(R.orgs).sort((a,b)=>(b[1].done+b[1].going)-(a[1].done+a[1].going));
   const ps=R.quality.pinSrc;
-  el.innerHTML=`<p class="stats-upd">${S.loaded?'ข้อมูล ณ '+new Date(S.loaded).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':'ข้อมูลล่าสุดที่บันทึกไว้'} · ${N(R.total)} เคส · ช่วยแล้ว ${pctTxt(R.rate)}</p>
-  <section class="scard" aria-labelledby="st-now"><h2 id="st-now">ตอนนี้</h2>
-    <div class="stiles">${tile(open.length,'รอช่วย','',`data-sgo="open"`)}${tile(urgent.length,'ด่วนมาก + วิกฤต','is-red',`data-sgo="danger"`)}${tile(going.length,'กำลังไป','',`data-sgo="going"`)}${tile(done.length,'ช่วยแล้ว','is-green',`data-sgo="done"`)}</div>
+  const upd=S.loaded?new Date(S.loaded).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':'ข้อมูลที่บันทึกไว้';
+  const tot=Math.max(1,open.length+going.length+done.length),C=2*Math.PI*44;let off=0;
+  const ring=[[done.length,'#4ADE80'],[going.length,'#FBBF24'],[open.length,'#8B9BFF']].map(([n,c])=>{if(!n)return '';const L=n/tot*C,gap=n<tot?3:0,seg=`<circle cx="50" cy="50" r="44" stroke="${c}" stroke-dasharray="${Math.max(.1,L-gap)} ${C}" stroke-dashoffset="${-off}"/>`;off+=L;return seg}).join('');
+  const pct=Math.round(R.rate*1000)/10;
+  const kv=(n,l,cls='')=>`<div class="skv${cls?' '+cls:''}"><span>${l}</span><b>${n}</b></div>`;
+  const stile2=(n,l,dot,go)=>`<button type="button" class="stile2" data-sgo="${go}"><i style="background:${dot}"></i><b>${N(n)}</b><span>${l}</span></button>`;
+  el.innerHTML=`<section class="shero" aria-labelledby="st-hero">
+    <div class="sh-top"><h2 id="st-hero">ภาพรวมทั้งหมด</h2><span>${ic('clock')}${upd}</span></div>
+    <div class="sh-main"><div class="sh-num"><b>${pct}<small>%</small></b><span>ของเคสช่วยเสร็จแล้ว</span></div>
+      <svg class="sh-ring" viewBox="0 0 100 100" role="img" aria-label="ช่วยแล้ว ${done.length} กำลังไป ${going.length} รอช่วย ${open.length}"><circle cx="50" cy="50" r="44" stroke="rgba(255,255,255,.1)"/><g transform="rotate(-90 50 50)">${ring}</g><text x="50" y="47">${N(done.length)}</text><text x="50" y="62" class="t2">ช่วยแล้ว</text></svg></div>
+    <div class="sh-kpis">${kv(N(R.total),'เคสทั้งหมด')}${kv(N(people.all),'คนที่แจ้ง')}${kv(N(people.doneUnique),'คนได้รับการช่วย')}</div>
+  </section>
+  <section class="scard" aria-labelledby="st-now"><div class="sc-h"><h2 id="st-now">สถานะตอนนี้</h2><small>แตะเพื่อดูรายการ</small></div>
+    <div class="stiles2">${stile2(open.length,'รอช่วย','var(--open)','open')}${stile2(urgent.length,'ด่วนมาก + วิกฤต','#E5383B','danger')}${stile2(going.length,'กำลังไป','var(--going)','going')}${stile2(done.length,'ช่วยแล้ว','var(--ok)','done')}</div>
     <div class="sprog" role="img" aria-label="สัดส่วนสถานะ รอช่วย ${open.length} กำลังไป ${going.length} ช่วยแล้ว ${done.length}">${[[open.length,'var(--open)'],[going.length,'var(--going)'],[done.length,'var(--ok)']].map(([n,c])=>n?`<i style="flex:${n};background:${c}"></i>`:'').join('')}</div>
-    ${line('list','<b>รวมทั้งหมด</b>',`${N(R.total)} เคส · ${pplNote(people.allRaw,people.all)}`,'is-total')}
-    ${R.skipped&&R.skipped.length?line('close','ไม่เข้าเกณฑ์ (ปิดโดยไม่ไปช่วย · ไม่นับในตัวเลขอื่น)',N(R.skipped.length)+' เคส','is-skip'):''}
-    ${line('users','คนที่ยังรอความช่วยเหลือ',pplNote(people.act,people.actUnique))}
-    ${line('alert','คนในเคสด่วนมาก/วิกฤต',N(people.urgent)+' คน',urgent.length?'is-red':'')}
-    ${line('check','คนที่ช่วยแล้ว',pplNote(people.done,people.doneUnique))}
-    ${R.dupList.length?line('copy','เคสที่น่าจะแจ้งซ้ำ',N(R.dupList.length)+' เคส'):''}</section>
-  <section class="scard" aria-labelledby="st-speed"><h2 id="st-speed">ความเร็วในการช่วย</h2>
-    ${line('clock','แจ้ง → ทีมรับเคส (ค่ากลาง)',times.pickupN?dur(times.pickupMed)+` <small class="snote">จาก ${N(times.pickupN)} เคส</small>`:'ยังไม่มีข้อมูล')}
-    ${line('check','แจ้ง → ช่วยเสร็จ (ค่ากลาง)',times.doneN?dur(times.doneMed)+` <small class="snote">จาก ${N(times.doneN)} เคส</small>`:'-')}
-    ${line('check','90% ของเคสช่วยเสร็จภายใน',times.doneN?dur(times.doneP90):'-')}
-    ${line('clock','รอช่วยเกิน 6 ชม. / 24 ชม. / 3 วัน',`${N(waits.over6)} / ${N(waits.over24)} / ${N(waits.over72)} เคส`,waits.over24?'is-red':'')}
-    ${times.doneEstimated?`<p class="hint">เคสเก่า ${N(times.doneEstimated)} เคสไม่มีเวลาช่วยเสร็จที่บันทึกไว้ ใช้เวลาอัปเดตล่าสุดแทน (ค่าประมาณ) · เคสใหม่บันทึกเวลาจริงอัตโนมัติ</p>`:''}</section>
-  <section class="scard" aria-labelledby="st-old"><h2 id="st-old">รอนานที่สุด <small>(ยังไม่มีทีมรับ)</small></h2>
-    ${waits.oldestList.length?`<ul class="slist">${waits.oldestList.map(o=>caseLink(o.c,dur(o.wait))).join('')}</ul>`:'<p class="hint">ไม่มีเคสที่รอช่วย</p>'}</section>
-  <section class="scard" aria-labelledby="st-today"><h2 id="st-today">วันนี้ <small>(ตั้งแต่ 00:00 น.)</small></h2>
-    <div class="spair"><div><b>${N(today.newN)}</b><span>คำขอใหม่</span></div><div><b>${N(today.taken)}</b><span>ทีมรับเคส</span></div><div><b>${N(today.done)}</b><span>ช่วยเสร็จ</span></div><div><b>${N(today.helped)}</b><span>คนที่ได้รับการช่วย</span></div></div>
-    <p class="hint">${today.newN>today.done?`เคสค้างเพิ่มขึ้น ${N(today.newN-today.done)} เคสวันนี้`:today.done>today.newN?`เคสค้างลดลง ${N(today.done-today.newN)} เคสวันนี้`:'เคสใหม่เท่ากับเคสที่ช่วยเสร็จวันนี้'}</p>
+    <div class="skvs">${kv(N(people.actUnique)+' <small>คน</small>','คนที่ยังรอ')}${kv(N(people.urgent)+' <small>คน</small>','คนในเคสด่วน',people.urgent?'is-red':'')}${kv(N((R.skipped||[]).length)+' <small>เคส</small>','ไม่เข้าเกณฑ์')}${kv(N(R.dupList.length)+' <small>เคส</small>','น่าจะแจ้งซ้ำ')}</div>
+    ${people.allRaw!==people.all?`<p class="hint">จำนวนคนนับเคสที่แจ้งซ้ำครั้งเดียว · ถ้ารวมซ้ำ ${N(people.allRaw)} คน · เคสไม่เข้าเกณฑ์ไม่นับในตัวเลขอื่น</p>`:''}</section>
+  <section class="scard" aria-labelledby="st-today"><div class="sc-h"><h2 id="st-today">วันนี้</h2><small>ตั้งแต่ 00:00 น.</small></div>
+    <div class="skvs four">${kv(N(today.newN),'คำขอใหม่')}${kv(N(today.taken),'ทีมรับเคส')}${kv(N(today.done),'ช่วยเสร็จ','is-green')}${kv(N(today.helped),'คนได้รับการช่วย')}</div>
+    <p class="sdelta ${today.newN>today.done?'up':today.done>today.newN?'down':''}">${today.newN>today.done?`▲ เคสค้างเพิ่ม ${N(today.newN-today.done)} เคสวันนี้`:today.done>today.newN?`▼ เคสค้างลดลง ${N(today.done-today.newN)} เคสวันนี้`:'เคสใหม่เท่ากับเคสที่ช่วยเสร็จวันนี้'}</p>
+    <div class="sc-h sub"><h3>7 วันล่าสุด</h3><div class="tkey"><span><i class="tn"></i>ขอใหม่</span><span><i class="tk"></i>ช่วยแล้ว</span></div></div>
     <div class="trend" role="img" aria-label="7 วันล่าสุด ${days.map(x=>new Date(x.start).toLocaleDateString('th-TH',{day:'numeric',month:'short',timeZone:'Asia/Bangkok'})+' ขอใหม่ '+x.n+' ช่วยแล้ว '+x.k).join(', ')}">
-      ${days.map(x=>{const d=new Date(x.start);return `<div class="tcol"><div class="tbars"><i class="tn" style="height:${x.n/dmax*100}%"><em>${x.n||''}</em></i><i class="tk" style="height:${x.k/dmax*100}%"><em>${x.k||''}</em></i></div><small>${d.toLocaleDateString('th-TH',{weekday:'narrow',timeZone:'Asia/Bangkok'})}<br>${d.toLocaleDateString('th-TH',{day:'numeric',timeZone:'Asia/Bangkok'})}</small></div>`}).join('')}
-    </div>
-    <div class="tkey"><span><i class="tn"></i>ขอใหม่</span><span><i class="tk"></i>ช่วยแล้ว</span></div></section>
+      ${days.map((x,i)=>{const d=new Date(x.start);return `<div class="tcol${i===days.length-1?' now':''}"><div class="tbars"><i class="tn" style="height:${x.n/dmax*100}%"><em>${x.n||''}</em></i><i class="tk" style="height:${x.k/dmax*100}%"><em>${x.k||''}</em></i></div><small>${d.toLocaleDateString('th-TH',{weekday:'narrow',timeZone:'Asia/Bangkok'})}<br>${d.toLocaleDateString('th-TH',{day:'numeric',timeZone:'Asia/Bangkok'})}</small></div>`}).join('')}
+    </div></section>
+  <section class="scard" aria-labelledby="st-speed"><div class="sc-h"><h2 id="st-speed">ความเร็วในการช่วย</h2><small>ค่ากลาง</small></div>
+    <div class="skvs three">${kv(times.pickupN?dur(times.pickupMed):'–','แจ้ง → ทีมรับ')}${kv(times.doneN?dur(times.doneMed):'–','แจ้ง → ช่วยเสร็จ')}${kv(times.doneN?dur(times.doneP90):'–','90% เสร็จภายใน')}</div>
+    <p class="hint">จาก ${N(times.pickupN)} เคสที่มีเวลารับ · ${N(times.doneN)} เคสที่ช่วยเสร็จ</p>
+    <div class="swaits"><span>รอช่วยนานเกิน</span>${[['6 ชม.',waits.over6],['24 ชม.',waits.over24],['3 วัน',waits.over72]].map(([l,n],i)=>`<div class="${n&&i?'is-red':''}"><b>${N(n)}</b><small>${l}</small></div>`).join('')}</div>
+    ${times.doneEstimated?`<p class="hint">เคสเก่า ${N(times.doneEstimated)} เคสไม่มีเวลาช่วยเสร็จที่บันทึกไว้ ใช้เวลาอัปเดตล่าสุดแทน (ค่าประมาณ)</p>`:''}</section>
+  <section class="scard" aria-labelledby="st-old"><div class="sc-h"><h2 id="st-old">รอนานที่สุด</h2><small>ยังไม่มีทีมรับ</small></div>
+    ${waits.oldestList.length?`<ul class="slist">${waits.oldestList.map(o=>caseLink(o.c,dur(o.wait))).join('')}</ul>`:'<p class="hint">ไม่มีเคสที่รอช่วย</p>'}</section>
   <section class="scard" aria-labelledby="st-urg"><h2 id="st-urg">ความเร่งด่วน <small>(เคสค้าง · จำนวนเคส และคน)</small></h2>
     ${act.length?statBars(urgRows):'<p class="hint">ไม่มีเคสค้าง</p>'}</section>
   <section class="scard" aria-labelledby="st-area"><h2 id="st-area">รายเขต</h2>
@@ -1117,7 +1123,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='242';let appNewer=false;
+const APP_V='243';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
