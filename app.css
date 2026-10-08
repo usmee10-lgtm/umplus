@@ -1687,3 +1687,4 @@ body:not(.is-vol) .vol-row,body:not(.is-vol) #case-count{display:none!important}
 #view-emergency .hl-call{width:46px;height:46px;min-height:0;padding:0;justify-content:center;border-radius:50%;font-size:0;background:var(--c);color:#fff;box-shadow:0 6px 14px -8px var(--c)}
 #view-emergency .hl-call .ic{width:20px;height:20px}
 .home-sheet .sheet-actions .pill-sos .ic{width:24px;height:24px}
+.home-sheet .sheet-actions .pill-sos .ic{animation:none!important;opacity:1}
