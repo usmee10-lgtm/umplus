@@ -1572,3 +1572,9 @@ body:not(.is-vol) .vol-row,body:not(.is-vol) #case-count{display:none!important}
 .mt-how span{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(17,19,24,.08)}.mt-how .ic{width:16px;height:16px}
 .mt-1669{display:flex;align-items:center;justify-content:center;gap:6px;font-size:13.5px;color:var(--muted);text-decoration:none;min-height:36px}.mt-1669 .ic{width:15px;height:15px;color:var(--primary)}.mt-1669 b{color:var(--primary);font-size:15px}
 @media (prefers-reduced-motion:reduce){.mt-orb i{animation:none}}
+/* v262 — empty state ไม่ซ้อนกล่อง: ไม่มีกรอบนอก ไม่มีการ์ด ขั้นตอนวางบนพื้นเลย */
+.case-list:has(>.mt-empty){background:none;box-shadow:none;border-radius:0;overflow:visible}
+.mt-empty{background:none;box-shadow:none;border-radius:0;padding:8px 4px 4px;max-width:520px;gap:20px}
+.mt-how{background:none;padding:4px 0 0;border-radius:0}
+.mt-how span{box-shadow:none;background:var(--bg);border:1px solid #E6E8EE}
+.mt-how li:not(:last-child)::after{background:#E6E8EE}
