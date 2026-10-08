@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=151">
+<link rel="stylesheet" href="./app.css?v=152">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -32,7 +32,10 @@
   <div id="home-map" class="map-full" role="region" aria-label="แผนที่เคสที่ยังไม่เสร็จ"></div>
   <header class="home-top glass">
     <a class="brand" href="#home" data-go="home"><img src="./assets/helpme-logo.png" alt="Help Me ช่วยด้วย · หน้าแรก" width="166" height="24"></a>
-    <button type="button" class="icon-btn" id="home-search-btn" aria-label="ค้นหาที่อยู่" aria-haspopup="dialog" data-icon="search"></button>
+    <div class="top-acts">
+      <button type="button" class="icon-btn" id="home-search-btn" aria-label="ค้นหาที่อยู่" aria-haspopup="dialog" data-icon="search"></button>
+      <button type="button" class="icon-btn bell-btn" id="home-bell-btn" aria-label="การแจ้งเตือน" aria-haspopup="dialog" aria-controls="nt-panel" data-icon="bell"><span class="bell-badge" id="bell-badge" hidden></span></button>
+    </div>
   </header>
   <span class="live-badge" id="live-badge" hidden><i aria-hidden="true"></i>อัปเดตสด</span>
   <div class="map-fabs" id="home-fabs">
@@ -284,6 +287,14 @@
   <div class="stats" id="stats"></div>
 </main>
 
+<!-- แผงแจ้งเตือน (กระดิ่ง) -->
+<div class="nt-panel" id="nt-panel" role="dialog" aria-modal="true" aria-labelledby="nt-title" hidden>
+  <div class="nt-sheet">
+    <div class="nt-top"><h1 id="nt-title">การแจ้งเตือน</h1><button type="button" class="nt-x" id="nt-close" aria-label="ปิด" data-icon="close"></button></div>
+    <div class="nt-body" id="nt-body"></div>
+  </div>
+</div>
+
 <!-- เมนูล่าง -->
 <nav class="tabbar" id="tabbar" aria-label="เมนูหลัก">
   <button type="button" data-go="home" class="active" data-icon="tabhome"><span>หน้าแรก</span></button>
@@ -301,13 +312,14 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=151"></script>
-<script src="./geocode.js?v=151"></script>
-<script src="./location.js?v=151"></script>
-<script src="./pickmap.js?v=151"></script>
-<script src="./stats.js?v=151"></script>
-<script src="./hotlines.js?v=151"></script>
-<script src="./script.js?v=151"></script>
+<script src="./icons.js?v=152"></script>
+<script src="./geocode.js?v=152"></script>
+<script src="./location.js?v=152"></script>
+<script src="./pickmap.js?v=152"></script>
+<script src="./stats.js?v=152"></script>
+<script src="./hotlines.js?v=152"></script>
+<script src="./script.js?v=152"></script>
+<script src="./notify.js?v=152"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
