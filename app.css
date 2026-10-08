@@ -1706,3 +1706,28 @@ body:not(.is-vol) .vol-row,body:not(.is-vol) #case-count{display:none!important}
 .need-btn[aria-pressed=true] .nb-lb{color:#fff}
 .need-btn[aria-pressed=true] .nb-ck{display:grid}
 @media (max-width:360px){.need-btn{min-height:84px}.need-btn .nb-ic{width:38px;height:38px}.need-btn .nb-lb{font-size:12px}}
+/* v277 — หน้าขอความช่วยเหลือ สไตล์เดียวกับหน้าฉุกเฉิน/หมอ */
+#view-form #req-form{max-width:640px;margin:0 auto;padding:4px 12px 0}
+.req-hero{position:relative;overflow:hidden;isolation:isolate;display:flex;align-items:center;gap:14px;margin:4px 0 14px;padding:18px 16px;border-radius:24px;color:#fff;background:linear-gradient(145deg,#F2545B,#C8102E);box-shadow:0 14px 28px -16px rgba(200,16,46,.9)}
+.is-proxy .req-hero{background:linear-gradient(145deg,#3B4FD8,#14248F);box-shadow:0 14px 28px -16px rgba(20,36,143,.9)}
+.rh-ic{display:grid;place-items:center;flex:none;width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,.2)}.rh-ic .ic{width:30px;height:30px}
+.rh-tx{display:grid;gap:3px;min-width:0}.rh-tx b{font-size:18px;font-weight:800;line-height:1.25}.rh-tx small{font-size:12.5px;font-weight:600;opacity:.9}
+.rh-bg{position:absolute;right:-18px;bottom:-26px;z-index:-1;opacity:.13}.rh-bg .ic{width:110px;height:110px}
+#view-form .card{border:0;border-radius:24px;padding:18px 16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(22,27,61,.05),0 8px 20px -14px rgba(22,27,61,.18)}
+#view-form .card h2{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:800;color:var(--ink);margin:0 0 12px}
+#view-form .card h2.mt{margin-top:22px}
+#view-form .card h2 em{color:#E5344A;font-style:normal}
+.sec-ic{display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:11px}.sec-ic .ic{width:18px;height:18px}
+.si-red{background:#FFEEF0;color:#E5344A}.si-orange{background:#FFF3E8;color:#E0620C}.si-green{background:#E6F6EE;color:#14935A}
+.si-blue{background:#EDF3FF;color:#2563C9}.si-violet{background:#F1ECFF;color:#6A4FCB}.si-gray{background:#F1F2F6;color:#5A6070}
+#view-form input:not([type=file]):not([type=radio]):not([type=checkbox]),#view-form textarea{border:1.5px solid transparent;border-radius:16px;background:#F5F6F9;transition:border-color .15s,background .15s}
+#view-form input:not([type=file]):not([type=radio]):not([type=checkbox]):focus,#view-form textarea:focus{background:#fff;border-color:#E5344A;outline:none;box-shadow:0 0 0 4px rgba(229,52,74,.12)}
+#view-form .search-field{border-radius:16px;background:#F5F6F9}
+#view-form .search-field input{background:transparent!important;border:0!important;box-shadow:none!important}
+#view-form .form-map{border-radius:20px;overflow:hidden}
+#view-form .level-grid span{border:0;background:#F5F6F9;border-radius:18px}
+#view-form .stepper button{border-radius:14px}
+#view-form .photo-add{border-radius:18px}
+#view-form .hint{color:var(--muted)}
+#view-form .page-top{background:transparent}
+.rh-bg{display:none}
