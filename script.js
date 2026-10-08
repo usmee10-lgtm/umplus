@@ -1165,7 +1165,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='269';let appNewer=false;
+const APP_V='270';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1252,3 +1252,17 @@ window.addEventListener('focusout',()=>setTimeout(()=>{const a=document.activeEl
     $$('.hb[data-hb]').forEach(x=>x.setAttribute('aria-selected','false'));if(on){pan.hidden=true;return}
     b.setAttribute('aria-selected','true');pan.style.setProperty('--hbc',C[k][0]);pan.style.setProperty('--hbc-bg',C[k][1]);
     pan.innerHTML='<ul>'+D[k].map(([a,t])=>`<li><span class="n">${/^\d$/.test(a)?a:ic(a)}</span>${esc(t)}</li>`).join('')+'</ul>';pan.hidden=false})})();
+/* เวลารับสายคุณหมอ: จ.–ศ. 09:00–17:00 (เวลาไทย) · นอกเวลาปิดปุ่มโทร */
+(function(){const st=$('#doc-open'),call=$('#doc-call'),num=$('.doc-num'),cp=$('.doc-copy');if(!st||!call)return;
+  const OPEN=9*60,CLOSE=17*60,DAYS=['วันอาทิตย์','วันจันทร์','วันอังคาร','วันพุธ','วันพฤหัสฯ','วันศุกร์','วันเสาร์'];
+  const bkk=()=>{const d=new Date(Date.now()+7*36e5);return{day:d.getUTCDay(),min:d.getUTCHours()*60+d.getUTCMinutes()}};
+  const work=d=>d>=1&&d<=5;
+  function tick(){const {day,min}=bkk(),on=work(day)&&min>=OPEN&&min<CLOSE;let msg;
+    if(on){const left=CLOSE-min;msg=left<=60?`รับสายอยู่ · อีก ${left} นาทีปิด`:'รับสายอยู่ตอนนี้ · ถึง 17:00'}
+    else{let d=day,k=0;if(!(work(day)&&min<OPEN)){do{d=(d+1)%7;k++}while(!work(d))}
+      msg='นอกเวลาทำการ · เปิด'+(k===0?'วันนี้':k===1?'พรุ่งนี้':DAYS[d])+' 09:00'}
+    st.textContent=msg;st.classList.toggle('on',on);document.querySelector('.doc-card').classList.toggle('closed',!on);
+    if(on){call.setAttribute('href','tel:0989406537');call.removeAttribute('aria-disabled');call.lastChild.textContent='โทรเลย'}
+    else{call.removeAttribute('href');call.setAttribute('aria-disabled','true');call.lastChild.textContent='นอกเวลาทำการ'}
+    if(cp)cp.disabled=!on}
+  tick();setInterval(tick,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick()})})();

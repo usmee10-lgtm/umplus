@@ -1647,3 +1647,12 @@ body:not(.is-vol) .vol-row,body:not(.is-vol) #case-count{display:none!important}
 .hb.hb[aria-selected=true]{box-shadow:0 14px 26px -12px rgba(0,0,0,.45);transform:translateY(-2px)}
 .hb.hb[aria-selected=true]>.hb-go{background:#fff;color:var(--ink)}
 .doc-av{overflow:hidden}.doc-av-img{display:block;width:100%;height:100%}
+/* v270 — เวลารับสายคุณหมอ */
+.doc-open{display:inline-flex;align-items:center;gap:7px;margin-top:4px;padding:5px 12px 5px 10px;border-radius:999px;background:rgba(0,0,0,.18);font-size:12.5px;font-weight:700;color:#fff}
+.doc-open::before{content:"";width:8px;height:8px;border-radius:50%;background:#FFB4A8;box-shadow:0 0 0 3px rgba(255,180,168,.25)}
+.doc-open.on::before{background:#7CF0A6;box-shadow:0 0 0 3px rgba(124,240,166,.3);animation:docPulse 1.8s ease-in-out infinite}
+@keyframes docPulse{50%{box-shadow:0 0 0 6px rgba(124,240,166,0)}}
+.doc-lbl b{color:var(--ink);font-weight:700}
+.doc-card.closed .doc-num{color:#A0A4B2}
+.doc-call[aria-disabled=true]{background:#E7E9EE!important;color:#8A8FA0!important;box-shadow:none!important;pointer-events:none}
+.doc-copy:disabled{opacity:.45;pointer-events:none}

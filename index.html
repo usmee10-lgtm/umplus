@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=170">
+<link rel="stylesheet" href="./app.css?v=171">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -268,12 +268,13 @@
         <small class="doc-kicker">ปรึกษาแพทย์ทางโทรศัพท์</small>
         <h2>พญ. โศภิณา วงศ์เสงี่ยม</h2>
         <span class="doc-tag">หู คอ จมูก</span>
+        <span class="doc-open" id="doc-open" role="status"></span>
       </div>
       <div class="doc-body">
-        <small class="doc-lbl">เบอร์ติดต่อ</small>
+        <small class="doc-lbl">เบอร์ติดต่อ · <b>จ.–ศ. 09:00–17:00</b></small>
         <b class="doc-num">098-940-6537</b>
         <div class="doc-acts">
-          <a class="doc-call" href="tel:0989406537" aria-label="โทรหา แพทย์หญิง โศภิณา วงศ์เสงี่ยม 098 940 6537"><span data-icon="phone" aria-hidden="true"></span>โทรเลย</a>
+          <a class="doc-call" id="doc-call" href="tel:0989406537" aria-label="โทรหา แพทย์หญิง โศภิณา วงศ์เสงี่ยม 098 940 6537"><span data-icon="phone" aria-hidden="true"></span>โทรเลย</a>
           <button type="button" class="doc-copy" data-copy="0989406537" aria-label="คัดลอกเบอร์"><span data-icon="copy" aria-hidden="true"></span>คัดลอก</button>
         </div>
       </div>
@@ -343,14 +344,14 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=170"></script>
-<script src="./geocode.js?v=170"></script>
-<script src="./location.js?v=170"></script>
-<script src="./pickmap.js?v=170"></script>
-<script src="./stats.js?v=170"></script>
-<script src="./hotlines.js?v=170"></script>
-<script src="./script.js?v=170"></script>
-<script src="./notify.js?v=170"></script>
+<script src="./icons.js?v=171"></script>
+<script src="./geocode.js?v=171"></script>
+<script src="./location.js?v=171"></script>
+<script src="./pickmap.js?v=171"></script>
+<script src="./stats.js?v=171"></script>
+<script src="./hotlines.js?v=171"></script>
+<script src="./script.js?v=171"></script>
+<script src="./notify.js?v=171"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
