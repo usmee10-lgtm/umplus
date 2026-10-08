@@ -980,7 +980,7 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 
 /* สถานะ "ไม่เข้าเกณฑ์" (ปิดโดยไม่ไปช่วย): ม่วงเทา ไม่ซ้ำสีอื่น */
 .st-skip{background:var(--skip-tint);color:var(--skip-ink)}
-.um-pin.skip span{background:var(--skip);opacity:.85}
+.um-pin.pin-skip span{background:var(--skip);opacity:.85}
 .cr-u.cr-skip{background:var(--skip-tint);color:var(--skip-ink);font-size:11.5px}
 .crow.is-skip{box-shadow:inset 4px 0 0 var(--skip)}
 .status-opts .cst-skip input:checked+span{background:var(--skip);color:#fff}

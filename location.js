@@ -82,5 +82,5 @@ function getGPS(timeout=12000){
   return new Promise((res,rej)=>{if(!navigator.geolocation)return rej(new Error('unsupported'));
     navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}),rej,{enableHighAccuracy:true,timeout,maximumAge:30000})});
 }
-function pinIcon(cls,label){return L.divIcon({className:'um-pin '+cls,html:`<span>${label||''}</span>`,iconSize:[30,38],iconAnchor:[15,36],popupAnchor:[0,-32]})}
+function pinIcon(cls,label){return L.divIcon({className:'um-pin '+(cls==='skip'?'pin-skip':cls),  /* 'skip' ชนกับปุ่มข้ามเนื้อหา .skip (กล่องน้ำเงิน) */html:`<span>${label||''}</span>`,iconSize:[30,38],iconAnchor:[15,36],popupAnchor:[0,-32]})}
 function meIcon(){return L.divIcon({className:'me-dot',html:'<span></span>',iconSize:[22,22],iconAnchor:[11,11]})}
