@@ -424,7 +424,7 @@ function netbar(){const n=$('#netbar');if(navigator.onLine){n.hidden=true}else{n
 
 /* ---------- ฟอร์ม ---------- */
 const F={needs:new Set(),lat:null,lng:null,addrDirty:false,people:1,step:1,marker:null,photos:[]};
-$('#need-grid').innerHTML=NEED_TYPES.map(t=>`<button type="button" class="need-btn nt-${t.tone||'gray'}" data-need="${t.key}" aria-pressed="false"><span class="nb-ic">${ic(t.icon)}</span><b class="nb-lb">${t.label}</b><span class="nb-ck">${ic('check')}</span></button>`).join('');
+$('#need-grid').innerHTML=NEED_TYPES.map(t=>`<button type="button" class="need-btn nt-${t.tone||'gray'}" data-need="${t.key}" aria-pressed="false"><span class="nb-ic">${ic(t.icon)}</span><b class="nb-lb">${t.label}</b></button>`).join('');
 $('#need-grid').addEventListener('click',e=>{const b=e.target.closest('[data-need]');if(!b)return;const k=b.dataset.need;F.needs.has(k)?F.needs.delete(k):F.needs.add(k);b.setAttribute('aria-pressed',String(F.needs.has(k)));markOk('needs');syncOther(k==='other')});
 /* "อื่น ๆ" → ให้ผู้ใช้พิมพ์เองว่าต้องการอะไร */
 function syncOther(focus){const on=F.needs.has('other');$('#other-box').hidden=!on;if(!on){$('#other-in').value='';$('#err-other').hidden=true}else if(focus)setTimeout(()=>$('#other-in').focus(),80)}
@@ -1165,7 +1165,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='277';let appNewer=false;
+const APP_V='278';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
