@@ -5,7 +5,7 @@ const FEED = 'https://news.google.com/rss/search?hl=th&gl=TH&ceid=TH:th&q=' + en
 const FRESH = 600, STALE = 6 * 3600;
 const tag = (x, t) => { const m = x.match(new RegExp('<' + t + '[^>]*>([\\s\\S]*?)</' + t + '>', 'i')); return m ? m[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : ''; };
 const unent = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
-async function build() {
+export async function build() {
   const xml = await (await fetch(FEED, { headers: { 'User-Agent': 'Mozilla/5.0 (HelpMe-flood-help; +https://helpme4u.com)', 'Accept-Language': 'th' }, cf: { cacheTtl: 300 } })).text();
   const seen = new Set(), items = [];
   for (const m of xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)) {

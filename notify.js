@@ -36,8 +36,15 @@
 
   /* ---- ข่าวสาร ---- */
   async function loadNews(){try{const j=await fetch('./news.json?t='+Math.floor(Date.now()/300000),{cache:'no-cache'}).then(r=>r.json());if(j&&Array.isArray(j.items))NV.items=j.items}catch(e){}badge();if(open)render()}
-  async function loadAlerts(){for(const b of (typeof EDGE_BASES!=='undefined'?EDGE_BASES:['/api'])){try{const j=await fetch(b+'/alerts?t='+Math.floor(Date.now()/120000)).then(r=>r.json());if(j&&Array.isArray(j.alerts)){AL.list=j.alerts;AL.at=j.at||Date.now();AL.ok=true;badge();if(open)render();return}}catch(e){}}AL.ok=false;if(open)render()}
-  async function loadNewsFeed(){for(const b of (typeof EDGE_BASES!=='undefined'?EDGE_BASES:['/api'])){try{const j=await fetch(b+'/news?t='+Math.floor(Date.now()/300000)).then(r=>r.json());if(j&&j.ok&&Array.isArray(j.items)){NW.items=j.items;NW.at=j.at;NW.ok=true;if(open)render();return}}catch(e){}}NW.ok=false;if(open)render()}
+  /* ข่าว + เตือนภัย ดึงในคำขอเดียว (/feed) · จำผลล่าสุดไว้ในเครื่อง → เปิดแผงแล้วเห็นทันที ไม่ว่างเปล่า */
+  {const c=store.json('uh_nt_feed',null);if(c){AL.list=(c.alerts||[]).filter(a=>!a.expires||a.expires>Date.now());AL.at=c.at||0;NW.items=c.news||[];NW.at=c.at||0}}
+  let feedBusy=false;
+  async function loadFeed(){if(feedBusy)return;feedBusy=true;try{for(const b of (typeof EDGE_BASES!=='undefined'?EDGE_BASES:['/api'])){try{const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),12000);
+      const j=await fetch(b+'/feed?t='+Math.floor(Date.now()/120000),{signal:ctl.signal}).then(r=>r.json()).finally(()=>clearTimeout(tm));
+      if(j&&j.ok){if(j.sources?j.sources.alerts:true){AL.list=j.alerts||[];AL.at=j.at;AL.ok=true}if(j.news&&j.news.length){NW.items=j.news;NW.at=j.at;NW.ok=true}
+        store.put('uh_nt_feed',{at:j.at,alerts:AL.list,news:NW.items});badge();if(open)render();return}}catch(e){}}
+    AL.ok=AL.list.length>0;NW.ok=NW.items.length>0;if(open)render()}finally{feedBusy=false}}
+  const loadAlerts=loadFeed,loadNewsFeed=()=>{};
   function unread(){const s=seen();return NV.items.filter(x=>!s.has(x.id)).length+events().filter(e=>!s.has(e.id)).length+AL.list.filter(a=>!s.has(a.id)).length}
   function badge(){const b=$('#bell-badge');if(!b)return;const n=unread();b.hidden=!n;b.textContent=n>9?'9+':n;$('#home-bell-btn').setAttribute('aria-label','การแจ้งเตือน'+(n?' ยังไม่อ่าน '+n+' รายการ':''))}
 
@@ -56,9 +63,10 @@
     const evs=events().map(e=>({id:e.id,icon:'bell',tone:ST_TONE[e.status]||'blue',kicker:'คำขอของฉัน · '+when(e.t),title:'#'+e.case+' '+(STATUS_TH[e.status]||e.status),body:(ST_MSG[e.status]||'')+(e.needs?' · '+e.needs:''),case:e.case}));
     const hm=t=>t?new Date(t).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}):'';
     /* 1) ข่าวภัยพิบัติ (สไลด์ขึ้นลง) */
-    const news=NW.items.slice(0,8);
+    const news=NW.items.slice(0,8),slideN=news.length||Math.min(AL.list.length,4)||Math.min(tips.length,3);
     const newsCards=news.length?news.map(n=>`<a class="nt-card is-stack is-news" href="${esc(n.url)}" target="_blank" rel="noopener"><header><span class="nt-ic" style="background:#E5383B">${ic('info')}</span><span class="nt-k">${esc(n.source||'ข่าว')} · ${when(n.t)}</span>${seen().has(n.id)?'':'<i class="nt-new" aria-label="ใหม่"></i>'}</header><h3 class="nt-clamp3">${esc(n.title)}</h3><span class="nt-more">อ่านข่าว${ic('ext')}</span></a>`).join('')
-      :`<article class="nt-card is-stack" style="--tc:#8A90A6"><header><span class="nt-ic">${ic('info')}</span><span class="nt-k">ข่าวภัยพิบัติ</span></header><h3>${NW.ok?'กำลังโหลดข่าวล่าสุด…':'ยังโหลดข่าวไม่ได้ ลองใหม่อีกครั้งภายหลัง'}</h3></article>`;
+      :(AL.list.length?AL.list.slice(0,4).map(a=>`<a class="nt-card is-stack is-news" href="${esc(a.url||'https://www.tmd.go.th')}" target="_blank" rel="noopener"><header><span class="nt-ic" style="background:${(SEV[a.severity]||['#E5383B'])[0]}">${ic(/^eq-/.test(a.id)?'alert':'rain')}</span><span class="nt-k">${esc(a.src)} · ${when(a.sent)}</span></header><h3 class="nt-clamp3">${esc(a.event)}${(a.areas||[]).length?' · '+esc(a.areas.slice(0,6).join(' ')):''}</h3><span class="nt-more">รายละเอียด${ic('ext')}</span></a>`).join('')
+        :tips.slice(0,3).map(x=>`<article class="nt-card is-stack" style="--tc:${TONE[x.tone]||TONE.blue}"><header><span class="nt-ic">${ic(x.icon||'info')}</span><span class="nt-k">ป้องกันเบื้องต้น</span></header><h3>${esc(x.title)}</h3><p class="nt-clamp">${esc(x.body)}</p></article>`).join('')||`<article class="nt-card is-stack" style="--tc:#8A90A6"><header><span class="nt-ic">${ic('info')}</span><span class="nt-k">ข่าวภัยพิบัติ</span></header><h3>กำลังโหลดข่าวล่าสุด…</h3></article>`);
     /* 2) เตือนภัยรายภาค */
     const pm=provMap(),eq=AL.list.filter(a=>/^eq-/.test(a.id));
     const cnt=REG.map(([k,,ps])=>ps.filter(p=>pm[p]).length);
@@ -77,8 +85,8 @@
     const tipW=tips.map(x=>`<article class="nt-mini" style="--tc:${TONE[x.tone]||TONE.blue}"><span class="nt-ic">${ic(x.icon||'info')}</span><h3>${esc(x.title)}</h3><p>${esc(x.body)}</p></article>`).join('');
     const linkL=links.map(x=>{const inner=`<span class="nt-ic" style="--tc:${TONE[x.tone]||TONE.blue}">${ic(x.icon||'info')}</span><span class="nl-t"><b>${esc(x.title)}</b><small>${esc(x.url?x.label||'':x.body||'')}</small></span>${ic(x.url?'ext':'next')}`;
       return x.url?`<a class="nl-row" href="${esc(x.url)}" target="_blank" rel="noopener">${inner}</a>`:`<button type="button" class="nl-row" data-ntgo="${esc(x.go||'emergency')}">${inner}</button>`}).join('');
-    box.innerHTML=`<div class="nt-live"><b>ข่าวภัยพิบัติล่าสุด</b><span><i></i>สด${NW.at?' · '+hm(NW.at)+' น.':''}</span></div>
-      <section class="nt-stack-wrap" aria-label="ข่าวภัยพิบัติ (ปัดขึ้นลงเพื่อดูข่าวถัดไป)"><div class="nt-stack" id="nt-stack" tabindex="0">${newsCards}</div>${news.length>1?`<div class="nt-dots" aria-hidden="true">${news.map((_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>`:''}</section>
+    box.innerHTML=`<div class="nt-live"><b>${news.length?'ข่าวภัยพิบัติล่าสุด':AL.list.length?'ประกาศเตือนภัยล่าสุด':'ข่าวภัยพิบัติล่าสุด'}</b><span><i></i>สด${NW.at?' · '+hm(NW.at)+' น.':''}</span></div>
+      <section class="nt-stack-wrap" aria-label="ข่าวภัยพิบัติ (ปัดขึ้นลงเพื่อดูข่าวถัดไป)"><div class="nt-stack" id="nt-stack" tabindex="0">${newsCards}</div>${slideN>1?`<div class="nt-dots" aria-hidden="true">${Array.from({length:slideN},(_,i)=>`<i class="${i?'':'on'}"></i>`).join('')}</div>`:''}</section>
       ${regionCard}
       <h2 class="nt-h">คำขอของฉัน</h2>${evs.length?evs.map(x=>card(x,'is-row')).join(''):`<p class="nt-empty">${ic('check')}${myReqs().length?'ยังไม่มีการเปลี่ยนสถานะ ระบบจะแจ้งที่นี่ทันทีเมื่อทีมรับเคสหรือช่วยเสร็จ':'ส่งคำขอแล้วจะเห็นการแจ้งเตือนสถานะที่นี่'}</p>`}
       ${tipW?`<h2 class="nt-h">ป้องกันเบื้องต้น</h2><div class="nt-minis">${tipW}</div>`:''}
@@ -86,7 +94,7 @@
     const sel=box.querySelector('.nr-tabs [aria-selected=true]');if(sel){const tb=sel.parentNode;tb.scrollLeft=sel.offsetLeft-tb.clientWidth/2+sel.offsetWidth/2}
     const st=$('#nt-stack');if(st){const dots=[...box.querySelectorAll('.nt-dots i')];st.addEventListener('scroll',()=>{const i=Math.round(st.scrollTop/st.clientHeight);dots.forEach((d,k)=>d.classList.toggle('on',k===i))},{passive:true})}}
   function show(v){open=v;const p=$('#nt-panel');p.hidden=!v;document.body.classList.toggle('nt-open',v);
-    if(v){render();loadAlerts();loadNewsFeed();requestAnimationFrame(()=>p.classList.add('in'));const s=seen();NV.items.forEach(x=>s.add(x.id));AL.list.forEach(a=>s.add(a.id));NW.items.forEach(n=>s.add(n.id));events().forEach(e=>s.add(e.id));store.put('uh_nt_seen',[...s].slice(-300));badge();$('#nt-close').focus()}
+    if(v){render();loadFeed();requestAnimationFrame(()=>p.classList.add('in'));const s=seen();NV.items.forEach(x=>s.add(x.id));AL.list.forEach(a=>s.add(a.id));NW.items.forEach(n=>s.add(n.id));events().forEach(e=>s.add(e.id));store.put('uh_nt_seen',[...s].slice(-300));badge();$('#nt-close').focus()}
     else{p.classList.remove('in');$('#home-bell-btn').focus()}}
   document.addEventListener('click',e=>{if(e.target.closest('#home-bell-btn'))return show(true);if(!open)return;
     if(e.target.closest('#nt-close')||e.target.id==='nt-panel')return show(false);
@@ -94,6 +102,6 @@
     const rg=e.target.closest('[data-ntreg]');if(rg){REGSEL=rg.dataset.ntreg;store.set('uh_nt_reg',REGSEL);const y=$('#nt-body').scrollTop;render();$('#nt-body').scrollTop=y;return}
     const c=e.target.closest('[data-ntcase]');if(c){show(false);go('home');setTimeout(()=>{const b=$('#my-req');b&&!b.hidden&&b.scrollIntoView({behavior:'smooth',block:'nearest'})},300)}});
   document.addEventListener('keydown',e=>{if(open&&e.key==='Escape')show(false)});
-  loadNews();loadAlerts();setInterval(loadNews,10*60000);setInterval(loadAlerts,5*60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadNews();loadAlerts()}});
+  loadNews();loadFeed();setInterval(loadNews,10*60000);setInterval(loadFeed,5*60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden){loadNews();loadFeed()}});
   try{checkMine()}catch(e){}
 })();

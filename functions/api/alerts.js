@@ -47,7 +47,7 @@ async function quakes() {
     url: f.properties.url, lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] }));
 }
 
-async function build() {
+export async function build() {
   const [a, b] = await Promise.allSettled([tmd(), quakes()]);
   const list = [...(a.status === 'fulfilled' ? a.value : []), ...(b.status === 'fulfilled' ? b.value : [])];
   const now = Date.now();
