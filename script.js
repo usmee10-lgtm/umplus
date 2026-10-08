@@ -1165,7 +1165,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='266';let appNewer=false;
+const APP_V='267';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1231,12 +1231,24 @@ window.addEventListener('focusout',()=>setTimeout(()=>{const a=document.activeEl
 (()=>{const hs=document.querySelector('#view-home .home-sheet');if(!hs)return;const set=()=>{const h=hs.offsetHeight;if(h)document.documentElement.style.setProperty('--hs-h',h+'px')};
   if('ResizeObserver' in window)new ResizeObserver(set).observe(hs);addEventListener('resize',set);set()})();
 
-/* ดูแลใจ: หายใจ เข้า 4 · กลั้น 4 · ออก 6 วินาที รวม 1 นาที (4 รอบ) */
+/* ดูแลใจ: หายใจ เข้า 4 · กลั้น 4 · ออก 6 วินาที × 4 รอบ ≈ 1 นาที */
 (function(){const box=$('#breath'),btn=$('#br-btn');if(!box||!btn)return;let tm=[],run=false;
-  const w=$('#br-word'),sub=$('#br-sub'),lbl=btn.querySelector('b'),setIc=n=>{const o=btn.querySelector('.ic');if(o)o.outerHTML=ic(n)};
-  const stop=(done)=>{tm.forEach(clearTimeout);tm=[];run=false;box.classList.remove('in','out');w.textContent=done?'ดีมาก':'พร้อมไหม';sub.textContent=done?'ใจสงบลงบ้างไหม ทำซ้ำได้ทุกเมื่อที่ต้องการ':'หายใจช้า ๆ 1 นาที ช่วยให้ใจสงบลง';lbl.textContent=done?'หายใจอีกรอบ':'เริ่มหายใจ 1 นาที';setIc('play')};
-  const step=(t,cls,word,text)=>tm.push(setTimeout(()=>{box.classList.remove('in','out');if(cls)box.classList.add(cls);w.textContent=word;sub.textContent=text},t));
+  const w=$('#br-word'),sub=$('#br-sub'),lbl=btn.querySelector('b'),dots=$$('#br-dots i'),setIc=n=>{const o=btn.querySelector('.ic');if(o)o.outerHTML=ic(n)};
+  const stop=done=>{tm.forEach(clearTimeout);tm=[];run=false;box.classList.remove('in','out');dots.forEach(d=>d.classList.remove('on'));
+    w.textContent=done?'ดีมาก':'หายใจ';sub.textContent=done?'ทำซ้ำได้ทุกเมื่อ':'1 นาที ให้ใจสงบลง';lbl.textContent=done?'อีกรอบ':'เริ่ม';setIc('play')};
+  const step=(t,cls,word,text,r)=>tm.push(setTimeout(()=>{box.classList.remove('in','out');if(cls)box.classList.add(cls);w.textContent=word;sub.textContent=text;dots.forEach((d,k)=>d.classList.toggle('on',k<=r))},t));
   btn.addEventListener('click',()=>{if(run)return stop(false);run=true;lbl.textContent='หยุด';setIc('pause');let t=0;
-    for(let r=0;r<4;r++){step(t,'in','หายใจเข้า','ช้า ๆ ทางจมูก นับ 1…2…3…4');t+=4000;step(t,'in','กลั้นไว้','นับ 1…2…3…4');t+=4000;step(t,'out','หายใจออก','ยาว ๆ ทางปาก นับ 1…6');t+=6000}
+    for(let r=0;r<4;r++){step(t,'in','เข้า','หายใจเข้าช้า ๆ',r);t+=4000;step(t,'in','กลั้น','นับ 1…4',r);t+=4000;step(t,'out','ออก','ผ่อนลมหายใจยาว ๆ',r);t+=6000}
     tm.push(setTimeout(()=>stop(true),t))});
   addEventListener('hashchange',()=>{if(run)stop(false)})})();
+/* ดูแลใจ: การ์ด bento กดแล้วเปิดรายละเอียดสั้น ๆ ด้านล่าง */
+(function(){const pan=$('#hb-panel');if(!pan)return;
+  const C={ground:['#0E8072','#E3F4F1'],self:['#6A4FCB','#EEE8FF'],kids:['#C46A12','#FFF1E2'],vol:['#C8242B','#FDECEC']};
+  const D={ground:[['5','มองสิ่งที่เห็น 5 อย่าง'],['4','แตะสิ่งรอบตัว 4 อย่าง'],['3','ฟังเสียง 3 เสียง'],['2','ดมกลิ่น 2 กลิ่น'],['1','รับรู้รส 1 อย่าง']],
+    self:[['water','ดื่มน้ำ กินข้าว พักเท่าที่ได้'],['users','คุยกับคนที่ไว้ใจ'],['wifi','พักจากข่าวและโซเชียล'],['check','ทำกิจวัตรเล็ก ๆ'],['close','เลี่ยงเหล้า บุหรี่']],
+    kids:[['heart','กอด บอกว่า "ตอนนี้ปลอดภัยแล้ว"'],['user','ฟัง ตอบตามจริงด้วยคำง่าย ๆ'],['image','ให้วาดรูป เล่น เล่าเรื่อง'],['clock','กิน นอน เวลาเดิม'],['info','งอแง ติดหนึบ ช่วงแรกเป็นเรื่องปกติ']],
+    vol:[['shield','ดู: ความปลอดภัย น้ำ อาหาร ยา'],['users','ฟัง: ไม่เร่ง ไม่ตัดสิน ไม่บังคับเล่า'],['route','เชื่อมต่อ: ครอบครัว ข้อมูล หน่วยช่วยเหลือ'],['close','เลี่ยง "ยังโชคดีนะ" "อย่าคิดมาก"']]};
+  document.addEventListener('click',e=>{const b=e.target.closest('.hb[data-hb]');if(!b)return;const k=b.dataset.hb,on=b.getAttribute('aria-selected')==='true';
+    $$('.hb[data-hb]').forEach(x=>x.setAttribute('aria-selected','false'));if(on){pan.hidden=true;return}
+    b.setAttribute('aria-selected','true');pan.style.setProperty('--hbc',C[k][0]);pan.style.setProperty('--hbc-bg',C[k][1]);
+    pan.innerHTML='<ul>'+D[k].map(([a,t])=>`<li><span class="n">${/^\d$/.test(a)?a:ic(a)}</span>${esc(t)}</li>`).join('')+'</ul>';pan.hidden=false})})();

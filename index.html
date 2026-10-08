@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=167">
+<link rel="stylesheet" href="./app.css?v=168">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -281,45 +281,33 @@
 
     <!-- ดูแลใจเบื้องต้น (ปฐมพยาบาลทางใจ) -->
     <section class="heal" aria-labelledby="heal-h">
-      <div class="heal-head">
-        <small class="heal-kicker"><span data-icon="heart" aria-hidden="true"></span>ดูแลใจ</small>
-        <h2 id="heal-h">ใจเหนื่อยได้ ไม่เป็นไรนะ</h2>
-        <p>สิ่งที่คุณรู้สึกตอนนี้เป็นเรื่องปกติของคนที่เพิ่งผ่านเหตุการณ์หนัก ค่อย ๆ ดูแลใจไปทีละนิดด้วยกัน</p>
-      </div>
+      <header class="heal-head"><span class="heal-dot" data-icon="heart" aria-hidden="true"></span><div><h2 id="heal-h">ดูแลใจ</h2><small>ใจเหนื่อยได้ ไม่เป็นไรนะ</small></div></header>
 
       <div class="breath" id="breath">
-        <div class="br-orb" aria-hidden="true"><i></i><span id="br-word">พร้อมไหม</span></div>
-        <p class="br-sub" id="br-sub" aria-live="polite">หายใจช้า ๆ 1 นาที ช่วยให้ใจสงบลง</p>
-        <button type="button" class="br-btn" id="br-btn"><span data-icon="play" aria-hidden="true"></span><b>เริ่มหายใจ 1 นาที</b></button>
+        <div class="br-orb" aria-hidden="true"><i class="r3"></i><i class="r2"></i><i class="r1"></i><span id="br-word">หายใจ</span></div>
+        <p class="br-sub" id="br-sub" aria-live="polite">1 นาที ให้ใจสงบลง</p>
+        <div class="br-dots" id="br-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <button type="button" class="br-btn" id="br-btn"><span data-icon="play" aria-hidden="true"></span><b>เริ่ม</b></button>
       </div>
 
-      <div class="heal-normal">
-        <h3>ความรู้สึกเหล่านี้ <em>เป็นเรื่องปกติ</em></h3>
-        <ul class="heal-chips"><li>ตกใจง่าย</li><li>นอนไม่หลับ</li><li>ฝันร้าย</li><li>เศร้า ร้องไห้</li><li>หงุดหงิด โกรธ</li><li>รู้สึกผิด</li><li>กังวลอนาคต</li><li>ชา ว่างเปล่า</li></ul>
-        <p>เป็นปฏิกิริยาปกติต่อเหตุการณ์ที่ไม่ปกติ ส่วนใหญ่จะค่อย ๆ ดีขึ้นภายใน 2–4 สัปดาห์</p>
+      <div class="heal-feel">
+        <div class="hf-top"><b>รู้สึกแบบนี้ = ปกติ</b><span>ดีขึ้นใน 2–4 สัปดาห์</span></div>
+        <ul><li>😨<small>ตกใจง่าย</small></li><li>😴<small>นอนไม่หลับ</small></li><li>😢<small>เศร้า</small></li><li>😠<small>หงุดหงิด</small></li><li>😟<small>กังวล</small></li></ul>
       </div>
 
-      <div class="heal-list">
-        <details class="heal-it"><summary><span class="hi-ic t1" data-icon="shield" aria-hidden="true"></span><span><b>ตั้งหลักใจ 5-4-3-2-1</b><small>เมื่อใจเต้นแรง ตื่นตระหนก</small></span><span class="hi-chev" data-icon="chev" aria-hidden="true"></span></summary>
-          <ol class="hi-54321"><li><b>5</b>มองสิ่งที่เห็น 5 อย่าง</li><li><b>4</b>สัมผัสสิ่งรอบตัว 4 อย่าง</li><li><b>3</b>ฟังเสียงที่ได้ยิน 3 เสียง</li><li><b>2</b>ดมกลิ่น 2 กลิ่น</li><li><b>1</b>รับรู้รส 1 อย่าง</li></ol>
-          <p class="hi-note">ช่วยดึงใจกลับมาอยู่ตรงนี้ ว่าตอนนี้เราปลอดภัยแล้ว</p></details>
-        <details class="heal-it"><summary><span class="hi-ic t2" data-icon="moon" aria-hidden="true"></span><span><b>ดูแลตัวเองวันนี้</b><small>เรื่องเล็ก ๆ ที่ช่วยได้มาก</small></span><span class="hi-chev" data-icon="chev" aria-hidden="true"></span></summary>
-          <ul class="hi-ul"><li>กินน้ำ กินข้าว พักผ่อนเท่าที่ทำได้</li><li>คุยกับคนที่ไว้ใจ ไม่ต้องเก็บไว้คนเดียว</li><li>พักจากข่าวและโซเชียลบ้าง</li><li>ทำกิจวัตรเล็ก ๆ ให้รู้สึกว่ายังควบคุมบางอย่างได้</li><li>เลี่ยงเหล้า บุหรี่ หรือยาเพื่อหนีความรู้สึก</li></ul></details>
-        <details class="heal-it"><summary><span class="hi-ic t3" data-icon="users" aria-hidden="true"></span><span><b>ดูแลใจเด็ก</b><small>เด็กรับรู้ความกลัวของผู้ใหญ่ได้</small></span><span class="hi-chev" data-icon="chev" aria-hidden="true"></span></summary>
-          <ul class="hi-ul"><li>อยู่ใกล้ กอด บอกว่า "ตอนนี้ปลอดภัยแล้ว"</li><li>ฟังและตอบตามจริงด้วยคำง่าย ๆ</li><li>ให้วาดรูป เล่น หรือเล่าเรื่องเพื่อระบายความรู้สึก</li><li>รักษาเวลากิน นอน ให้ใกล้เคียงเดิม</li><li>ติดหนึบ ฉี่รดที่นอน หรืองอแง เป็นเรื่องปกติช่วงแรก</li></ul></details>
-        <details class="heal-it"><summary><span class="hi-ic t4" data-icon="heart" aria-hidden="true"></span><span><b>อาสาคุยกับผู้ประสบภัย</b><small>หลัก ดู · ฟัง · เชื่อมต่อ</small></span><span class="hi-chev" data-icon="chev" aria-hidden="true"></span></summary>
-          <ul class="hi-ul"><li><b>ดู</b> ความปลอดภัยและความต้องการเร่งด่วนก่อน (น้ำ อาหาร ยา)</li><li><b>ฟัง</b> อย่างตั้งใจ ไม่เร่ง ไม่ตัดสิน ไม่บังคับให้เล่า</li><li><b>เชื่อมต่อ</b> กับครอบครัว ข้อมูล และหน่วยช่วยเหลือ</li><li>เลี่ยงคำว่า "ยังโชคดีนะ" หรือ "อย่าคิดมาก"</li></ul></details>
+      <div class="heal-bento" role="tablist" aria-label="วิธีดูแลใจ">
+        <button type="button" class="hb t1" role="tab" aria-selected="false" data-hb="ground"><span data-icon="shield" aria-hidden="true"></span><b>ตั้งหลักใจ</b><small>5-4-3-2-1</small></button>
+        <button type="button" class="hb t2" role="tab" aria-selected="false" data-hb="self"><span data-icon="moon" aria-hidden="true"></span><b>ดูแลตัวเอง</b><small>5 เรื่องเล็ก</small></button>
+        <button type="button" class="hb t3" role="tab" aria-selected="false" data-hb="kids"><span data-icon="users" aria-hidden="true"></span><b>ดูแลใจเด็ก</b><small>สำหรับผู้ปกครอง</small></button>
+        <button type="button" class="hb t4" role="tab" aria-selected="false" data-hb="vol"><span data-icon="heart" aria-hidden="true"></span><b>อาสาช่วยฟัง</b><small>ดู · ฟัง · เชื่อมต่อ</small></button>
       </div>
-
-      <div class="heal-warn">
-        <span data-icon="alert" aria-hidden="true"></span>
-        <p><b>ควรคุยกับผู้เชี่ยวชาญ ถ้า</b> อาการไม่ดีขึ้นเกิน 2 สัปดาห์ · กินไม่ได้นอนไม่หลับต่อเนื่อง · ทำงานหรือดูแลตัวเองไม่ได้ · มีความคิดอยากทำร้ายตัวเอง</p>
-      </div>
+      <div class="hb-panel" id="hb-panel" role="tabpanel" hidden></div>
 
       <div class="heal-lines">
-        <div class="hl"><span class="hl-ic" data-icon="phone" aria-hidden="true"></span><span class="hl-tx"><b>1323</b><small>สายด่วนสุขภาพจิต กรมสุขภาพจิต · ฟรี 24 ชม.</small></span><a class="hl-call" href="tel:1323" aria-label="โทร 1323 สายด่วนสุขภาพจิต">โทร</a></div>
-        <div class="hl"><span class="hl-ic soc" data-icon="users" aria-hidden="true"></span><span class="hl-tx"><b>1300</b><small>ศูนย์ช่วยเหลือสังคม พม. · นักสังคมสงเคราะห์ 24 ชม.</small></span><a class="hl-call" href="tel:1300" aria-label="โทร 1300 ศูนย์ช่วยเหลือสังคม">โทร</a></div>
+        <a class="hl t1" href="tel:1323" aria-label="โทร 1323 สายด่วนสุขภาพจิต"><span data-icon="phone" aria-hidden="true"></span><b>1323</b><small>สายด่วนสุขภาพจิต</small></a>
+        <a class="hl t2" href="tel:1300" aria-label="โทร 1300 ศูนย์ช่วยเหลือสังคม"><span data-icon="users" aria-hidden="true"></span><b>1300</b><small>นักสังคมสงเคราะห์ พม.</small></a>
       </div>
+      <p class="heal-warn"><span data-icon="alert" aria-hidden="true"></span>ไม่ดีขึ้นเกิน 2 สัปดาห์ หรือคิดทำร้ายตัวเอง โทร 1323 ได้ตลอด 24 ชม.</p>
     </section>
   </div>
 </main>
@@ -355,14 +343,14 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=167"></script>
-<script src="./geocode.js?v=167"></script>
-<script src="./location.js?v=167"></script>
-<script src="./pickmap.js?v=167"></script>
-<script src="./stats.js?v=167"></script>
-<script src="./hotlines.js?v=167"></script>
-<script src="./script.js?v=167"></script>
-<script src="./notify.js?v=167"></script>
+<script src="./icons.js?v=168"></script>
+<script src="./geocode.js?v=168"></script>
+<script src="./location.js?v=168"></script>
+<script src="./pickmap.js?v=168"></script>
+<script src="./stats.js?v=168"></script>
+<script src="./hotlines.js?v=168"></script>
+<script src="./script.js?v=168"></script>
+<script src="./notify.js?v=168"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
