@@ -167,7 +167,7 @@ async function ensureMap(which){
   m.on('baselayerchange',()=>{});
   /* คนทั่วไป: แตะจุดใดบนแผนที่ → ปักหมุดขอความช่วยเหลือที่จุดนั้นได้ทันที */
   m.on('click',e=>{if(S.volunteer)return;const {lat,lng}=e.latlng;const d=document.createElement('div');d.className='pin-ask';
-    d.innerHTML=`<b>ปักหมุดที่จุดนี้</b><button type="button" class="pa-go">${ic('alert')}ขอความช่วยเหลือ</button><button type="button" class="pa-proxy">${ic('users')}แจ้งแทน</button>`;
+    d.innerHTML=`<b>ปักหมุดที่จุดนี้</b><button type="button" class="pa-go">${ic('hands')}ขอความช่วยเหลือ</button><button type="button" class="pa-proxy">${ic('users')}แจ้งแทน</button>`;
     const pp=L.popup({closeButton:true,autoPan:true,className:'pin-ask-pop'}).setLatLng(e.latlng).setContent(d).openOn(m);
     const goForm=proxy=>{m.closePopup(pp);startForm({proxy});setTimeout(()=>setPin(lat,lng,true,true,'manual'),350)};
     d.querySelector('.pa-go').onclick=()=>goForm(false);d.querySelector('.pa-proxy').onclick=()=>goForm(true)});
@@ -807,7 +807,7 @@ function renderMine(el){const q=queue(),mine=myReqs().slice().reverse();
       <div class="mt-hero"><span class="mt-orb" aria-hidden="true"><i></i><i></i>${ic('heart')}</span>
         <h2 id="mt-h">ต้องการความช่วยเหลือ?</h2><p>แจ้งได้ตลอด 24 ชม. ทีมอาสาในพื้นที่จะเห็นคำขอของคุณทันที และติดตามสถานะได้ที่หน้านี้</p></div>
       <div class="mt-acts">
-        <button type="button" class="mt-act sos" data-trk="sos"><span class="mt-ic">${ic('alert')}</span><span class="mt-tx"><b>ขอความช่วยเหลือ</b><small>สำหรับตัวคุณเอง · ใช้ตำแหน่งปัจจุบัน</small></span>${ic('next')}</button>
+        <button type="button" class="mt-act sos" data-trk="sos"><span class="mt-ic">${ic('hands')}</span><span class="mt-tx"><b>ขอความช่วยเหลือ</b><small>สำหรับตัวคุณเอง · ใช้ตำแหน่งปัจจุบัน</small></span>${ic('next')}</button>
         <button type="button" class="mt-act proxy" data-trk="proxy"><span class="mt-ic">${ic('users')}</span><span class="mt-tx"><b>แจ้งแทน</b><small>ญาติหรือคนรู้จักติดอยู่ในพื้นที่</small></span>${ic('next')}</button>
       </div>
       <ol class="mt-how" aria-label="ขั้นตอนหลังส่งคำขอ"><li><span>${ic('note')}</span>ส่งคำขอ</li><li><span>${ic('users')}</span>ทีมรับเคส</li><li><span>${ic('car')}</span>เดินทางไปหา</li><li><span>${ic('heart')}</span>ช่วยเหลือ</li></ol>
@@ -1165,7 +1165,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='272';let appNewer=false;
+const APP_V='273';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
