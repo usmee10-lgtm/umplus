@@ -1499,3 +1499,6 @@ body.nt-open{overflow:hidden}
 .trip-tog>.ic:last-child{position:absolute;right:4px;top:50%;width:18px;height:18px;color:var(--muted);transform:translateY(-50%);transition:transform .2s}
 .trip-tog[aria-expanded="true"]>.ic:last-child{transform:translateY(-50%) rotate(180deg)}
 #trip-panel.t-closed .trip-tog{margin-bottom:0}
+/* v258 คนทั่วไปไม่ต้องเห็นคำอธิบายสีสถานะ (หมุดเป็นสีฟ้าอย่างเดียว) · ตัดป้าย "อัปเดตสด" */
+body:not(.is-vol) #legend{display:none!important}
+.live-badge{display:none!important}
