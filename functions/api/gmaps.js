@@ -60,7 +60,7 @@ async function fromPlace(url) {
   if (pc) { const p = olcRecover(pc[1].toUpperCase(), ref || { lat: 13.75, lng: 100.55 }); const q = ll('@' + p.lat.toFixed(6) + ',' + p.lng.toFixed(6)); return q && ref ? q : q && !ref ? Object.assign(q, { approx: true }) : null; }
   return ref ? Object.assign({ lat: +ref.lat.toFixed(6), lng: +ref.lng.toFixed(6) }, { approx: true }) : null;
 }
-const out = (o, st = 200) => new Response(JSON.stringify(o), { status: st, headers: { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=86400' } });
+const out = (o, st = 200) => new Response(JSON.stringify(o), { status: st, headers: { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': o && o.ok ? 'public, max-age=86400' : 'no-store' } });
 export async function onRequestGet(ctx) {
   let u;
   try { u = new URL(new URL(ctx.request.url).searchParams.get('u') || ''); } catch (e) { return out({ ok: false, error: 'url' }, 400); }
@@ -71,11 +71,13 @@ export async function onRequestGet(ctx) {
   try {
     for (let i = 0; i < 6; i++) {
       const p = ll(cur); if (p) { const r = out({ ok: true, ...p, url: cur }); ctx.waitUntil(cache.put(key, r.clone())); return r; }
+      /* ปลายทางเป็นหน้า /maps/place/ (Plus Code + ชื่อพื้นที่) → ถอดเองเลย ไม่ต้องเปิดหน้า Google (ซึ่งมักโดนหน้า /sorry กันบอท) */
+      if (/\/maps\/place\//.test(cur)) { const pl = await fromPlace(cur); if (pl) { const res = out({ ok: true, ...pl, url: cur, src: 'place' }); if (!pl.approx) ctx.waitUntil(cache.put(key, res.clone())); return res; } }
       const host = new URL(cur).hostname;
       if (!/(goo\.gl|g\.co|google\.[a-z.]+)$/i.test(host)) break;
       const r = await fetch(cur, { redirect: 'manual', headers: { 'User-Agent': 'Mozilla/5.0 (HelpMe-flood-help; +https://helpme4u.com)', 'Accept-Language': 'th,en' } });
       const loc = r.headers.get('location');
-      if (loc) { cur = new URL(loc, cur).href; continue; }
+      if (loc) { cur = new URL(loc, cur).href; try { const cu = new URL(cur); if (/\/sorry\//.test(cu.pathname) && cu.searchParams.get('continue')) { cur = cu.searchParams.get('continue'); continue; } } catch (e) {} continue; }
       { const pl = await fromPlace(cur); if (pl) { const res = out({ ok: true, ...pl, url: cur, src: 'place' }); ctx.waitUntil(cache.put(key, res.clone())); return res; } }
       if (r.ok) { const html = (await r.text()).slice(0, 400000);
         const m = html.match(/\[\s*null\s*,\s*null\s*,\s*(1\d\.\d{4,})\s*,\s*(\d{2,3}\.\d{4,})\s*\]/) || html.match(/center=(1\d\.\d{4,})%2C(\d{2,3}\.\d{4,})/) || html.match(/@(1\d\.\d{4,}),(\d{2,3}\.\d{4,})/);
