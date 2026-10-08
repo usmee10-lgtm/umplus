@@ -62,15 +62,15 @@ const ICONS={
 };
 function ic(name,cls){return `<svg class="ic${cls?' '+cls:''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`}
 /* ประเภทความช่วยเหลือ 8 แบบ (ค่าที่เก็บเข้ากันกับข้อมูลเดิม) */
-const NEED_TYPES=[
-  {key:'car',label:'รถ',value:'รถ',icon:'car'},
-  {key:'boat',label:'เรือ',value:'เรือ / รถสูง',icon:'boat'},
-  {key:'ambulance',label:'รถพยาบาล',value:'รถพยาบาล',icon:'ambulance'},
-  {key:'evac',label:'อพยพ',value:'อพยพ',icon:'evac'},
-  {key:'food',label:'อาหาร น้ำ',value:'อาหาร / น้ำดื่ม',icon:'food'},
-  {key:'med',label:'ยา',value:'ยา',icon:'pill'},
-  {key:'patient',label:'ผู้ป่วย',value:'ผู้ป่วย / ผู้สูงอายุ',icon:'patient'},
-  {key:'other',label:'อื่น ๆ',value:'อื่น ๆ',icon:'more'}
+const NEED_TYPES=[   /* เรียงตามความเร่งด่วน: ชีวิต → อพยพ/เดินทาง → ของจำเป็น */
+  {key:'ambulance',label:'รถพยาบาล',value:'รถพยาบาล',icon:'ambulance',tone:'red',hint:'บาดเจ็บ ป่วยหนัก'},
+  {key:'patient',label:'ผู้ป่วย',value:'ผู้ป่วย / ผู้สูงอายุ',icon:'patient',tone:'red',hint:'ติดเตียง ผู้สูงอายุ'},
+  {key:'evac',label:'อพยพ',value:'อพยพ',icon:'evac',tone:'orange',hint:'ออกจากพื้นที่'},
+  {key:'boat',label:'เรือ',value:'เรือ / รถสูง',icon:'boat',tone:'orange',hint:'เรือ รถสูง'},
+  {key:'food',label:'อาหาร น้ำ',value:'อาหาร / น้ำดื่ม',icon:'food',tone:'blue',hint:'อาหาร น้ำดื่ม'},
+  {key:'med',label:'ยา',value:'ยา',icon:'pill',tone:'blue',hint:'ยาประจำตัว'},
+  {key:'car',label:'รถ',value:'รถ',icon:'car',tone:'gray',hint:'รถทั่วไป'},
+  {key:'other',label:'อื่น ๆ',value:'อื่น ๆ',icon:'more',tone:'gray',hint:'ระบุเอง'}
 ];
 /* จับคู่ค่าที่เก็บ → ประเภท แบบตรงตัว (กัน "รถ" ไปจับ "รถพยาบาล"/"เรือ / รถสูง") */
 function needKey(v){v=String(v||'').trim();let t=NEED_TYPES.find(n=>n.value===v||n.label===v);
