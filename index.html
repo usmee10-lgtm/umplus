@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=168">
+<link rel="stylesheet" href="./app.css?v=169">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -291,16 +291,16 @@
       </div>
 
       <div class="heal-feel">
-        <div class="hf-top"><b>รู้สึกแบบนี้ = ปกติ</b><span>ดีขึ้นใน 2–4 สัปดาห์</span></div>
-        <ul><li>😨<small>ตกใจง่าย</small></li><li>😴<small>นอนไม่หลับ</small></li><li>😢<small>เศร้า</small></li><li>😠<small>หงุดหงิด</small></li><li>😟<small>กังวล</small></li></ul>
+        <div class="hf-top"><b>รู้สึกแบบนี้ <em>ปกตินะ</em></b><span>ค่อย ๆ ดีขึ้นใน 2–4 สัปดาห์</span></div>
+        <ul><li><span>😨</span><small>ตกใจง่าย</small></li><li><span>😴</span><small>นอนไม่หลับ</small></li><li><span>😢</span><small>เศร้า</small></li><li><span>😠</span><small>หงุดหงิด</small></li><li><span>😟</span><small>กังวล</small></li></ul>
       </div>
 
       <div class="heal-bento" role="tablist" aria-label="วิธีดูแลใจ">
-        <button type="button" class="hb t1" role="tab" aria-selected="false" data-hb="ground"><span data-icon="shield" aria-hidden="true"></span><b>ตั้งหลักใจ</b><small>5-4-3-2-1</small></button>
-        <button type="button" class="hb t2" role="tab" aria-selected="false" data-hb="self"><span data-icon="moon" aria-hidden="true"></span><b>ดูแลตัวเอง</b><small>5 เรื่องเล็ก</small></button>
-        <button type="button" class="hb t3" role="tab" aria-selected="false" data-hb="kids"><span data-icon="users" aria-hidden="true"></span><b>ดูแลใจเด็ก</b><small>สำหรับผู้ปกครอง</small></button>
-        <button type="button" class="hb t4" role="tab" aria-selected="false" data-hb="vol"><span data-icon="heart" aria-hidden="true"></span><b>อาสาช่วยฟัง</b><small>ดู · ฟัง · เชื่อมต่อ</small></button>
-      </div>
+        <button type="button" class="hb t1" role="tab" aria-selected="false" data-hb="ground"><span class="hb-ic" data-icon="shield" aria-hidden="true"></span><span class="hb-go" data-icon="plus" aria-hidden="true"></span><span class="hb-bg" data-icon="shield" aria-hidden="true"></span><b>ตั้งหลักใจ</b><small>5-4-3-2-1</small></button>
+        <button type="button" class="hb t2" role="tab" aria-selected="false" data-hb="self"><span class="hb-ic" data-icon="moon" aria-hidden="true"></span><span class="hb-go" data-icon="plus" aria-hidden="true"></span><span class="hb-bg" data-icon="moon" aria-hidden="true"></span><b>ดูแลตัวเอง</b><small>5 เรื่องเล็ก</small></button>
+        <button type="button" class="hb t3" role="tab" aria-selected="false" data-hb="kids"><span class="hb-ic" data-icon="users" aria-hidden="true"></span><span class="hb-go" data-icon="plus" aria-hidden="true"></span><span class="hb-bg" data-icon="users" aria-hidden="true"></span><b>ดูแลใจเด็ก</b><small>สำหรับผู้ปกครอง</small></button>
+        <button type="button" class="hb t4" role="tab" aria-selected="false" data-hb="vol"><span class="hb-ic" data-icon="heart" aria-hidden="true"></span><span class="hb-go" data-icon="plus" aria-hidden="true"></span><span class="hb-bg" data-icon="heart" aria-hidden="true"></span><b>อาสาช่วยฟัง</b><small>ดู · ฟัง · เชื่อมต่อ</small></button>
+        </div>
       <div class="hb-panel" id="hb-panel" role="tabpanel" hidden></div>
 
       <div class="heal-lines">
@@ -343,14 +343,14 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=168"></script>
-<script src="./geocode.js?v=168"></script>
-<script src="./location.js?v=168"></script>
-<script src="./pickmap.js?v=168"></script>
-<script src="./stats.js?v=168"></script>
-<script src="./hotlines.js?v=168"></script>
-<script src="./script.js?v=168"></script>
-<script src="./notify.js?v=168"></script>
+<script src="./icons.js?v=169"></script>
+<script src="./geocode.js?v=169"></script>
+<script src="./location.js?v=169"></script>
+<script src="./pickmap.js?v=169"></script>
+<script src="./stats.js?v=169"></script>
+<script src="./hotlines.js?v=169"></script>
+<script src="./script.js?v=169"></script>
+<script src="./notify.js?v=169"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
