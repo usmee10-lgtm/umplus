@@ -1048,6 +1048,11 @@ function renderStats(soft){
   const itile=(i,v,l,tone='')=>`<div class="sicon${tone?' t-'+tone:''}"><span>${ic(i)}</span><b>${v}</b><small>${l}</small></div>`;
   const empty=(i,t)=>`<p class="sempty">${ic(i)}${t}</p>`;
   const needIcons=c=>{const ks=[...new Set((c.needs||[]).map(x=>needKey(x)))];return ks.slice(0,4).map(k=>{const t=NEED_TYPES.find(t=>t.key===k)||NEED_TYPES[NEED_TYPES.length-1];return `<i title="${esc(t.label)}">${ic(t.icon)}</i>`}).join('')||'<i>'+ic('more')+'</i>'};
+  const mstat=(i,v,l,c)=>`<div class="mstat" style="--c:${c}"><span>${ic(i)}</span><b>${v}</b><small>${l}</small></div>`;
+  const stackBar=parts=>`<div class="sstack">${parts.filter(p=>p[0]).map(([n,c])=>`<i style="flex:${n};background:${c}"></i>`).join('')}</div>`;
+  const qitem=(i,n,l,good)=>`<div class="${n&&!good?'is-warn':''}"><span>${ic(i)}</span><b>${N(n)}</b><small>${l}</small></div>`;
+  const needMax=Math.max(1,...needRows.map(r=>r.n)),lvMax=Math.max(1,...lvRows.map(r=>r.n));
+  const LV_BLUE={dry:'#CFE0F7',ankle:'#9EC0EE',knee:'#5E93DE',waist:'#2F67C2',chest:'#1E4690',roof:'#0F2756',none:'#C9CCD5'};
   const upd=S.loaded?new Date(S.loaded).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':'ข้อมูลที่บันทึกไว้';
   const tot=Math.max(1,open.length+going.length+done.length),C=2*Math.PI*44;let off=0;
   const ring=[[done.length,'#4ADE80'],[going.length,'#FBBF24'],[open.length,'#8B9BFF']].map(([n,c])=>{if(!n)return '';const L=n/tot*C,gap=n<tot?3:0,seg=`<circle cx="50" cy="50" r="44" stroke="${c}" stroke-dasharray="${Math.max(.1,L-gap)} ${C}" stroke-dashoffset="${-off}"/>`;off+=L;return seg}).join('');
@@ -1073,27 +1078,24 @@ function renderStats(soft){
       ${days.map((x,i)=>{const d=new Date(x.start);return `<div class="tcol${i===days.length-1?' now':''}"><div class="tbars"><i class="tn" style="height:${x.n/dmax*100}%"><em>${x.n||''}</em></i><i class="tk" style="height:${x.k/dmax*100}%"><em>${x.k||''}</em></i></div><small>${d.toLocaleDateString('th-TH',{weekday:'narrow',timeZone:'Asia/Bangkok'})}<br>${d.toLocaleDateString('th-TH',{day:'numeric',timeZone:'Asia/Bangkok'})}</small></div>`}).join('')}
     </div></section>
   <section class="scard" aria-labelledby="st-speed"><div class="sc-h"><h2 id="st-speed">ความเร็วในการช่วย</h2><small>ค่ากลาง</small></div>
-    <div class="sicons three">${itile('clock',times.pickupN?dur(times.pickupMed):'–','ทีมรับเคส','blue')}${itile('check',times.doneN?dur(times.doneMed):'–','ช่วยเสร็จ','green')}${itile('chart',times.doneN?dur(times.doneP90):'–','90% เสร็จใน','violet')}</div>
-    <div class="swaits"><span>${ic('alert')}รอเกิน</span>${[['6 ชม.',waits.over6],['24 ชม.',waits.over24],['3 วัน',waits.over72]].map(([l,n],i)=>`<div class="${n&&i?'is-red':''}"><b>${N(n)}</b><small>${l}</small></div>`).join('')}</div></section>
+    <div class="srow3">${mstat('clock',times.pickupN?dur(times.pickupMed):'–','ทีมรับเคส','#2D45C8')}${mstat('check',times.doneN?dur(times.doneMed):'–','ช่วยเสร็จ','#1D7A43')}${mstat('chart',times.doneN?dur(times.doneP90):'–','90% เสร็จใน','#6B4FC0')}</div>
+    <div class="swait2"><span>${ic("clock")}รอเกิน</span>${[['6 ชม.',waits.over6],['1 วัน',waits.over24],['3 วัน',waits.over72]].map(([l,n],i)=>`<em class="${n&&i?'is-red':''}">${l} <b>${N(n)}</b></em>`).join('')}</div></section>
   <section class="scard" aria-labelledby="st-old"><div class="sc-h"><h2 id="st-old">รอนานที่สุด</h2><small>ยังไม่มีทีมรับ</small></div>
-    ${waits.oldestList.length?`<ul class="swait-list">${waits.oldestList.map(o=>{const c=o.c,v=sevOf(c);return `<li><button type="button" data-sopen="${esc(c.id)}"><span class="sw-time" style="--c:${URG_COL[v]}"><b>${dur(o.wait)}</b><small>${URG_TH[v]}</small></span><span class="sw-mid"><span class="sw-ic">${needIcons(c)}</span><small>${ic('pin')}${esc(dName(areaOf(c)))}</small></span><span class="sw-ppl">${ic('users')}<b>${P(c)}</b></span></button></li>`}).join('')}</ul>`:empty('check','ไม่มีเคสที่รอช่วย')}</section>
-  <section class="scard" aria-labelledby="st-urg"><div class="sc-h"><h2 id="st-urg">ความเร่งด่วน</h2><small>เคสค้าง</small></div>
-    ${act.length?`<div class="surg">${[4,3,2,1].map(v=>{const u=R.urg.find(x=>x.v===v)||{n:0,ppl:0};return `<div style="--c:${URG_COL[v]}" class="${u.n?'':'is-zero'}"><i></i><b>${N(u.n)}</b><span>${URG_TH[v]}</span><small>${ic('users')}${N(u.ppl)}</small></div>`}).join('')}</div>`:empty('check','ไม่มีเคสค้าง')}</section>
+    ${waits.oldestList.length?`<ul class="sflat">${waits.oldestList.map(o=>{const c=o.c,v=sevOf(c);return `<li><button type="button" data-sopen="${esc(c.id)}"><span class="sf-dot" style="background:${URG_COL[v]}"></span><span class="sf-main"><b>${esc(dName(areaOf(c)))}</b><span class="sf-ic">${needIcons(c)}<small>${ic('users')}${P(c)}</small></span></span><span class="sf-val"><b>${dur(o.wait)}</b><small style="color:${URG_COL[v]}">${URG_TH[v]}</small></span></button></li>`}).join('')}</ul>`:empty('check','ไม่มีเคสที่รอช่วย')}</section>
+  <section class="scard" aria-labelledby="st-urg"><div class="sc-h"><h2 id="st-urg">ความเร่งด่วน</h2><small>${N(act.length)} เคสค้าง</small></div>
+    ${act.length?`${stackBar([4,3,2,1].map(v=>{const u=R.urg.find(x=>x.v===v)||{n:0};return [u.n,URG_COL[v]]}))}<div class="slegend">${[4,3,2,1].map(v=>{const u=R.urg.find(x=>x.v===v)||{n:0,ppl:0};return `<div class="${u.n?'':'is-zero'}"><i style="background:${URG_COL[v]}"></i><span>${URG_TH[v]}</span><b>${N(u.n)}</b></div>`}).join('')}</div>`:empty('check','ไม่มีเคสค้าง')}</section>
   <section class="scard" aria-labelledby="st-need"><div class="sc-h"><h2 id="st-need">ต้องการอะไร</h2><small>แตะเพื่อดูในแผนที่</small></div>
-    ${needRows.length?`<div class="sneeds">${needRows.map(r=>`<button type="button" data-sneed="${r.key}" aria-label="${r.label} ${r.n} เคส · ดูในแผนที่"><span class="sn-ic">${ic(r.icon)}</span><b>${N(r.n)}</b><span>${esc(r.label)}</span></button>`).join('')}</div>`:empty('check','ไม่มีเคสค้าง')}
-    ${R.otherNeeds.length?`<div class="schips">${R.otherNeeds.slice(0,8).map(o=>`<span>${esc(o.label)}${o.n>1?` <b>${o.n}</b>`:''}</span>`).join('')}</div>`:''}</section>
+    ${needRows.length?`<div class="shbars">${needRows.map(r=>`<button type="button" data-sneed="${r.key}" aria-label="${r.label} ${r.n} เคส · ดูในแผนที่"><span class="hb-ic">${ic(r.icon)}</span><span class="hb-l">${esc(r.label)}</span><span class="hb-t"><i style="width:${Math.max(4,r.n/needMax*100)}%"></i></span><b>${N(r.n)}</b></button>`).join('')}</div>`:empty('check','ไม่มีเคสค้าง')}</section>
   <section class="scard" aria-labelledby="st-lv"><div class="sc-h"><h2 id="st-lv">ระดับน้ำ</h2><small>เคสค้าง</small></div>
-    ${lvRows.length?`<div class="slv-bar">${lvRows.map(r=>`<i style="flex:${r.n};background:${r.color||'#C9CCD5'}"></i>`).join('')}</div>
-      <div class="slv">${lvRows.map(r=>`<div><i style="background:${r.color||'#C9CCD5'}"></i><span>${esc(LEVEL_CM[r.key]||'ไม่ระบุ')}</span><b>${N(r.n)}</b></div>`).join('')}</div>`:empty('wave','ยังไม่มีข้อมูล')}</section>
-  <section class="scard" aria-labelledby="st-area"><div class="sc-h"><h2 id="st-area">รายพื้นที่</h2><small>${R.districts.length} พื้นที่</small></div>
-    ${R.districts.length?`<ol class="sarea">${R.districts.map((d,i)=>`<li${i>=6?' class="dmore" hidden':''}><span class="sa-no">${i+1}</span><span class="sa-n">${esc(dName(d.key))}</span><span class="sa-v">${d.urg?`<em class="red">${ic('alert')}${d.urg}</em>`:''}<em class="blue" title="รอช่วย">${d.open+d.going}</em><em class="green" title="ช่วยแล้ว">${ic('check')}${d.done}</em></span></li>`).join('')}</ol>
-      <div class="skey"><span><i class="blue"></i>ค้าง</span><span><i class="red"></i>ด่วน</span><span><i class="green"></i>ช่วยแล้ว</span></div>
+    ${lvRows.length?`<div class="sdepth">${lvRows.map(r=>`<div><span class="dp-l">${esc(LEVEL_CM[r.key]||'ไม่ระบุ')}</span><span class="dp-t"><i style="width:${Math.max(4,r.n/lvMax*100)}%;background:${LV_BLUE[r.key]||'#C9CCD5'}"></i></span><b>${N(r.n)}</b></div>`).join('')}</div>`:empty('wave','ยังไม่มีข้อมูล')}</section>
+  <section class="scard" aria-labelledby="st-area"><div class="sc-h"><h2 id="st-area">รายพื้นที่</h2><div class="skey"><span><i class="blue"></i>ค้าง</span><span><i class="green"></i>ช่วยแล้ว</span></div></div>
+    ${R.districts.length?`<ol class="sarea2">${R.districts.map((d,i)=>{const t=Math.max(1,d.open+d.going+d.done);return `<li${i>=6?' class="dmore" hidden':''}><span class="sa-no">${i+1}</span><span class="sa-m"><span class="sa-top"><b>${esc(dName(d.key))}</b>${d.urg?`<em>${ic('alert')}${d.urg}</em>`:''}</span><span class="sa-bar"><i style="flex:${d.open+d.going};background:var(--open)"></i><i style="flex:${d.done};background:var(--ok)"></i></span></span><span class="sa-num"><b>${d.open+d.going}</b><small>/ ${t}</small></span></li>`}).join('')}</ol>
       ${R.districts.length>6?`<button type="button" class="smore-btn" data-amore>ดูอีก ${R.districts.length-6} พื้นที่</button>`:''}`:empty('map','ยังไม่มีเคส')}</section>
-  <section class="scard" aria-labelledby="st-team"><div class="sc-h"><h2 id="st-team">ทีมอาสา</h2><small>${R.teams.length} ทีม</small></div>
-    ${R.teams.length?`<ol class="steams">${R.teams.slice(0,10).map((t,i)=>`<li><span class="st-av" style="--h:${(i*67)%360}">${esc(t.name.trim().charAt(0).toUpperCase())}</span><span class="st-nm"><b>${esc(t.name)}</b><small>${ic('users')}${N(t.ppl)} คน${t.going?` · กำลังไป ${t.going}`:''}</small></span><span class="st-dn"><b>${N(t.done)}</b><small>เคส</small></span></li>`).join('')}</ol>`:empty('users','ยังไม่มีทีมรับเคส')}
+  <section class="scard" aria-labelledby="st-team"><div class="sc-h"><h2 id="st-team">ทีมอาสา</h2><small>เคสที่ช่วยแล้ว</small></div>
+    ${R.teams.length?`<ol class="steam2">${R.teams.slice(0,10).map((t,i)=>`<li><span class="st-av" style="--h:${(i*67+210)%360}">${esc(t.name.trim().charAt(0).toUpperCase())}</span><span class="st-nm"><b>${esc(t.name)}</b><small>${ic('users')}${N(t.ppl)} คน${t.going?` · กำลังไป ${t.going}`:''}</small></span><b class="st-dn">${N(t.done)}</b></li>`).join('')}</ol>`:empty('users','ยังไม่มีทีมรับเคส')}
     ${orgRows.length?`<div class="schips orgs">${orgRows.map(([k,o])=>`<span>${ic('shield')}${esc(k)} <b>${o.done+o.going}</b></span>`).join('')}</div>`:''}</section>
   <section class="scard" aria-labelledby="st-gap"><div class="sc-h"><h2 id="st-gap">คุณภาพข้อมูล</h2><small>เคสค้าง</small></div>
-    <div class="sicons five">${itile('pin',N(R.quality.noPin),'ไม่มีหมุด',R.quality.noPin?'red':'')}${itile('wave',N(R.quality.noLevel),'ไม่ระบุน้ำ')}${itile('map',N(R.quality.noArea),'ไม่ทราบเขต')}${itile('phone',N(R.quality.noPhone),'เบอร์ไม่ครบ',R.quality.noPhone?'red':'')}${itile('image',N(R.quality.photos),'มีรูป','green')}</div>
+    <div class="squal">${qitem('pin',R.quality.noPin,'ไม่มีหมุด')}${qitem('wave',R.quality.noLevel,'ไม่ระบุน้ำ')}${qitem('map',R.quality.noArea,'ไม่ทราบเขต')}${qitem('phone',R.quality.noPhone,'เบอร์ไม่ครบ')}${qitem('image',R.quality.photos,'มีรูป',true)}</div>
     ${R.dupList.length||R.tests.length?`<details class="smore"><summary>${ic('copy')}แจ้งซ้ำ ${R.dupList.length} · ทดสอบ ${R.tests.length}</summary>
       ${R.dupList.length?`<ul class="slist">${R.dupList.slice(0,10).map(d=>{const c=all.find(x=>x.id===d.id);return c?caseLink(c,'ซ้ำ #'+esc(d.of)):''}).join('')}</ul>`:''}
       ${R.tests.length?`<ul class="slist">${R.tests.slice(0,10).map(c=>caseLink(c,STATUS_TH[c.status]||'')).join('')}</ul>`:''}</details>`:''}</section>
@@ -1107,7 +1109,7 @@ function renderStats(soft){
     <li><b>ค่ากลาง</b> = เคสครึ่งหนึ่งเร็วกว่านี้ อีกครึ่งช้ากว่า (ไม่ถูกดึงด้วยเคสที่ช้าผิดปกติแบบค่าเฉลี่ย)</li></ul></details>`;
   if(!soft)fillAreas();
 }
-$('#stats').addEventListener('click',e=>{const am=e.target.closest('[data-amore]');if(am){const rows=$$('#stats .sarea .dmore'),show=rows[0]&&rows[0].hidden;rows.forEach(r=>r.hidden=!show);am.textContent=show?'ย่อรายการ':'ดูอีก '+rows.length+' พื้นที่';return}const dm=e.target.closest('[data-dmore]');if(dm){const rows=$$('#dist-table .dmore'),show=rows[0]&&rows[0].hidden;rows.forEach(r=>r.hidden=!show);dm.textContent=show?'ย่อรายการเขต':'ดูอีก '+rows.length+' เขต';return}const o=e.target.closest('[data-sopen]');if(o){openCase(o.dataset.sopen);return}const g=e.target.closest('[data-sgo]'),n=e.target.closest('[data-sneed]');if(!g&&!n)return;
+$('#stats').addEventListener('click',e=>{const am=e.target.closest('[data-amore]');if(am){const rows=$$('#stats .sarea2 .dmore'),show=rows[0]&&rows[0].hidden;rows.forEach(r=>r.hidden=!show);am.textContent=show?'ย่อรายการ':'ดูอีก '+rows.length+' พื้นที่';return}const dm=e.target.closest('[data-dmore]');if(dm){const rows=$$('#dist-table .dmore'),show=rows[0]&&rows[0].hidden;rows.forEach(r=>r.hidden=!show);dm.textContent=show?'ย่อรายการเขต':'ดูอีก '+rows.length+' เขต';return}const o=e.target.closest('[data-sopen]');if(o){openCase(o.dataset.sopen);return}const g=e.target.closest('[data-sgo]'),n=e.target.closest('[data-sneed]');if(!g&&!n)return;
   FL.q='';$('#case-search').value='';FL.people=[];FL.level=[];
   if(g){FL.status=g.dataset.sgo;FL.types=[]}else{FL.status='active';FL.types=[n.dataset.sneed]}
   saveFL();renderFilters();applyFilters();go('map');setSheet(true)});
@@ -1125,7 +1127,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='244';let appNewer=false;
+const APP_V='245';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
