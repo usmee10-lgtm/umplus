@@ -1165,7 +1165,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='265';let appNewer=false;
+const APP_V='266';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1230,3 +1230,13 @@ window.addEventListener('focusout',()=>setTimeout(()=>{const a=document.activeEl
 /* ความสูงแผงปุ่มหน้าแรก → ให้ตัวควบคุมบนแผนที่วางชิดเหนือแผงพอดี */
 (()=>{const hs=document.querySelector('#view-home .home-sheet');if(!hs)return;const set=()=>{const h=hs.offsetHeight;if(h)document.documentElement.style.setProperty('--hs-h',h+'px')};
   if('ResizeObserver' in window)new ResizeObserver(set).observe(hs);addEventListener('resize',set);set()})();
+
+/* ดูแลใจ: หายใจ เข้า 4 · กลั้น 4 · ออก 6 วินาที รวม 1 นาที (4 รอบ) */
+(function(){const box=$('#breath'),btn=$('#br-btn');if(!box||!btn)return;let tm=[],run=false;
+  const w=$('#br-word'),sub=$('#br-sub'),lbl=btn.querySelector('b'),setIc=n=>{const o=btn.querySelector('.ic');if(o)o.outerHTML=ic(n)};
+  const stop=(done)=>{tm.forEach(clearTimeout);tm=[];run=false;box.classList.remove('in','out');w.textContent=done?'ดีมาก':'พร้อมไหม';sub.textContent=done?'ใจสงบลงบ้างไหม ทำซ้ำได้ทุกเมื่อที่ต้องการ':'หายใจช้า ๆ 1 นาที ช่วยให้ใจสงบลง';lbl.textContent=done?'หายใจอีกรอบ':'เริ่มหายใจ 1 นาที';setIc('play')};
+  const step=(t,cls,word,text)=>tm.push(setTimeout(()=>{box.classList.remove('in','out');if(cls)box.classList.add(cls);w.textContent=word;sub.textContent=text},t));
+  btn.addEventListener('click',()=>{if(run)return stop(false);run=true;lbl.textContent='หยุด';setIc('pause');let t=0;
+    for(let r=0;r<4;r++){step(t,'in','หายใจเข้า','ช้า ๆ ทางจมูก นับ 1…2…3…4');t+=4000;step(t,'in','กลั้นไว้','นับ 1…2…3…4');t+=4000;step(t,'out','หายใจออก','ยาว ๆ ทางปาก นับ 1…6');t+=6000}
+    tm.push(setTimeout(()=>stop(true),t))});
+  addEventListener('hashchange',()=>{if(run)stop(false)})})();
