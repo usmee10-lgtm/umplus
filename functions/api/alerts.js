@@ -52,13 +52,16 @@ async function build() {
   const list = [...(a.status === 'fulfilled' ? a.value : []), ...(b.status === 'fulfilled' ? b.value : [])];
   const now = Date.now();
   /* ประกาศที่หมดอายุเกิน 12 ชม. ไม่แสดง · เรียงใหม่สุดก่อน */
-  const alerts = list.filter(x => !x.expires || x.expires > now - 12 * 36e5).sort((p, q) => q.sent - p.sent).slice(0, 10);
+  /* ตัดประกาศที่หมดอายุแล้ว · ประกาศชนิดเดียวกันจากแหล่งเดียวกันเก็บแค่ฉบับล่าสุด (กรมอุตุฯ ออกฉบับใหม่ทับฉบับเก่า) */
+  const seen = new Set();
+  const alerts = list.filter(x => !x.expires || x.expires > now).sort((p, q) => q.sent - p.sent)
+    .filter(x => { if (x.src === 'USGS') return true; const k = x.src + '|' + x.event; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 10);
   return JSON.stringify({ ok: true, at: now, alerts, sources: { tmd: a.status === 'fulfilled', usgs: b.status === 'fulfilled' } });
 }
 
 const res = (body, state) => new Response(body, { headers: { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=60', 'x-cache': state } });
 export async function onRequestGet(ctx) {
-  const cache = caches.default, key = new Request('https://helpme4u.com/__alerts/v2');
+  const cache = caches.default, key = new Request('https://helpme4u.com/__alerts/v3');
   const hit = await cache.match(key);
   const put = body => cache.put(key, new Response(body, { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=' + STALE, 'x-at': String(Date.now()) } }));
   if (hit) {
