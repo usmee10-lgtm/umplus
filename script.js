@@ -1165,7 +1165,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='263';let appNewer=false;
+const APP_V='264';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1180,7 +1180,7 @@ setTimeout(checkAppVersion,3000);
 const NEW_HOME='https://helpme4u.com/';
 (function(){if(!/\.pages\.dev$/.test(location.hostname))return;
   const ov=document.createElement('div');ov.className='moved';ov.setAttribute('role','alertdialog');ov.setAttribute('aria-live','polite');
-  ov.innerHTML='<div class="moved-card"><img src="./assets/helpme-logo.png" alt="Help Me ช่วยด้วย" width="180"><h1>ย้ายไปที่ helpme4u.com แล้ว</h1><p id="moved-msg">กำลังพาไปที่เว็บใหม่…</p><a class="btn btn-blue" id="moved-go" href="'+NEW_HOME+'">ไปที่ helpme4u.com</a><p class="moved-sub">ถ้าอันตรายถึงชีวิต โทร 1669 หรือ 191 ทันที</p></div>';
+  ov.innerHTML='<div class="moved-card"><img src="./assets/helpme-logo.png" alt="Help Me 4U" width="200"><h1>ย้ายไปที่ helpme4u.com แล้ว</h1><p id="moved-msg">กำลังพาไปที่เว็บใหม่…</p><a class="btn btn-blue" id="moved-go" href="'+NEW_HOME+'">ไปที่ helpme4u.com</a><p class="moved-sub">ถ้าอันตรายถึงชีวิต โทร 1669 หรือ 191 ทันที</p></div>';
   document.body.append(ov);
   const go2=()=>{let my=[];try{my=(store.json('uh_my_cases',[])||[]).map(m=>({id:m.id,token:m.token,clientId:m.clientId,at:m.at,needs:m.needs,urgency:m.urgency}))}catch(e){}
     const data={my,team:store.get('uh_team',''),org:store.get('uh_org','')};
