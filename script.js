@@ -243,7 +243,7 @@ async function locateMe(which,btn){
   try{const p=await getGPS();S.me=p;
     Object.entries(S.maps).forEach(([k,mm])=>{if(!mm)return;if(mm._me)mm._me.setLatLng([p.lat,p.lng]);else mm._me=L.marker([p.lat,p.lng],{icon:meIcon(),interactive:false,zIndexOffset:3000}).addTo(mm)});
     m.setView([p.lat,p.lng],Math.max(m.getZoom(),15));
-  }catch(e){toast(e.code===1?'ไม่ได้รับอนุญาตให้ใช้ตำแหน่ง':'หาตำแหน่งไม่สำเร็จ');btn&&btn.classList.remove('on')}
+  }catch(e){toast(gpsHelp(e&&e.code),{ms:9000});btn&&btn.classList.remove('on')}   /* บอกวิธีเปิดสิทธิ์ตามเครื่อง (iOS/Android/LINE) ไม่ใช่แค่ว่าไม่ได้รับอนุญาต */
 }
 /* ชั้นน้ำท่วมถนนจาก Floodboard */
 const FLOOD_COL={blocked:'#d32f2f',risky:'#f57c00',caution:'#fbc02d'};   /* สีแบบ floodboard: ผ่านไม่ได้ / เสี่ยง / น้ำขังผ่านได้ (คิดจากรถสูง) */
@@ -1165,7 +1165,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='264';let appNewer=false;
+const APP_V='265';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
