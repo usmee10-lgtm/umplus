@@ -176,11 +176,11 @@ function drawPins(which){
   lg.clearLayers();
   /* คนทั่วไป: หน้าแรกเห็นหมุดคำขอทั้งหมด (ตำแหน่งโดยประมาณ) เป็นสีฟ้าเหมือนกันหมด ไม่แยกสถานะ · กดได้เฉพาะคำขอของตัวเอง */
   const pub=which==='home'&&!S.volunteer,mine=pub?new Set(myReqs().map(m=>String(m.id))):null;
-  const list=which==='home'?(pub?S.cases:visibleCases()).filter(c=>!isClosed(c)):filteredCases();
+  const list=which==='home'?(pub?S.cases.filter(c=>!isClosed(c)):visibleCases()):filteredCases();  /* อาสา: หน้าแรกเห็นหมุดทุกเคส รวมที่ช่วยแล้ว/ไม่เข้าเกณฑ์ (สีตามสถานะ) */
   const pts=[];
   list.filter(hasPin).forEach(c=>{const own=!pub||mine.has(String(c.id)),k=pub?'open':pinKind(c);pts.push([+c.lat,+c.lng]);
     if(!own){L.marker([+c.lat,+c.lng],{icon:pinIcon('open'),interactive:false,keyboard:false,title:'คำขอความช่วยเหลือ (ตำแหน่งโดยประมาณ)'}).addTo(lg);return}
-    L.marker([+c.lat,+c.lng],{icon:pinIcon(k),zIndexOffset:k==='danger'?1000:k==='open'?500:0,title:[k==='danger'?'ด่วน':STATUS_TH[c.status]||'รอช่วย',((c.needs||[]).join(', ')||'ขอความช่วยเหลือ'),(c.people||1)+' คน'].join(' · ')}).bindPopup(()=>popupHtml(c)).addTo(lg)});
+    L.marker([+c.lat,+c.lng],{icon:pinIcon(k),opacity:isClosed(c)?.8:1,zIndexOffset:k==='danger'?1000:k==='open'?500:isClosed(c)?-500:0,title:[k==='danger'?'ด่วน':STATUS_TH[c.status]||'รอช่วย',((c.needs||[]).join(', ')||'ขอความช่วยเหลือ'),(c.people||1)+' คน'].join(' · ')}).bindPopup(()=>popupHtml(c)).addTo(lg)});
   if(!fitted[which]&&pts.length){  /* เว้นที่ให้แผงล่าง/แถบค้นหาบนมือถือ ไม่ให้หมุดไปซ่อนใต้แผง */
     const sh=which==='home'&&!isDesktop()?($('#view-home .home-sheet')||{}).offsetHeight||0:0;
     /* ตัดจุดที่อยู่ไกลจากกลุ่มหลักมาก (>40 กม. จากค่ามัธยฐาน) เพื่อไม่ให้แผนที่ซูมออกทั้งภาค */
@@ -1127,7 +1127,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='248';let appNewer=false;
+const APP_V='249';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
