@@ -2,10 +2,11 @@
  * - รับรหัสทาง header x-vol-key (ไม่ใส่ใน URL จะได้ไม่ติดใน log)
  * - กุญแจของแคช = SHA-256 ของรหัส → คนที่ไม่มีรหัสที่ถูกต้องเปิดแคชนี้ไม่ได้
  * - เก็บแคชเฉพาะคำตอบที่ Apps Script ยืนยันว่าเป็นอาสา (volunteer:true) · รหัสผิดจะไม่ถูกแคช
- * - สด 15 วินาที · เก่าได้ไม่เกิน 2 นาที (ส่งของเดิมก่อน แล้วดึงใหม่เบื้องหลัง) */
+ * - สด 15 วินาที · เก่าได้ไม่เกิน 30 นาที (ส่งของเดิมก่อน แล้วดึงใหม่เบื้องหลัง) → ใส่รหัสแล้วเข้าได้ทันที
+ * - ถ้า Apps Script ตอบว่ารหัสนี้ไม่ใช่อาสาแล้ว (เปลี่ยนรหัส) ลบแคชของรหัสนั้นทิ้งทันที */
 const API = 'https://script.google.com/macros/s/AKfycbwxY1eDJnkqCInUCv9bye2WLd2HXuGUyVH9mElVCl5I04UFVI3VfoUr2yxMMFHEIvhW9A/exec';
 const ALLOW = ['list', 'teams'];
-const FRESH = 15, STALE = 120;
+const FRESH = 15, STALE = 1800;
 
 async function sha(s) {
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('helpme4u|' + s));
@@ -32,6 +33,7 @@ export async function onRequestGet(ctx) {
   const ck = new Request('https://helpme4u.com/__vol/' + action + '/' + await sha(key));
   const refresh = async () => {
     const r = await pull(action, key);
+    if (r && r.ok && !r.vol) { await cache.delete(ck); return r; }
     if (r && r.ok && r.vol) await cache.put(ck, new Response(r.txt, { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=' + STALE, 'x-at': String(Date.now()) } }));
     return r;
   };

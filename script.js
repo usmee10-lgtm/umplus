@@ -838,15 +838,20 @@ function renderVol(forceOpen){
     const go2=async()=>{let k=$('#vol-key').value.replace(/\u200b/g,'').trim();if(!k)return $('#vol-key').focus();
       const btn=$('#vol-go'),msg=$('#vol-msg');btn.disabled=true;btn.textContent='กำลังตรวจ…';msg.textContent='';
       let r=null,netErr=false;
-      /* เซิร์ฟเวอร์ (Apps Script) บางครั้งตื่นช้า 20–30 วิ → ลอง 3 ครั้ง รอนานขึ้นทีละรอบ และบอกผู้ใช้ว่ากำลังลองใหม่ */
-      const waits=[10000,15000,30000];
-      for(let i=0;i<waits.length&&!r;i++){if(i)msg.textContent=`เซิร์ฟเวอร์ตอบช้า กำลังลองอีกครั้ง (${i+1}/${waits.length})…`;
-        try{const x=await apiGet({action:'list',key:k,t:Date.now()},waits[i],0);if(x&&x.ok)r=x;else netErr=true}catch(e){netErr=true;await new Promise(z=>setTimeout(z,600))}}
+      /* เร็วที่สุด: ยิงผ่านแคช Cloudflare ก่อน (ปกติ < 1 วิ) ถ้า 1.5 วิยังไม่ตอบ ยิง Apps Script ตรงคู่ขนาน ใช้คำตอบที่มาก่อน
+         ถ้าล้มทั้งคู่ ลองซ้ำอีก 1 รอบ */
+      const direct=()=>fetch(API_URL+'?'+new URLSearchParams({action:'list',key:k,t:Date.now()})).then(x=>x.json());
+      const race=()=>new Promise(res=>{let left=2,done=false;const fin=x=>{if(done)return;if(x&&x.ok){done=true;res(x)}else if(--left===0){done=true;res(null)}};
+        volGet({action:'list',key:k}).then(fin,()=>fin(null));
+        setTimeout(()=>{if(!done)direct().then(fin,()=>fin(null));else left--},1500);setTimeout(()=>{if(!done){done=true;res(null)}},25000)});
+      for(let i=0;i<2&&!r;i++){if(i)msg.textContent='เซิร์ฟเวอร์ตอบช้า กำลังลองอีกครั้ง…';r=await race();if(!r)netErr=true}
       msg.textContent='';
       /* มือถือบางรุ่นขึ้นตัวพิมพ์ใหญ่ให้เอง → ลองตัวพิมพ์เล็กอีกครั้ง */
       if(r&&!r.volunteer&&k!==k.toLowerCase()){try{const x=await apiGet({action:'list',key:k.toLowerCase(),t:Date.now()},20000);if(x&&x.ok&&x.volunteer){r=x;k=k.toLowerCase()}}catch(e){}}
       if($('#vol-go')){btn.disabled=false;btn.textContent='เข้า'}
-      if(r&&r.volunteer){store.set('uh_vol_key',k);store.set('uh_vol_ok','1');S.volunteer=true;toast('เข้าโหมดทีมอาสาแล้ว',{ok:true});p.hidden=true;p.dataset.mode='';await loadCases(true);renderAll();return}
+      if(r&&r.volunteer){store.set('uh_vol_key',k);store.set('uh_vol_ok','1');S.volunteer=true;toast('เข้าโหมดทีมอาสาแล้ว',{ok:true});p.hidden=true;p.dataset.mode='';
+        /* ใช้ข้อมูลที่ได้ตอนตรวจรหัสเลย ไม่ต้องโหลดซ้ำ แล้วค่อยอัปเดตเบื้องหลัง */
+        S.cases=(r.cases||[]).map(c=>({...c,needs:Array.isArray(c.needs)?c.needs:String(c.needs||'').split(/\s*,\s*/).filter(Boolean)}));S.loaded=Date.now();renderAll();setTimeout(()=>loadCases(true),4000);return}
       if(r){msg.textContent='รหัสไม่ถูกต้อง ตรวจตัวพิมพ์เล็ก/ใหญ่ แล้วลองใหม่';$('#vol-key').select()}
       else msg.textContent=navigator.onLine?'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองกด "เข้า" อีกครั้ง':'ไม่มีสัญญาณ ลองใหม่เมื่อออนไลน์'};
     $('#vol-go').onclick=go2;$('#vol-key').onkeydown=e=>{if(e.key==='Enter')go2()};return}
@@ -1165,7 +1170,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='278';let appNewer=false;
+const APP_V='279';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
