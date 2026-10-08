@@ -1494,3 +1494,8 @@ body.nt-open{overflow:hidden}
 .nt-sheet{height:100%}
 .nt-body{flex:1;min-height:0}
 .nt-body>*{flex-shrink:0}
+/* v255 แผนเดินทาง หุบ/กางได้ */
+.trip-tog{width:100%;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;position:relative;padding:2px 30px 2px 2px;min-height:40px;align-items:center}
+.trip-tog>.ic:last-child{position:absolute;right:4px;top:50%;width:18px;height:18px;color:var(--muted);transform:translateY(-50%);transition:transform .2s}
+.trip-tog[aria-expanded="true"]>.ic:last-child{transform:translateY(-50%) rotate(180deg)}
+#trip-panel.t-closed .trip-tog{margin-bottom:0}

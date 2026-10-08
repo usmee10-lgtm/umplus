@@ -902,7 +902,7 @@ function renderDetail(full){
 }
 
 /* ---------- แผนการเดินทาง (ทีมอาสา): เคสหนักก่อน · ใกล้สุดก่อน · จัดอัตโนมัติ · นำทาง Google Maps ---------- */
-const TRIP={ids:store.json('uh_trip',[]).filter(x=>typeof x==='string').slice(0,25),layer:null,lastPos:null};
+const TRIP={ids:store.json('uh_trip',[]).filter(x=>typeof x==='string').slice(0,25),layer:null,lastPos:null,tOpen:store.get('uh_trip_open','')!=='0'};  /* แผนเดินทาง: หุบ/กางได้ (จำไว้ในเครื่อง) */
 const tripSave=()=>TRIP.ids.length?store.put('uh_trip',TRIP.ids):store.set('uh_trip','');
 const tripIndex=id=>TRIP.ids.indexOf(String(id));
 const tripCases=()=>TRIP.ids.map(id=>S.cases.find(c=>String(c.id)===id)||{id,missing:true});
@@ -972,7 +972,9 @@ function renderTrip(){
   el.classList.remove('z-closed');
   TRIP.zones=[];
   let km=0,prev=null;list.forEach(c=>{if(!c.missing&&hasPin(c)){const p={lat:+c.lat,lng:+c.lng};if(prev)km+=tripDist(prev,p);prev=p}});
-  el.innerHTML=`<div class="trip-head"><b>${ic('route')} แผนเดินทาง · ${list.length} จุด</b><span class="trip-note" id="trip-note">${km?'ระยะตรงรวม ~'+km.toFixed(1)+' กม.':''}</span></div><ol class="trip-list"></ol>`;
+  el.classList.toggle('t-closed',!TRIP.tOpen);
+  el.innerHTML=`<button type="button" class="trip-head trip-tog" id="trip-tog" aria-expanded="${TRIP.tOpen}" aria-controls="trip-body"><b>${ic('route')} แผนเดินทาง · ${list.length} จุด</b><span class="trip-note" id="trip-note">${km?'ระยะตรงรวม ~'+km.toFixed(1)+' กม.':''}</span>${ic('chev')}</button><div class="trip-body" id="trip-body"${TRIP.tOpen?'':' hidden'}><ol class="trip-list"></ol></div>`;
+  $('#trip-tog').onclick=()=>{TRIP.tOpen=!TRIP.tOpen;store.set('uh_trip_open',TRIP.tOpen?'1':'0');renderTrip()};
   const ol=el.querySelector('ol');
   list.forEach((c,i)=>{const li=document.createElement('li');li.className='trip-item';
     li.innerHTML=`<span class="trip-no${!c.missing&&isDanger(c)?' danger':''}">${i+1}</span><button type="button" class="trip-txt"><b>${esc(c.missing?'เคส #'+c.id:(c.needs||[]).join(' · ')+' · '+(c.people||1)+' คน')}</b><small>${esc(c.missing?'ไม่พบในรายการ':[c.address||(c.district?'เขต'+c.district:''),c.status==='done'?'ช่วยแล้ว':''].filter(Boolean).join(' · '))}</small></button>
@@ -980,7 +982,7 @@ function renderTrip(){
     const [u,d,x]=li.querySelectorAll('.trip-ctl button');u.onclick=()=>tripMove(i,-1);d.onclick=()=>tripMove(i,1);x.onclick=()=>tripToggle(c.id);
     const tt=li.querySelector('.trip-txt');tt.setAttribute('aria-label',`จุดที่ ${i+1}: ดูรายละเอียดเคส`);tt.onclick=()=>{if(!c.missing)openCase(c.id)};ol.append(li)});
   const legs=tripLegs(),few=tripPts(list).length<2;
-  el.insertAdjacentHTML('beforeend',(legs.length>1?legs.map((g,i)=>`<a class="pill pill-blue full" style="margin-top:${i?6:10}px" href="${g.url}" target="_blank" rel="noopener">${ic('nav')}นำทางช่วงที่ ${i+1} (จุด ${g.from}–${g.to})</a>`).join(''):
+  const tb=el.querySelector('#trip-body');tb.insertAdjacentHTML('beforeend',(legs.length>1?legs.map((g,i)=>`<a class="pill pill-blue full" style="margin-top:${i?6:10}px" href="${g.url}" target="_blank" rel="noopener">${ic('nav')}นำทางช่วงที่ ${i+1} (จุด ${g.from}–${g.to})</a>`).join(''):
     `<a class="pill pill-blue full" style="margin-top:10px" ${legs.length?`href="${legs[0].url}" target="_blank" rel="noopener"`:'aria-disabled="true"'}>${ic('nav')}เริ่มนำทางทั้งเส้น</a>`)+`
     <div class="trip-btns"><button type="button" class="pill pill-green small" data-t="heavy" ${few?'disabled':''}>${ic('alert')}เคสหนักก่อน</button><button type="button" class="pill pill-ghost small" data-t="near" ${few?'disabled':''}>${ic('pin')}ใกล้สุดก่อน</button>
     <button type="button" class="pill pill-ghost small" data-t="auto">${ic('route')}จัดอัตโนมัติ</button><button type="button" class="pill pill-line small" data-t="clear">ล้างแผน</button></div>`);
@@ -1127,7 +1129,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='254';let appNewer=false;
+const APP_V='255';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
