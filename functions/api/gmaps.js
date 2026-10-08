@@ -58,7 +58,8 @@ async function fromPlace(url) {
   const area = (pc ? pc[2] : txt).replace(/\s+\d{5}$/, '').trim();
   const words = area.split(/\s+/);
   let ref = null;  /* ลองชื่อเต็ม แล้วตัดคำหน้าออกทีละคำ (ชื่อร้าน/มัสยิดมักหาไม่เจอ แต่ตำบล/อำเภอหาเจอ) */
-  for (let i = 0; i < words.length && !ref && i < 6; i++) ref = await photonRef(words.slice(i).join(' '));
+  const minW = pc ? 1 : 2;  /* ไม่มี Plus Code: อย่าตัดจนเหลือแค่ชื่อจังหวัด (ได้จุดกลางเมือง ผิดที่) */
+  for (let i = 0; i < words.length && !ref && i < 6 && words.length - i >= minW; i++) ref = await photonRef(words.slice(i).join(' ').replace(/^(แขวง|เขต|ตำบล|อำเภอ)\s*/, ''));
   if (pc && pc[1].indexOf('+') === 8) { const p = olcDecode(pc[1]); return ll('@' + p.lat + ',' + p.lng); }
   if (pc) { const p = olcRecover(pc[1].toUpperCase(), ref || { lat: 13.75, lng: 100.55 }); const q = ll('@' + p.lat.toFixed(6) + ',' + p.lng.toFixed(6)); return q && ref ? q : q && !ref ? Object.assign(q, { approx: true }) : null; }
   return ref ? Object.assign({ lat: +ref.lat.toFixed(6), lng: +ref.lng.toFixed(6) }, { approx: true }) : null;
