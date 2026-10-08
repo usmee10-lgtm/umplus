@@ -49,8 +49,11 @@ async function photonRef(q) {
   return null;
 }
 async function fromPlace(url) {
-  const m = String(url).match(/\/maps\/place\/([^/?]+)/); if (!m) return null;
-  let txt; try { txt = decodeURIComponent(m[1].replace(/\+/g, ' ')).trim(); } catch (e) { return null; }  /* '+' ในลิงก์ = ช่องว่าง, %2B = '+' ของ Plus Code */
+  let txt = '';
+  const m = String(url).match(/\/maps\/place\/([^/?]+)/);
+  if (m) { try { txt = decodeURIComponent(m[1].replace(/\+/g, ' ')).trim(); } catch (e) { return null; } }
+  else { try { txt = (new URL(url).searchParams.get('q') || '').trim(); } catch (e) {} }  /* maps.google.com/?q=ชื่อพื้นที่&ftid=... */
+  if (!txt || /^-?\d+\.\d+\s*,/.test(txt)) return null;  /* '+' ในลิงก์ = ช่องว่าง, %2B = '+' ของ Plus Code */
   const pc = txt.match(/^([23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]{0,3})\s*(.*)$/i);
   const area = (pc ? pc[2] : txt).replace(/\s+\d{5}$/, '').trim();
   const words = area.split(/\s+/);
@@ -72,7 +75,7 @@ export async function onRequestGet(ctx) {
     for (let i = 0; i < 6; i++) {
       const p = ll(cur); if (p) { const r = out({ ok: true, ...p, url: cur }); ctx.waitUntil(cache.put(key, r.clone())); return r; }
       /* ปลายทางเป็นหน้า /maps/place/ (Plus Code + ชื่อพื้นที่) → ถอดเองเลย ไม่ต้องเปิดหน้า Google (ซึ่งมักโดนหน้า /sorry กันบอท) */
-      if (/\/maps\/place\//.test(cur)) { const pl = await fromPlace(cur); if (pl) { const res = out({ ok: true, ...pl, url: cur, src: 'place' }); if (!pl.approx) ctx.waitUntil(cache.put(key, res.clone())); return res; } }
+      if (/\/maps\/place\//.test(cur) || /[?&]q=[^&\d-]/.test(cur)) { const pl = await fromPlace(cur); if (pl) { const res = out({ ok: true, ...pl, url: cur, src: 'place' }); if (!pl.approx) ctx.waitUntil(cache.put(key, res.clone())); return res; } }
       const host = new URL(cur).hostname;
       if (!/(goo\.gl|g\.co|google\.[a-z.]+)$/i.test(host)) break;
       const r = await fetch(cur, { redirect: 'manual', headers: { 'User-Agent': 'Mozilla/5.0 (HelpMe-flood-help; +https://helpme4u.com)', 'Accept-Language': 'th,en' } });
