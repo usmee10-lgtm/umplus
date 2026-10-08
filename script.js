@@ -803,7 +803,15 @@ function trackerCard(m,c,queued){const st=queued?'queue':(c&&c.status)||'open',i
   const b=d.querySelector('[data-trk]');if(b)b.onclick=()=>b.dataset.trk==='new'?startForm({gps:true}):openCase(id);return d}
 function renderMine(el){const q=queue(),mine=myReqs().slice().reverse();
   const cards=[...q.map(x=>trackerCard({...x.data,at:x.at},null,true)),...mine.map(m=>trackerCard(m,S.cases.find(c=>String(c.id)===String(m.id))||(typeof TRACK!=='undefined'&&TRACK[m.id])||null,false))];
-  if(!cards.length){el.innerHTML=`<div class="trk-empty"><span class="trk-empty-ic">${ic('heart')}</span><b>ยังไม่มีคำขอจากเครื่องนี้</b><p>ถ้าคุณหรือคนใกล้ตัวต้องการความช่วยเหลือ แจ้งได้เลย ทีมอาสาจะเห็นทันที</p><button type="button" class="btn btn-sos" data-trk="sos">${ic('alert')}ขอความช่วยเหลือ</button><button type="button" class="btn btn-proxy-o" data-trk="proxy">${ic('users')}แจ้งแทนญาติ / คนรู้จัก</button></div>`;
+  if(!cards.length){el.innerHTML=`<section class="mt-empty" aria-labelledby="mt-h">
+      <div class="mt-hero"><span class="mt-orb" aria-hidden="true"><i></i><i></i>${ic('heart')}</span>
+        <h2 id="mt-h">ต้องการความช่วยเหลือ?</h2><p>แจ้งได้ตลอด 24 ชม. ทีมอาสาในพื้นที่จะเห็นคำขอของคุณทันที และติดตามสถานะได้ที่หน้านี้</p></div>
+      <div class="mt-acts">
+        <button type="button" class="mt-act sos" data-trk="sos"><span class="mt-ic">${ic('alert')}</span><span class="mt-tx"><b>ขอความช่วยเหลือ</b><small>สำหรับตัวคุณเอง · ใช้ตำแหน่งปัจจุบัน</small></span>${ic('next')}</button>
+        <button type="button" class="mt-act proxy" data-trk="proxy"><span class="mt-ic">${ic('users')}</span><span class="mt-tx"><b>แจ้งแทน</b><small>ญาติหรือคนรู้จักติดอยู่ในพื้นที่</small></span>${ic('next')}</button>
+      </div>
+      <ol class="mt-how" aria-label="ขั้นตอนหลังส่งคำขอ"><li><span>${ic('note')}</span>ส่งคำขอ</li><li><span>${ic('users')}</span>ทีมรับเคส</li><li><span>${ic('car')}</span>เดินทางไปหา</li><li><span>${ic('heart')}</span>ช่วยเหลือ</li></ol>
+      <a class="mt-1669" href="tel:1669">${ic('phone')}อันตรายถึงชีวิต โทร <b>1669</b> ทันที</a></section>`;
     el.querySelector('[data-trk=sos]').onclick=()=>startForm({gps:true});el.querySelector('[data-trk=proxy]').onclick=()=>startForm({proxy:true});return}
   el.replaceChildren(...cards)}
 function renderList(){
@@ -1157,7 +1165,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='260';let appNewer=false;
+const APP_V='261';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
