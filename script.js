@@ -785,7 +785,29 @@ function caseMore(c){const d=document.createElement('div');d.className='cr-more'
     (hasPin(c)&&S.volunteer&&!isClosed(c)?`<a class="pill pill-ghost" href="https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}" target="_blank" rel="noopener">${ic('nav')}นำทาง</a>`:'')+
     `<button type="button" class="pill pill-ghost cr-open">${ic('next')}เปิดเคส</button></div>`;
   d.querySelector('.cr-open').addEventListener('click',()=>openCase(c.id));return d}
+/* ---------- คนทั่วไป: การ์ดติดตามคำขอของฉัน (ขั้นตอนแบบ tracker) ---------- */
+const TRK_STEPS=[['note','ส่งคำขอแล้ว'],['users','รอทีมอาสารับเคส'],['car','ทีมรับเคส กำลังเดินทาง'],['heart','ช่วยเหลือเสร็จสิ้น']];
+function trackerCard(m,c,queued){const st=queued?'queue':(c&&c.status)||'open',id=m.id||'';
+  const cur=st==='queue'?0:st==='open'?1:st==='going'?2:st==='done'?4:-1;
+  const tm=t=>t?new Date(+t).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':'';
+  const pill={queue:['กำลังส่ง','q'],open:['รอทีมอาสา','o'],going:['ทีมกำลังไป','g'],done:['ช่วยเสร็จแล้ว','d'],skip:['ปิดคำขอ','s']}[st]||['ส่งแล้ว','o'];
+  const team=c&&(c.volunteer||c.team)||'';
+  const sub=[queued?'ยังไม่ถึงทีม · ระบบกำลังส่งให้อัตโนมัติ':tm(m.at||(c&&c.createdAt)),'ทีมอาสาเห็นคำขอบนแผนที่แล้ว และจะติดต่อกลับทางโทรศัพท์',team?'ทีม '+team:'ทีมอาสาที่รับเคสจะโทรหาก่อนเดินทาง','ขอบคุณที่แจ้ง ขอให้ปลอดภัยครับ'];
+  const steps=st==='skip'?`<div class="trk-skip">${ic('info')}<span>ทีมปิดคำขอนี้แล้ว (ไม่เข้าเกณฑ์) ถ้ายังต้องการความช่วยเหลือ แจ้งใหม่ได้ทันที</span></div>`
+    :`<ol class="trk-steps">${TRK_STEPS.map(([icn,t],i)=>{const k=i<cur||cur===4?'done':i===cur?'now':'next';return `<li class="${k}"><span class="trk-dot">${ic(k==='done'?'check':icn)}</span><span class="trk-t"><b>${t}</b>${k!=='next'&&sub[i]?`<small>${esc(sub[i])}</small>`:''}</span></li>`}).join('')}</ol>`;
+  const d=document.createElement('article');d.className='trk trk-'+pill[1];
+  d.innerHTML=`<header class="trk-h"><span class="trk-id">${id?'#'+esc(id):'คำขอใหม่'}</span><span class="trk-pill">${pill[0]}</span></header>
+    <p class="trk-need">${ic(needIcon((m.needs||[])[0]||''))}<span>${esc((m.needs||[]).join(' · ')||'ขอความช่วยเหลือ')}${c&&c.people?` · ${esc(c.people)} คน`:''}</span></p>${steps}
+    <footer class="trk-f"><small>${ic('clock')}อัปเดตล่าสุด ${c&&c.updatedAt?new Date(+c.updatedAt).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':S.loaded?new Date(S.loaded).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':'-'}</small>
+    ${st==='skip'?`<button type="button" class="pill pill-blue small" data-trk="new">${ic('alert')}แจ้งใหม่</button>`:id&&c?`<button type="button" class="pill pill-ghost small" data-trk="open">${ic('next')}รายละเอียด</button>`:''}</footer>`;
+  const b=d.querySelector('[data-trk]');if(b)b.onclick=()=>b.dataset.trk==='new'?startForm({gps:true}):openCase(id);return d}
+function renderMine(el){const q=queue(),mine=myReqs().slice().reverse();
+  const cards=[...q.map(x=>trackerCard({...x.data,at:x.at},null,true)),...mine.map(m=>trackerCard(m,S.cases.find(c=>String(c.id)===String(m.id))||(typeof TRACK!=='undefined'&&TRACK[m.id])||null,false))];
+  if(!cards.length){el.innerHTML=`<div class="trk-empty"><span class="trk-empty-ic">${ic('heart')}</span><b>ยังไม่มีคำขอจากเครื่องนี้</b><p>ถ้าคุณหรือคนใกล้ตัวต้องการความช่วยเหลือ แจ้งได้เลย ทีมอาสาจะเห็นทันที</p><button type="button" class="btn btn-sos" data-trk="sos">${ic('alert')}ขอความช่วยเหลือ</button><button type="button" class="btn btn-proxy-o" data-trk="proxy">${ic('users')}แจ้งแทนญาติ / คนรู้จัก</button></div>`;
+    el.querySelector('[data-trk=sos]').onclick=()=>startForm({gps:true});el.querySelector('[data-trk=proxy]').onclick=()=>startForm({proxy:true});return}
+  el.replaceChildren(...cards)}
 function renderList(){
+  if(!S.volunteer){const el=$('#case-list');renderMine(el);$('#case-count').textContent='คำขอของฉัน';S.listTxt='คำขอของฉัน';sheetLabel();return}
   const list=filteredCases(),el=$('#case-list');el.replaceChildren(...(list.length?[caseHead()]:[]),...list.map(caseRow));
   if(!list.length)el.innerHTML=`<p class="empty">${!S.volunteer?'ยังไม่มีคำขอที่ส่งจากเครื่องนี้ · กด "ขอความช่วยเหลือ" ที่หน้าแรก':S.loaded?(FL.q?'ไม่พบเคสที่ค้นหา':'ไม่มีเคสในตัวกรองนี้'):'กำลังโหลด…'}</p>`;
   /* คนทั่วไปไม่เห็นจำนวนเคส */
@@ -1135,7 +1157,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='259';let appNewer=false;
+const APP_V='260';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
