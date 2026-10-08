@@ -12,6 +12,7 @@ async function build() {
     const it = m[1], source = unent(tag(it, 'source'));
     let title = unent(tag(it, 'title')); if (source && title.endsWith(' - ' + source)) title = title.slice(0, -(source.length + 3));
     const key = title.replace(/\s+/g, '').slice(0, 40); if (!title || seen.has(key)) continue; seen.add(key);
+    if (!/ท่วม|อุทกภัย|น้ำป่า|ดินโคลน|ดินถล่ม|พายุ|แผ่นดินไหว|ภัยพิบัติ|ปภ\.|ฝนตกหนัก|เยียวยา|ระดับน้ำ|เขื่อน|อพยพ|ผู้ประสบภัย|เตือนภัย/.test(title)) continue;  /* ตัดข่าวที่ติดคำค้นแต่ไม่เกี่ยวภัยพิบัติ */
     const url = unent(tag(it, 'link')); if (!/^https:\/\//.test(url)) continue;
     items.push({ id: 'n-' + (tag(it, 'guid') || url).slice(-24), title, source, url, t: Date.parse(tag(it, 'pubDate')) || 0 });
   }
@@ -21,7 +22,7 @@ async function build() {
 }
 const res = (b, s) => new Response(b, { headers: { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=120', 'x-cache': s } });
 export async function onRequestGet(ctx) {
-  const cache = caches.default, key = new Request('https://helpme4u.com/__news/v1');
+  const cache = caches.default, key = new Request('https://helpme4u.com/__news/v2');
   const put = b => cache.put(key, new Response(b, { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=' + STALE, 'x-at': String(Date.now()) } }));
   const hit = await cache.match(key);
   if (hit) { const age = (Date.now() - (+hit.headers.get('x-at') || 0)) / 1000, b = await hit.text(); if (age < FRESH) return res(b, 'hit'); ctx.waitUntil(build().then(put).catch(() => {})); return res(b, 'stale'); }
