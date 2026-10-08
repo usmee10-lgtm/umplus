@@ -811,7 +811,7 @@ function renderMine(el){const q=queue(),mine=myReqs().slice().reverse();
         <button type="button" class="mt-act proxy" data-trk="proxy"><span class="mt-ic">${ic('users')}</span><span class="mt-tx"><b>แจ้งแทน</b><small>ญาติหรือคนรู้จักติดอยู่ในพื้นที่</small></span>${ic('next')}</button>
       </div>
       <ol class="mt-how" aria-label="ขั้นตอนหลังส่งคำขอ"><li><span>${ic('note')}</span>ส่งคำขอ</li><li><span>${ic('users')}</span>ทีมรับเคส</li><li><span>${ic('car')}</span>เดินทางไปหา</li><li><span>${ic('heart')}</span>ช่วยเหลือ</li></ol>
-      <a class="mt-1669" href="tel:1669">${ic('phone')}อันตรายถึงชีวิต โทร <b>1669</b> ทันที</a></section>`;
+      </section>`;
     el.querySelector('[data-trk=sos]').onclick=()=>startForm({gps:true});el.querySelector('[data-trk=proxy]').onclick=()=>startForm({proxy:true});return}
   el.replaceChildren(...cards)}
 function renderList(){
@@ -1165,7 +1165,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='262';let appNewer=false;
+const APP_V='263';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
