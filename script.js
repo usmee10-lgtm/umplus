@@ -165,6 +165,12 @@ async function ensureMap(which){
   if(S.maps[which])return S.maps[which];
   const m=makeMap(el,{zoom:11});S.maps[which]=m;PIN_LAYER[which]=L.layerGroup().addTo(m);
   m.on('baselayerchange',()=>{});
+  /* คนทั่วไป: แตะจุดใดบนแผนที่ → ปักหมุดขอความช่วยเหลือที่จุดนั้นได้ทันที */
+  m.on('click',e=>{if(S.volunteer)return;const {lat,lng}=e.latlng;const d=document.createElement('div');d.className='pin-ask';
+    d.innerHTML=`<b>ปักหมุดที่จุดนี้</b><button type="button" class="pa-go">${ic('alert')}ขอความช่วยเหลือ</button><button type="button" class="pa-proxy">${ic('users')}แจ้งแทน</button>`;
+    const pp=L.popup({closeButton:true,autoPan:true,className:'pin-ask-pop'}).setLatLng(e.latlng).setContent(d).openOn(m);
+    const goForm=proxy=>{m.closePopup(pp);startForm({proxy});setTimeout(()=>setPin(lat,lng,true,true,'manual'),350)};
+    d.querySelector('.pa-go').onclick=()=>goForm(false);d.querySelector('.pa-proxy').onclick=()=>goForm(true)});
   drawPins(which);if(S.volunteer)volLayersOn();
   if(which==='map'&&typeof drawTrip==='function')drawTrip();
   return m;
@@ -175,8 +181,8 @@ function drawPins(which){
   if(m._popup&&m.hasLayer(m._popup)){m._pinsStale=true;if(!m._pinsHook){m._pinsHook=1;m.on('popupclose',()=>{if(m._pinsStale){m._pinsStale=false;setTimeout(()=>drawPins(which),0)}})}return}  /* อาสากำลังอ่าน popup อยู่ → ค่อยวาดใหม่ตอนปิด */
   lg.clearLayers();
   /* คนทั่วไป: หน้าแรกเห็นหมุดคำขอทั้งหมด (ตำแหน่งโดยประมาณ) เป็นสีฟ้าเหมือนกันหมด ไม่แยกสถานะ · กดได้เฉพาะคำขอของตัวเอง */
-  const pub=which==='home'&&!S.volunteer,mine=pub?new Set(myReqs().map(m=>String(m.id))):null;
-  const list=which==='home'?(pub?S.cases.filter(c=>!isClosed(c)):visibleCases()):filteredCases();  /* อาสา: หน้าแรกเห็นหมุดทุกเคส รวมที่ช่วยแล้ว/ไม่เข้าเกณฑ์ (สีตามสถานะ) */
+  const pub=!S.volunteer,mine=pub?new Set(myReqs().map(m=>String(m.id))):null;  /* คนทั่วไป: ทั้งหน้าแรกและหน้ารายการเห็นหมุดคำขอที่ยังไม่ปิดทั้งหมด (สีฟ้า) */
+  const list=pub?S.cases.filter(c=>!isClosed(c)||mine.has(String(c.id))):which==='home'?visibleCases():filteredCases();  /* อาสา: หน้าแรกเห็นหมุดทุกเคส รวมที่ช่วยแล้ว/ไม่เข้าเกณฑ์ (สีตามสถานะ) */
   const pts=[];
   list.filter(hasPin).forEach(c=>{const own=!pub||mine.has(String(c.id)),k=pub?'open':pinKind(c);pts.push([+c.lat,+c.lng]);
     if(!own){L.marker([+c.lat,+c.lng],{icon:pinIcon('open'),interactive:false,keyboard:false,title:'คำขอความช่วยเหลือ (ตำแหน่งโดยประมาณ)'}).addTo(lg);return}
@@ -1129,7 +1135,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='258';let appNewer=false;
+const APP_V='259';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */

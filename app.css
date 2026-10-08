@@ -1502,3 +1502,12 @@ body.nt-open{overflow:hidden}
 /* v258 คนทั่วไปไม่ต้องเห็นคำอธิบายสีสถานะ (หมุดเป็นสีฟ้าอย่างเดียว) · ตัดป้าย "อัปเดตสด" */
 body:not(.is-vol) #legend{display:none!important}
 .live-badge{display:none!important}
+/* v259 แตะแผนที่เพื่อปักหมุดขอความช่วยเหลือ (คนทั่วไป) */
+.pin-ask-pop .leaflet-popup-content-wrapper{border-radius:18px}
+.pin-ask-pop .leaflet-popup-content{margin:12px 14px}
+.pin-ask{display:grid;gap:8px;min-width:190px;font-family:var(--font)}
+.pin-ask b{font-size:14px;color:var(--ink)}
+.pin-ask button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border:0;border-radius:999px;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer}
+.pin-ask button .ic{width:17px;height:17px}
+.pin-ask .pa-go{background:var(--primary);color:#fff}
+.pin-ask .pa-proxy{background:var(--tint);color:var(--primary-2)}
