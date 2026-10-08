@@ -49,8 +49,8 @@ async function photonRef(q) {
   return null;
 }
 async function fromPlace(url) {
-  let m = decodeURIComponent(String(url)).match(/\/maps\/place\/([^/?]+)/); if (!m) return null;
-  const txt = m[1].replace(/\+/g, ' ').trim();
+  const m = String(url).match(/\/maps\/place\/([^/?]+)/); if (!m) return null;
+  let txt; try { txt = decodeURIComponent(m[1].replace(/\+/g, ' ')).trim(); } catch (e) { return null; }  /* '+' ในลิงก์ = ช่องว่าง, %2B = '+' ของ Plus Code */
   const pc = txt.match(/^([23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]{0,3})\s*(.*)$/i);
   const area = (pc ? pc[2] : txt).replace(/\s+\d{5}$/, '').trim();
   const words = area.split(/\s+/);
