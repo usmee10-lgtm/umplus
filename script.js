@@ -72,17 +72,17 @@ async function postCreate(body,onTry){const photos=(body.photos||[]).length,wait
 /* ข้อมูลสาธารณะ (ไม่มีรหัสอาสา) ดึงผ่านแคชของ Cloudflare ก่อน → เร็วกว่าเรียก Apps Script ตรงมาก · ถ้าแคชล่มค่อยเรียกตรง */
 const PUB_ACTIONS=['list','teams','network','outreach'];
 /* ตรวจรูปแบบคำตอบ กันกรณี /api ถูกบริการอื่นดักแล้วตอบ {ok:true} เปล่า ๆ (ไม่งั้นรายการเคสจะว่าง) */
-const API_ALT='https://umplus-help.pages.dev';
+const API_ALT='https://umplus-help.pages.dev';  /* สำรองเท่านั้น · ทางหลักคือ EDGE_BASES (geocode.js) = /hm บน helpme4u.com */
 function apiShapeOk(j,action){if(!j||!j.ok||j.service)return false;if(action==='list')return Array.isArray(j.cases);return true}
 /* โหมดอาสา: list/teams ผ่านแคชที่ Cloudflare (กุญแจแคชเป็นค่าแฮชของรหัส ไม่เก็บรหัส) */
 async function volGet(params){  /* ผ่านแคช Cloudflare ของเราเอง (umplus-help.pages.dev) — ไม่ใช้ /api บน helpme4u.com ที่ยังถูกบริการอื่นดักอยู่ */
   if(S.lastWrite&&Date.now()-S.lastWrite<60000)return null;  /* เพิ่งแก้ข้อมูล → อ่านตรงจาก Apps Script ให้เห็นค่าล่าสุดแน่ ๆ */
   if(!params.key||!['list','teams'].includes(params.action)||!/^https?:/.test(location.protocol)||location.hostname==='localhost')return null;
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
-  try{const r=await fetch(API_ALT+'/api/vol?action='+params.action,{signal:ctl.signal,headers:{'x-vol-key':params.key}});if(!r.ok)return null;const j=await r.json();return apiShapeOk(j,params.action)?j:null}catch(e){return null}finally{clearTimeout(tm)}}
+  try{for(const base of EDGE_BASES){try{const r=await fetch(base+'/vol?action='+params.action,{signal:ctl.signal,headers:{'x-vol-key':params.key}});if(!r.ok)continue;const j=await r.json();if(apiShapeOk(j,params.action))return j}catch(e){if(e.name==='AbortError')return null}}return null}finally{clearTimeout(tm)}}
 async function pubGet(params){if(params.key||!PUB_ACTIONS.includes(params.action)||!/^https?:/.test(location.protocol)||location.hostname==='localhost')return null;
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),8000);
-  try{for(const base of [API_ALT]){try{const r=await fetch(base+'/api/pub?action='+params.action,{signal:ctl.signal});if(!r.ok)continue;const j=await r.json();if(apiShapeOk(j,params.action))return j}catch(e){if(e.name==='AbortError')return null}}return null}finally{clearTimeout(tm)}}
+  try{for(const base of EDGE_BASES){try{const r=await fetch(base+'/pub?action='+params.action,{signal:ctl.signal});if(!r.ok)continue;const j=await r.json();if(apiShapeOk(j,params.action))return j}catch(e){if(e.name==='AbortError')return null}}return null}finally{clearTimeout(tm)}}
 async function apiGet(params,timeout=25000,retry=1){const pj=params.key?await volGet(params):await pubGet(params);if(pj)return pj;
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),timeout);
   try{const r=await fetch(API_URL+'?'+new URLSearchParams(params),{signal:ctl.signal});const t=await r.text();return JSON.parse(t)}
@@ -336,7 +336,7 @@ function cctvZoomSync(m){if(!m||!m._cctv)return;const show=m.getZoom()>=CCTV_ZOO
   if(show&&!m.hasLayer(m._cctv)){m._cctv.addTo(m);ac&&ac.addAttribution(CCTV_ATTR)}else if(!show&&m.hasLayer(m._cctv)){m.removeLayer(m._cctv);ac&&ac.removeAttribution(CCTV_ATTR)}}
 async function toggleCctv(on){if(on&&!S.volunteer)return;store.set('uh_lay_cctv',on?'1':'');$('#lay-cctv').checked=on;layCount&&layCount();const gen=++cctvGen;
   Object.values(S.maps).forEach(m=>{if(m&&m._cctv){m.removeLayer(m._cctv);m._cctv=null;m.attributionControl&&m.attributionControl.removeAttribution(CCTV_ATTR)}});if(!on)return;
-  try{if(!S.cctv||Date.now()-S.cctvAt>120000){let r=null;for(const base of [API_ALT]){try{const x=await fetch(base+'/api/cctv').then(r=>r.json());if(x&&x.ok&&Array.isArray(x.cams)){r=x;break}}catch(e){}}if(!r)throw new Error('cctv');S.cctv=r;S.cctvAt=Date.now()}
+  try{if(!S.cctv||Date.now()-S.cctvAt>120000){let r=null;for(const base of EDGE_BASES){try{const x=await fetch(base+'/cctv').then(r=>r.json());if(x&&x.ok&&Array.isArray(x.cams)){r=x;break}}catch(e){}}if(!r)throw new Error('cctv');S.cctv=r;S.cctvAt=Date.now()}
     if(gen!==cctvGen)return;
     Object.values(S.maps).forEach(m=>{if(!m)return;const rd=m._cctvRd||(m._cctvRd=L.canvas({padding:.3}));
       m._cctv=L.layerGroup(S.cctv.cams.map(c=>camMarker([c[3],c[4]],{renderer:rd,radius:13,weight:0,fillOpacity:0}).bindPopup(()=>cctvPopup(c),{maxWidth:280,minWidth:260,offset:[0,-8]})));
@@ -1127,7 +1127,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='247';let appNewer=false;
+const APP_V='248';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1171,7 +1171,7 @@ function helpLabel(){const b=$('#btn-help');if(!b)return;const t=[...b.childNode
 /* 1) ลิงก์ Google Maps แบบย่อ (maps.app.goo.gl) จาก LINE → ให้เซิร์ฟเวอร์ตามลิงก์แล้วอ่านพิกัด */
 async function resolveShortLink(v){const st=$('#addr-status'),url=(String(v).match(/https?:\/\/\S+/)||[v])[0];st.textContent='กำลังอ่านตำแหน่งจากลิงก์ Google Maps…';
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),12000);
-  try{for(const base of [API_ALT,'']){try{const r=await fetch(base+'/api/gmaps?u='+encodeURIComponent(url),{signal:ctl.signal});const j=await r.json();
+  try{for(const base of EDGE_BASES){try{const r=await fetch(base+'/gmaps?u='+encodeURIComponent(url),{signal:ctl.signal});const j=await r.json();
       if(j&&j.ok&&isFinite(j.lat)){$('#addr-input').value='';F.addrDirty=false;await setPin(j.lat,j.lng,true,true,j.approx?'addr':'link');st.textContent=j.approx?'ได้ตำแหน่งโดยประมาณจากลิงก์ · ลากหมุดให้ตรงบ้าน':'ปักหมุดตามลิงก์ Google Maps แล้ว · ตรวจว่าหมุดตรงบ้าน';return}}catch(e){if(e.name==='AbortError')break}}
     st.textContent='อ่านพิกัดจากลิงก์นี้ไม่ได้ · ใน Google Maps กดค้างที่บ้านจนมีหมุด แล้วคัดลอกตัวเลขพิกัด (เช่น 13.79, 100.62) มาวางแทน'}
   finally{clearTimeout(tm)}}
