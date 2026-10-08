@@ -1252,3 +1252,70 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .stats .hint{font-size:12.5px;margin:10px 0 0}
 .stats .bars li>*{min-height:44px}
 .stats .bars .bt{height:10px;border-radius:99px}.stats .bars .bt i{border-radius:99px}
+/* ---------- v244 หน้าสรุป ส่วนล่าง: เน้นไอคอน + ตัวเลข ---------- */
+.sicons{display:grid;gap:10px}
+.sicons.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.sicons.five{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+@media (max-width:520px){.sicons.five{gap:6px}.sicons.five .sicon{padding:10px 2px;gap:4px;border-radius:14px}.sicons.five .sicon>span{width:30px;height:30px;border-radius:10px}.sicons.five .sicon>span .ic{width:16px;height:16px}.sicons.five .sicon b{font-size:18px}.sicons.five .sicon small{font-size:11px}}
+.sicon{--t:#2D45C8;--tb:#ECEFFC;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:14px 12px;border-radius:18px;background:var(--bg);min-width:0}
+.sicon>span{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:var(--tb);color:var(--t)}
+.sicon>span .ic{width:19px;height:19px}
+.sicon b{font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sicon small{font-size:12.5px;color:var(--muted);line-height:1.2}
+.sicon.t-green{--t:#1D7A43;--tb:#DDF4E5}.sicon.t-violet{--t:#6B4FC0;--tb:#EEE8FB}.sicon.t-red{--t:#C62828;--tb:#FCE3E3}.sicon.t-red b{color:#C62828}
+.sicons.five .sicon{align-items:center;text-align:center;padding:12px 6px}
+.swaits>span{display:flex;align-items:center;gap:6px}.swaits>span .ic{width:16px;height:16px;color:#C62828}
+.sempty{display:flex;align-items:center;gap:8px;margin:0;padding:14px;border-radius:16px;background:var(--bg);color:var(--muted);font-size:14px}.sempty .ic{width:18px;height:18px;color:var(--ok)}
+/* รอนานที่สุด */
+.swait-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.swait-list button{width:100%;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:10px;border:0;border-radius:18px;background:var(--bg);font:inherit;color:var(--ink);text-align:left;cursor:pointer}
+.sw-time{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:68px;padding:8px 6px;border-radius:14px;background:#fff;box-shadow:inset 0 -3px 0 var(--c)}
+.sw-time b{font-size:17px;font-weight:800;line-height:1.1;white-space:nowrap;font-variant-numeric:tabular-nums}.sw-time small{font-size:11px;font-weight:700;color:var(--c)}
+.sw-mid{display:grid;gap:6px;min-width:0}
+.sw-ic{display:flex;gap:6px}.sw-ic i{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:#fff;color:var(--ink)}.sw-ic .ic{width:17px;height:17px}
+.sw-mid small{display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sw-mid small .ic{width:13px;height:13px;flex:none}
+.sw-ppl{display:flex;align-items:center;gap:4px;color:var(--muted)}.sw-ppl .ic{width:15px;height:15px}.sw-ppl b{font-size:16px;color:var(--ink)}
+/* ความเร่งด่วน */
+.surg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.surg>div{display:flex;flex-direction:column;align-items:center;gap:3px;padding:14px 6px 12px;border-radius:18px;background:var(--bg);text-align:center}
+.surg i{width:28px;height:6px;border-radius:99px;background:var(--c);margin-bottom:6px}
+.surg b{font-size:28px;font-weight:800;line-height:1;color:var(--c);font-variant-numeric:tabular-nums}
+.surg span{font-size:12.5px;font-weight:600}
+.surg small{display:flex;align-items:center;gap:3px;font-size:11.5px;color:var(--muted)}.surg small .ic{width:12px;height:12px}
+.surg .is-zero{opacity:.45}
+/* ต้องการอะไร */
+.sneeds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media (max-width:380px){.sneeds{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.sneeds button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 4px 12px;border:0;border-radius:18px;background:var(--bg);font:inherit;color:var(--ink);cursor:pointer;min-height:44px}
+.sneeds button:active{transform:scale(.97)}
+.sn-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:14px;background:#fff;color:var(--primary);box-shadow:0 2px 6px rgba(17,19,24,.06)}.sn-ic .ic{width:22px;height:22px}
+.sneeds b{font-size:22px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}.sneeds span:last-child{font-size:12px;color:var(--muted);text-align:center}
+.stats .schips{margin-top:12px}.stats .schips span{background:var(--bg);display:inline-flex;align-items:center;gap:4px}.stats .schips .ic{width:14px;height:14px}
+/* ระดับน้ำ */
+.slv-bar{display:flex;height:16px;border-radius:99px;overflow:hidden;gap:3px}
+.slv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.slv>div{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:14px;background:var(--bg)}
+.slv i{width:22px;height:5px;border-radius:99px}.slv span{font-size:12px;color:var(--muted);white-space:nowrap}.slv b{font-size:22px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+/* รายพื้นที่ */
+.sarea{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.sarea li{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--bg)}
+.sarea li[hidden]{display:none}
+.sa-no{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:#fff;font-size:13px;font-weight:800;color:var(--muted)}
+.sarea li:nth-child(-n+3) .sa-no{background:#111318;color:#fff}
+.sa-n{font-weight:700;font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sa-v{display:flex;gap:6px}
+.sa-v em{display:inline-flex;align-items:center;gap:3px;min-width:34px;justify-content:center;padding:4px 8px;border-radius:99px;font-style:normal;font-weight:800;font-size:13.5px;font-variant-numeric:tabular-nums}
+.sa-v em .ic{width:12px;height:12px}
+.sa-v .blue{background:var(--open-tint);color:var(--open)}.sa-v .red{background:#FCE3E3;color:#C62828}.sa-v .green{background:var(--ok-tint);color:var(--ok-ink)}
+.skey{display:flex;gap:14px;margin-top:10px;font-size:12px;color:var(--muted)}.skey span{display:flex;align-items:center;gap:5px}.skey i{width:10px;height:10px;border-radius:50%}
+.skey .blue{background:var(--open)}.skey .red{background:#E5383B}.skey .green{background:var(--ok)}
+/* ทีมอาสา */
+.steams{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.steams li{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:12px;padding:10px 12px;border-radius:16px;background:var(--bg)}
+.st-av{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:hsl(var(--h) 70% 92%);color:hsl(var(--h) 55% 32%);font-weight:800;font-size:17px}
+.st-nm{display:grid;min-width:0}.st-nm b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-nm small{display:flex;align-items:center;gap:4px;font-size:12.5px;color:var(--muted)}.st-nm small .ic{width:13px;height:13px}
+.st-dn{display:flex;flex-direction:column;align-items:flex-end}.st-dn b{font-size:22px;font-weight:800;line-height:1;color:var(--ok-ink);font-variant-numeric:tabular-nums}.st-dn small{font-size:11px;color:var(--muted)}
+/* ซ่อนรายละเอียดเสริม */
+.smore{margin-top:12px}.smore summary{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--muted);padding:6px 0}.smore summary .ic{width:15px;height:15px}
+.slv b{order:-1}.slv i{order:-2;margin-bottom:4px}
