@@ -60,7 +60,10 @@ function hlLogo(o){const box=document.createElement('span');box.className='hl-lo
   return box}
 function renderHotlines(){
   const term=document.getElementById('hotline-search').value.trim().toLowerCase();
-  const matches=hotlines.filter(h=>{const o=hlOrgs[h.org]||{};return (hlCat==='all'||h.group===hlCat)&&(!term||`${h.number} ${h.name} ${h.agency} ${h.note} ${o.name||''} ${o.abbr||''} ${o.about||''}`.toLowerCase().includes(term))});
+  /* เบอร์ที่อยู่บนการ์ด SOS ด้านบนแล้ว ไม่แสดงซ้ำในรายการ · ถ้ากำลังค้นหา/เลือกหมวด ซ่อนการ์ด SOS แล้วแสดงครบ */
+  const sosBox=document.querySelector('.sos-wrap'),plain=hlCat==='all'&&!term,SOS=new Set(plain?[...document.querySelectorAll('.sos')].map(a=>a.getAttribute('href').slice(4)):[]);
+  if(sosBox)sosBox.hidden=!plain;
+  const matches=hotlines.filter(h=>{const o=hlOrgs[h.org]||{};return !SOS.has(h.number)&&(hlCat==='all'||h.group===hlCat)&&(!term||`${h.number} ${h.name} ${h.agency} ${h.note} ${o.name||''} ${o.abbr||''} ${o.about||''}`.toLowerCase().includes(term))});
   const root=document.getElementById('hotline-directory');root.replaceChildren();
   /* หน่วยงานละ 1 การ์ด: อยู่ในหมวดของเบอร์แรก (ด่วนสุด) และรวมทุกเบอร์ของหน่วยงานนั้นไว้ในการ์ดเดียว */
   const orgs=new Map();matches.forEach(h=>{const k=h.org||h.number;if(!orgs.has(k))orgs.set(k,{group:h.group,nums:[]});orgs.get(k).nums.push(h)});
