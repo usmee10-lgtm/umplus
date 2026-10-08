@@ -1387,3 +1387,14 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .sh-kpis .skv{border-left-color:rgba(255,255,255,.12)}
 .sh-kpis .skv span{color:#93A0C4}
 .sh-kpis .skv:nth-child(2) b{color:#A9BDFF}.sh-kpis .skv:nth-child(3) b{color:#5BF0A5}
+/* v247 การ์ดภาพรวมโทนสว่าง: ไล่สีฟ้าสด → เขียวน้ำทะเล */
+.shero{background:linear-gradient(135deg,#3557F5 0%,#3F86F7 55%,#22BFA8 100%);box-shadow:0 14px 30px rgba(53,87,245,.28)}
+.shero::before{background:radial-gradient(circle,rgba(255,255,255,.28),rgba(255,255,255,0) 68%)}
+.shero::after{background:radial-gradient(circle,rgba(255,255,255,.14),rgba(255,255,255,0) 70%)}
+.sh-top h2,.sh-top span,.sh-kpis .skv span,.sh-ring text.t2{color:rgba(255,255,255,.82);fill:rgba(255,255,255,.85)}
+.sh-num b small{color:#D6FFF1}
+.sh-num span{color:rgba(255,255,255,.92)}
+.sh-ring{filter:drop-shadow(0 4px 12px rgba(10,30,120,.25))}
+.sh-kpis{border-top-color:rgba(255,255,255,.28)}
+.sh-kpis .skv{border-left-color:rgba(255,255,255,.28)}
+.sh-kpis .skv:nth-child(2) b,.sh-kpis .skv:nth-child(3) b{color:#fff}
