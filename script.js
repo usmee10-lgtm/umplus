@@ -1055,14 +1055,14 @@ function renderStats(soft){
   const LV_BLUE={dry:'#CFE0F7',ankle:'#9EC0EE',knee:'#5E93DE',waist:'#2F67C2',chest:'#1E4690',roof:'#0F2756',none:'#C9CCD5'};
   const upd=S.loaded?new Date(S.loaded).toLocaleString('th-TH',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'})+' น.':'ข้อมูลที่บันทึกไว้';
   const tot=Math.max(1,open.length+going.length+done.length),C=2*Math.PI*44;let off=0;
-  const ring=[[done.length,'#4ADE80'],[going.length,'#FBBF24'],[open.length,'#8B9BFF']].map(([n,c])=>{if(!n)return '';const L=n/tot*C,gap=n<tot?3:0,seg=`<circle cx="50" cy="50" r="44" stroke="${c}" stroke-dasharray="${Math.max(.1,L-gap)} ${C}" stroke-dashoffset="${-off}"/>`;off+=L;return seg}).join('');
+  const ring=[[done.length,'url(#shG)'],[going.length,'#FFC94D'],[open.length,'#7C9CFF']].map(([n,c])=>{if(!n)return '';const L=n/tot*C,gap=n<tot?3:0,seg=`<circle cx="50" cy="50" r="44" stroke="${c}" stroke-dasharray="${Math.max(.1,L-gap)} ${C}" stroke-dashoffset="${-off}"/>`;off+=L;return seg}).join('');
   const pct=Math.round(R.rate*1000)/10;
   const kv=(n,l,cls='')=>`<div class="skv${cls?' '+cls:''}"><span>${l}</span><b>${n}</b></div>`;
   const stile2=(n,l,dot,go)=>`<button type="button" class="stile2" data-sgo="${go}"><i style="background:${dot}"></i><b>${N(n)}</b><span>${l}</span></button>`;
   el.innerHTML=`<section class="shero" aria-labelledby="st-hero">
     <div class="sh-top"><h2 id="st-hero">ภาพรวมทั้งหมด</h2><span>${ic('clock')}${upd}</span></div>
     <div class="sh-main"><div class="sh-num"><b>${pct}<small>%</small></b><span>ของเคสช่วยเสร็จแล้ว</span></div>
-      <svg class="sh-ring" viewBox="0 0 100 100" role="img" aria-label="ช่วยแล้ว ${done.length} กำลังไป ${going.length} รอช่วย ${open.length}"><circle cx="50" cy="50" r="44" stroke="rgba(255,255,255,.1)"/><g transform="rotate(-90 50 50)">${ring}</g><text x="50" y="47">${N(done.length)}</text><text x="50" y="62" class="t2">ช่วยแล้ว</text></svg></div>
+      <svg class="sh-ring" viewBox="0 0 100 100" role="img" aria-label="ช่วยแล้ว ${done.length} กำลังไป ${going.length} รอช่วย ${open.length}"><defs><linearGradient id="shG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5BF0A5"/><stop offset="1" stop-color="#1FC7B6"/></linearGradient></defs><circle cx="50" cy="50" r="44" stroke="rgba(255,255,255,.08)"/><g transform="rotate(-90 50 50)">${ring}</g><text x="50" y="47">${N(done.length)}</text><text x="50" y="62" class="t2">ช่วยแล้ว</text></svg></div>
     <div class="sh-kpis">${kv(N(R.total),'เคสทั้งหมด')}${kv(N(people.all),'คนที่แจ้ง')}${kv(N(people.doneUnique),'คนได้รับการช่วย')}</div>
   </section>
   <section class="scard" aria-labelledby="st-now"><div class="sc-h"><h2 id="st-now">สถานะตอนนี้</h2><small>แตะเพื่อดูรายการ</small></div>
@@ -1127,7 +1127,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='245';let appNewer=false;
+const APP_V='246';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */

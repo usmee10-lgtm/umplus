@@ -1374,3 +1374,16 @@ body:not(.is-vol) #list-body>.search-field,body:not(.is-vol) .fl-row,body:not(.i
 .squal b{font-size:20px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums}.squal small{font-size:11px;color:var(--muted);line-height:1.2}
 .squal .is-warn span,.squal .is-warn b{color:#C62828}
 .swait2>span{display:inline-flex;align-items:center;gap:4px}.swait2>span .ic{width:15px;height:15px}
+/* v246 สีการ์ดภาพรวม: น้ำเงินเข้มลึก + แสงเรืองเขียว/ฟ้า */
+.shero{position:relative;overflow:hidden;isolation:isolate;background:#0B1433;box-shadow:0 14px 34px rgba(11,20,51,.28)}
+.shero::before{content:"";position:absolute;z-index:-1;width:300px;height:300px;right:-90px;top:-110px;border-radius:50%;background:radial-gradient(circle,rgba(46,214,160,.30),rgba(46,214,160,0) 68%)}
+.shero::after{content:"";position:absolute;z-index:-1;width:340px;height:340px;left:-140px;bottom:-200px;border-radius:50%;background:radial-gradient(circle,rgba(92,124,255,.32),rgba(92,124,255,0) 70%)}
+.sh-top h2,.sh-top span{color:#93A0C4}
+.sh-num b small{color:#4BE8A6}
+.sh-num span{color:#C3CBE3}
+.sh-ring{filter:drop-shadow(0 0 14px rgba(46,214,160,.28))}
+.sh-ring text.t2{fill:#93A0C4}
+.sh-kpis{border-top-color:rgba(255,255,255,.12)}
+.sh-kpis .skv{border-left-color:rgba(255,255,255,.12)}
+.sh-kpis .skv span{color:#93A0C4}
+.sh-kpis .skv:nth-child(2) b{color:#A9BDFF}.sh-kpis .skv:nth-child(3) b{color:#5BF0A5}
