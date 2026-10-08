@@ -23,7 +23,7 @@
 <link rel="apple-touch-icon" href="./assets/hm-icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=171">
+<link rel="stylesheet" href="./app.css?v=172">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -251,6 +251,7 @@
 <!-- ===== ฉุกเฉิน ===== -->
 <main id="view-emergency" class="view" aria-label="เบอร์ฉุกเฉิน">
   <header class="page-top plain"><h1 tabindex="-1">เบอร์ฉุกเฉิน</h1></header>
+  <div class="sos-wrap"><div class="sos-grid"><a class="sos s1" href="tel:1669" aria-label="โทร 1669 เจ็บป่วยฉุกเฉิน"><span data-icon="ambulance" aria-hidden="true"></span><span class="sos-bg" data-icon="ambulance" aria-hidden="true"></span><span class="sos-go" data-icon="phone" aria-hidden="true"></span><b>1669</b><small>เจ็บป่วยฉุกเฉิน</small></a><a class="sos s2" href="tel:191" aria-label="โทร 191 เหตุด่วนเหตุร้าย"><span data-icon="shield" aria-hidden="true"></span><span class="sos-bg" data-icon="shield" aria-hidden="true"></span><span class="sos-go" data-icon="phone" aria-hidden="true"></span><b>191</b><small>เหตุด่วนเหตุร้าย</small></a><a class="sos s3" href="tel:1784" aria-label="โทร 1784 สาธารณภัย น้ำท่วม"><span data-icon="wave" aria-hidden="true"></span><span class="sos-bg" data-icon="wave" aria-hidden="true"></span><span class="sos-go" data-icon="phone" aria-hidden="true"></span><b>1784</b><small>สาธารณภัย น้ำท่วม</small></a><a class="sos s4" href="tel:1555" aria-label="โทร 1555 แจ้งเหตุ กทม."><span data-icon="home" aria-hidden="true"></span><span class="sos-bg" data-icon="home" aria-hidden="true"></span><span class="sos-go" data-icon="phone" aria-hidden="true"></span><b>1555</b><small>แจ้งเหตุ กทม.</small></a></div></div>
   <div class="hl-tools">
     <label class="search-field"><span data-icon="search"></span><input id="hotline-search" type="search" placeholder="ค้นหาเบอร์หรือหน่วยงาน" aria-label="ค้นหาเบอร์"></label>
     <div class="hl-cats" id="hotline-cats" role="group" aria-label="หมวดเบอร์"></div>
@@ -305,8 +306,8 @@
       <div class="hb-panel" id="hb-panel" role="tabpanel" hidden></div>
 
       <div class="heal-lines">
-        <a class="hl t1" href="tel:1323" aria-label="โทร 1323 สายด่วนสุขภาพจิต"><span data-icon="phone" aria-hidden="true"></span><b>1323</b><small>สายด่วนสุขภาพจิต</small></a>
-        <a class="hl t2" href="tel:1300" aria-label="โทร 1300 ศูนย์ช่วยเหลือสังคม"><span data-icon="users" aria-hidden="true"></span><b>1300</b><small>นักสังคมสงเคราะห์ พม.</small></a>
+        <a class="hln t1" href="tel:1323" aria-label="โทร 1323 สายด่วนสุขภาพจิต"><span data-icon="phone" aria-hidden="true"></span><b>1323</b><small>สายด่วนสุขภาพจิต</small></a>
+        <a class="hln t2" href="tel:1300" aria-label="โทร 1300 ศูนย์ช่วยเหลือสังคม"><span data-icon="users" aria-hidden="true"></span><b>1300</b><small>นักสังคมสงเคราะห์ พม.</small></a>
       </div>
       <p class="heal-warn"><span data-icon="alert" aria-hidden="true"></span>ไม่ดีขึ้นเกิน 2 สัปดาห์ หรือคิดทำร้ายตัวเอง โทร 1323 ได้ตลอด 24 ชม.</p>
     </section>
@@ -344,14 +345,14 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=171"></script>
-<script src="./geocode.js?v=171"></script>
-<script src="./location.js?v=171"></script>
-<script src="./pickmap.js?v=171"></script>
-<script src="./stats.js?v=171"></script>
-<script src="./hotlines.js?v=171"></script>
-<script src="./script.js?v=171"></script>
-<script src="./notify.js?v=171"></script>
+<script src="./icons.js?v=172"></script>
+<script src="./geocode.js?v=172"></script>
+<script src="./location.js?v=172"></script>
+<script src="./pickmap.js?v=172"></script>
+<script src="./stats.js?v=172"></script>
+<script src="./hotlines.js?v=172"></script>
+<script src="./script.js?v=172"></script>
+<script src="./notify.js?v=172"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>

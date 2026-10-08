@@ -1612,11 +1612,11 @@ body:not(.is-vol) .vol-row,body:not(.is-vol) #case-count{display:none!important}
 .hb-panel li .n{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:10px;font-weight:800;font-size:15px;background:var(--hbc-bg);color:var(--hbc)}
 .hb-panel li .n .ic{width:16px;height:16px}
 .heal-lines{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.hl{display:grid;justify-items:start;gap:0;padding:14px;border-radius:22px;text-decoration:none;color:#fff}
-.hl>.ic{width:30px;height:30px;padding:7px;box-sizing:border-box;border-radius:10px;background:rgba(255,255,255,.22);margin-bottom:8px}
-.hl b{font-size:28px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}.hl small{font-size:12px;font-weight:600;opacity:.9}
-.hl.t1{background:linear-gradient(135deg,#8B6CF0,#6A4FCB);box-shadow:0 10px 22px -12px rgba(106,79,203,.8)}
-.hl.t2{background:linear-gradient(135deg,#22B3A0,#0E8072);box-shadow:0 10px 22px -12px rgba(14,128,114,.8)}
+.hln{display:grid;justify-items:start;gap:0;padding:14px;border-radius:22px;text-decoration:none;color:#fff}
+.hln>.ic{width:30px;height:30px;padding:7px;box-sizing:border-box;border-radius:10px;background:rgba(255,255,255,.22);margin-bottom:8px}
+.hln b{font-size:28px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}.hln small{font-size:12px;font-weight:600;opacity:.9}
+.hln.t1{background:linear-gradient(135deg,#8B6CF0,#6A4FCB);box-shadow:0 10px 22px -12px rgba(106,79,203,.8)}
+.hln.t2{background:linear-gradient(135deg,#22B3A0,#0E8072);box-shadow:0 10px 22px -12px rgba(14,128,114,.8)}
 .heal-warn{display:flex;align-items:center;gap:8px;margin:0;padding:0 4px;font-size:12.5px;color:var(--muted)}.heal-warn .ic{flex:none;width:16px;height:16px;color:#D9822B}
 @media (prefers-reduced-motion:reduce){.br-orb i{transition:none}.hb-panel{animation:none}}
 /* v268 — ความรู้สึก + bento สวยขึ้น */
@@ -1656,3 +1656,33 @@ body:not(.is-vol) .vol-row,body:not(.is-vol) #case-count{display:none!important}
 .doc-card.closed .doc-num{color:#A0A4B2}
 .doc-call[aria-disabled=true]{background:#E7E9EE!important;color:#8A8FA0!important;box-shadow:none!important;pointer-events:none}
 .doc-copy:disabled{opacity:.45;pointer-events:none}
+/* v271 — หน้าเบอร์ฉุกเฉิน: การ์ด SOS ด้านบน + แถวเบอร์กระชับ */
+.sos-wrap{max-width:760px;margin:0 auto;padding:4px 12px 2px}
+.sos-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sos{position:relative;overflow:hidden;isolation:isolate;display:grid;gap:0;align-content:end;min-height:118px;padding:14px;border-radius:22px;color:#fff;text-decoration:none}
+.sos>.ic{position:absolute;top:12px;left:12px;width:36px;height:36px;padding:8px;box-sizing:border-box;border-radius:12px;background:rgba(255,255,255,.22)}
+.sos>.sos-bg{position:absolute;right:-16px;bottom:-18px;z-index:-1;opacity:.14}.sos>.sos-bg .ic{width:92px;height:92px}
+.sos>.sos-go{position:absolute;top:14px;right:14px;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#fff}.sos>.sos-go .ic{width:16px;height:16px}
+.sos b{font-size:34px;font-weight:800;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.sos small{margin-top:4px;font-size:13px;font-weight:700;opacity:.92}
+.sos.s1{background:linear-gradient(145deg,#F2545B,#C8102E);box-shadow:0 12px 24px -14px rgba(200,16,46,.9)}.sos.s1 .sos-go{color:#C8102E}
+.sos.s2{background:linear-gradient(145deg,#3B4FD8,#14248F);box-shadow:0 12px 24px -14px rgba(20,36,143,.9)}.sos.s2 .sos-go{color:#14248F}
+.sos.s3{background:linear-gradient(145deg,#FF9A3D,#E0620C);box-shadow:0 12px 24px -14px rgba(224,98,12,.9)}.sos.s3 .sos-go{color:#E0620C}
+.sos.s4{background:linear-gradient(145deg,#25B06A,#0F7B3F);box-shadow:0 12px 24px -14px rgba(15,123,63,.9)}.sos.s4 .sos-go{color:#0F7B3F}
+.sos:active{transform:scale(.98)}
+#view-emergency .hl-list h2{display:flex;align-items:center;gap:8px;margin:18px 4px 10px;font-size:13px;font-weight:800;letter-spacing:.02em;color:var(--ink)}
+#view-emergency .hl-list h2::after{content:"";flex:1;height:1px;background:#E3E6EE}
+#view-emergency .hl-org{border-top:0;border-radius:22px;margin-bottom:12px;box-shadow:0 1px 2px rgba(22,27,61,.05),0 8px 20px -14px rgba(22,27,61,.18)}
+#view-emergency .hl-head{padding:14px 14px 12px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 8%,#fff),#fff)}
+#view-emergency .hl-logo{width:44px;height:44px;border-radius:13px}
+#view-emergency .hl-logo img{width:36px;height:36px}
+#view-emergency .hl-logo.badge{font-size:13px}
+#view-emergency .hl-org-t b{font-size:15px}
+#view-emergency .hl-org-t small{font-size:12.5px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+#view-emergency .hl-org .hl{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-top:1px solid #F0F1F5}
+#view-emergency .hl-txt b{gap:2px}
+#view-emergency .hl-num{font-size:24px;color:var(--c);font-variant-numeric:tabular-nums}
+#view-emergency .hl-info{width:28px;height:28px;color:#B4B8C5}#view-emergency .hl-info .ic{width:15px;height:15px}
+#view-emergency .hl-name{margin-top:0;font-size:13px;color:#5A5F78}
+#view-emergency .hl-call{width:46px;height:46px;min-height:0;padding:0;justify-content:center;border-radius:50%;font-size:0;background:var(--c);color:#fff;box-shadow:0 6px 14px -8px var(--c)}
+#view-emergency .hl-call .ic{width:20px;height:20px}
