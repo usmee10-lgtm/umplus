@@ -27,7 +27,7 @@ async function tmd() {
         a.title = unent(tag(info, 'headline')) || a.event;
         a.desc = unent(tag(info, 'description')).replace(/\s+/g, ' ').slice(0, 420);
         a.severity = tag(info, 'severity'); a.urgency = tag(info, 'urgency');
-        a.areas = [...new Set(tags(info, 'areaDesc').map(unent))].slice(0, 40);
+        a.areas = [...new Set(tags(info, 'areaDesc').map(unent).flatMap(x => x.split(/[\s,]+/).reduce((o, w) => { if (/^\(/.test(w) && o.length) o[o.length - 1] += ' ' + w; else if (w) o.push(w); return o; }, [])))].slice(0, 40);  /* หนึ่ง areaDesc อาจมีหลายจังหวัดคั่นด้วยช่องว่าง */
         a.sent = Date.parse(tag(cap, 'sent')) || a.sent;
         a.expires = Date.parse(tag(info, 'expires')) || 0;
         const web = tag(info, 'web'); if (/^https?:\/\//.test(web)) a.url = web;
@@ -58,7 +58,7 @@ async function build() {
 
 const res = (body, state) => new Response(body, { headers: { 'content-type': 'application/json; charset=utf-8', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=60', 'x-cache': state } });
 export async function onRequestGet(ctx) {
-  const cache = caches.default, key = new Request('https://helpme4u.com/__alerts/v1');
+  const cache = caches.default, key = new Request('https://helpme4u.com/__alerts/v2');
   const hit = await cache.match(key);
   const put = body => cache.put(key, new Response(body, { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=' + STALE, 'x-at': String(Date.now()) } }));
   if (hit) {
