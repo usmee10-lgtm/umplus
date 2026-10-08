@@ -902,7 +902,7 @@ function renderDetail(full){
 }
 
 /* ---------- แผนการเดินทาง (ทีมอาสา): เคสหนักก่อน · ใกล้สุดก่อน · จัดอัตโนมัติ · นำทาง Google Maps ---------- */
-const TRIP={ids:store.json('uh_trip',[]).filter(x=>typeof x==='string').slice(0,25),layer:null,lastPos:null,tOpen:store.get('uh_trip_open','')!=='0'};  /* แผนเดินทาง: หุบ/กางได้ (จำไว้ในเครื่อง) */
+const TRIP={ids:store.json('uh_trip',[]).filter(x=>typeof x==='string').slice(0,25),layer:null,lastPos:null,tOpen:store.get('uh_trip_open','')==='1'};  /* แผนเดินทาง: หุบ/กางได้ (จำไว้ในเครื่อง) */
 const tripSave=()=>TRIP.ids.length?store.put('uh_trip',TRIP.ids):store.set('uh_trip','');
 const tripIndex=id=>TRIP.ids.indexOf(String(id));
 const tripCases=()=>TRIP.ids.map(id=>S.cases.find(c=>String(c.id)===id)||{id,missing:true});
@@ -1129,7 +1129,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='255';let appNewer=false;
+const APP_V='256';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
