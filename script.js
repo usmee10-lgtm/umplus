@@ -1189,7 +1189,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='280';let appNewer=false;
+const APP_V='281';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
@@ -1255,27 +1255,6 @@ window.addEventListener('focusout',()=>setTimeout(()=>{const a=document.activeEl
 (()=>{const hs=document.querySelector('#view-home .home-sheet');if(!hs)return;const set=()=>{const h=hs.offsetHeight;if(h)document.documentElement.style.setProperty('--hs-h',h+'px')};
   if('ResizeObserver' in window)new ResizeObserver(set).observe(hs);addEventListener('resize',set);set()})();
 
-/* ดูแลใจ: หายใจ เข้า 4 · กลั้น 4 · ออก 6 วินาที × 4 รอบ ≈ 1 นาที */
-(function(){const box=$('#breath'),btn=$('#br-btn');if(!box||!btn)return;let tm=[],run=false;
-  const w=$('#br-word'),sub=$('#br-sub'),lbl=btn.querySelector('b'),dots=$$('#br-dots i'),setIc=n=>{const o=btn.querySelector('.ic');if(o)o.outerHTML=ic(n)};
-  const stop=done=>{tm.forEach(clearTimeout);tm=[];run=false;box.classList.remove('in','out');dots.forEach(d=>d.classList.remove('on'));
-    w.textContent=done?'ดีมาก':'หายใจ';sub.textContent=done?'ทำซ้ำได้ทุกเมื่อ':'1 นาที ให้ใจสงบลง';lbl.textContent=done?'อีกรอบ':'เริ่ม';setIc('play')};
-  const step=(t,cls,word,text,r)=>tm.push(setTimeout(()=>{box.classList.remove('in','out');if(cls)box.classList.add(cls);w.textContent=word;sub.textContent=text;dots.forEach((d,k)=>d.classList.toggle('on',k<=r))},t));
-  btn.addEventListener('click',()=>{if(run)return stop(false);run=true;lbl.textContent='หยุด';setIc('pause');let t=0;
-    for(let r=0;r<4;r++){step(t,'in','เข้า','หายใจเข้าช้า ๆ',r);t+=4000;step(t,'in','กลั้น','นับ 1…4',r);t+=4000;step(t,'out','ออก','ผ่อนลมหายใจยาว ๆ',r);t+=6000}
-    tm.push(setTimeout(()=>stop(true),t))});
-  addEventListener('hashchange',()=>{if(run)stop(false)})})();
-/* ดูแลใจ: การ์ด bento กดแล้วเปิดรายละเอียดสั้น ๆ ด้านล่าง */
-(function(){const pan=$('#hb-panel');if(!pan)return;
-  const C={ground:['#0E8072','#E3F4F1'],self:['#6A4FCB','#EEE8FF'],kids:['#C46A12','#FFF1E2'],vol:['#C8242B','#FDECEC']};
-  const D={ground:[['5','มองสิ่งที่เห็น 5 อย่าง'],['4','แตะสิ่งรอบตัว 4 อย่าง'],['3','ฟังเสียง 3 เสียง'],['2','ดมกลิ่น 2 กลิ่น'],['1','รับรู้รส 1 อย่าง']],
-    self:[['water','ดื่มน้ำ กินข้าว พักเท่าที่ได้'],['users','คุยกับคนที่ไว้ใจ'],['wifi','พักจากข่าวและโซเชียล'],['check','ทำกิจวัตรเล็ก ๆ'],['close','เลี่ยงเหล้า บุหรี่']],
-    kids:[['heart','กอด บอกว่า "ตอนนี้ปลอดภัยแล้ว"'],['user','ฟัง ตอบตามจริงด้วยคำง่าย ๆ'],['image','ให้วาดรูป เล่น เล่าเรื่อง'],['clock','กิน นอน เวลาเดิม'],['info','งอแง ติดหนึบ ช่วงแรกเป็นเรื่องปกติ']],
-    vol:[['shield','ดู: ความปลอดภัย น้ำ อาหาร ยา'],['users','ฟัง: ไม่เร่ง ไม่ตัดสิน ไม่บังคับเล่า'],['route','เชื่อมต่อ: ครอบครัว ข้อมูล หน่วยช่วยเหลือ'],['close','เลี่ยง "ยังโชคดีนะ" "อย่าคิดมาก"']]};
-  document.addEventListener('click',e=>{const b=e.target.closest('.hb[data-hb]');if(!b)return;const k=b.dataset.hb,on=b.getAttribute('aria-selected')==='true';
-    $$('.hb[data-hb]').forEach(x=>x.setAttribute('aria-selected','false'));if(on){pan.hidden=true;return}
-    b.setAttribute('aria-selected','true');pan.style.setProperty('--hbc',C[k][0]);pan.style.setProperty('--hbc-bg',C[k][1]);
-    pan.innerHTML='<ul>'+D[k].map(([a,t])=>`<li><span class="n">${/^\d$/.test(a)?a:ic(a)}</span>${esc(t)}</li>`).join('')+'</ul>';pan.hidden=false})})();
 /* เวลารับสายคุณหมอ: จ.–ศ. 09:00–17:00 (เวลาไทย) · นอกเวลาปิดปุ่มโทร */
 (function(){const st=$('#doc-open'),call=$('#doc-call'),num=$('.doc-num'),cp=$('.doc-copy');if(!st||!call)return;
   const OPEN=9*60,CLOSE=17*60,DAYS=['วันอาทิตย์','วันจันทร์','วันอังคาร','วันพุธ','วันพฤหัสฯ','วันศุกร์','วันเสาร์'];
@@ -1290,3 +1269,53 @@ window.addEventListener('focusout',()=>setTimeout(()=>{const a=document.activeEl
     else{call.removeAttribute('href');call.setAttribute('aria-disabled','true');call.lastChild.textContent='นอกเวลาทำการ'}
     if(cp)cp.disabled=!on}
   tick();setInterval(tick,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick()})})();
+/* ดูแลใจ: คลังคอนเทนต์สไตล์แอปพอดแคสต์ (ปกใหญ่เลื่อนข้าง + รายการตอน + หน้าเต็มเมื่อแตะ) */
+const HEAL=[
+  {id:'breath',feat:1,kind:'breath',title:'หายใจช้า ๆ 1 นาที',kicker:'ฝึกหายใจ',mins:1,icon:'wave',word:'หายใจ',g:['#A78BFA','#5B8DEF','#4FC3B5'],
+   desc:'เข้า 4 · กลั้น 4 · ออก 6 วินาที ช่วยให้ใจเต้นช้าลงและสงบขึ้น'},
+  {id:'ground',feat:1,kind:'read',title:'ตั้งหลักใจ 5-4-3-2-1',kicker:'เมื่อตื่นตระหนก',mins:2,icon:'shield',word:'5·4·3·2·1',g:['#34D1B6','#0E8072'],
+   desc:'ดึงใจกลับมาอยู่ตรงนี้ ด้วยการรับรู้สิ่งรอบตัวทีละอย่าง',
+   steps:[['5','มองสิ่งที่เห็น 5 อย่าง'],['4','แตะสิ่งรอบตัว 4 อย่าง'],['3','ฟังเสียงที่ได้ยิน 3 เสียง'],['2','ดมกลิ่น 2 กลิ่น'],['1','รับรู้รส 1 อย่าง']],note:'ค่อย ๆ ทำช้า ๆ บอกตัวเองว่า "ตอนนี้เราปลอดภัยแล้ว"'},
+  {id:'normal',feat:1,kind:'read',title:'รู้สึกแบบนี้ ปกตินะ',kicker:'เข้าใจตัวเอง',mins:2,icon:'heart',word:'ปกตินะ',g:['#FDBA74','#F2545B'],
+   desc:'ตกใจง่าย นอนไม่หลับ เศร้า หงุดหงิด เป็นปฏิกิริยาปกติหลังเหตุการณ์หนัก',
+   steps:[['😨','ตกใจง่าย ใจเต้นแรง'],['😴','นอนไม่หลับ ฝันร้าย'],['😢','เศร้า ร้องไห้ง่าย'],['😠','หงุดหงิด โกรธง่าย'],['😟','กังวลเรื่องอนาคต']],note:'ส่วนใหญ่จะค่อย ๆ ดีขึ้นภายใน 2–4 สัปดาห์'},
+  {id:'self',kind:'read',title:'ดูแลตัวเองวันนี้ 5 เรื่องเล็ก ๆ',kicker:'ดูแลตัวเอง',mins:2,icon:'moon',word:'พักก่อน',g:['#C4B5FD','#6A4FCB'],
+   desc:'กิน นอน คุยกับคนที่ไว้ใจ พักจากข่าว เรื่องเล็กที่ช่วยได้มาก',
+   steps:[['water','ดื่มน้ำ กินข้าว พักเท่าที่ทำได้'],['users','คุยกับคนที่ไว้ใจ ไม่ต้องเก็บไว้คนเดียว'],['wifi','พักจากข่าวและโซเชียลบ้าง'],['check','ทำกิจวัตรเล็ก ๆ ให้รู้สึกควบคุมได้'],['close','เลี่ยงเหล้า บุหรี่ หรือยาเพื่อหนีความรู้สึก']]},
+  {id:'kids',kind:'read',title:'ดูแลใจเด็กหลังน้ำท่วม',kicker:'สำหรับผู้ปกครอง',mins:3,icon:'users',word:'กอดกัน',g:['#FCD34D','#DB7A14'],
+   desc:'เด็กรับรู้ความกลัวของผู้ใหญ่ได้ อยู่ใกล้ ฟัง และรักษากิจวัตรเดิม',
+   steps:[['heart','กอด และบอกว่า "ตอนนี้ปลอดภัยแล้ว"'],['user','ฟัง ตอบตามจริงด้วยคำง่าย ๆ'],['image','ให้วาดรูป เล่น หรือเล่าเรื่อง'],['clock','กิน นอน ให้ใกล้เวลาเดิม'],['info','งอแง ติดหนึบ ช่วงแรกเป็นเรื่องปกติ']]},
+  {id:'vol',kind:'read',title:'อาสาช่วยฟัง: ดู · ฟัง · เชื่อมต่อ',kicker:'สำหรับอาสา',mins:3,icon:'heart',word:'ฟังนะ',g:['#F9A8B4','#C8242B'],
+   desc:'หลักปฐมพยาบาลทางใจ คุยกับผู้ประสบภัยอย่างไรให้ใจเขาเบาลง',
+   steps:[['shield','ดู: ความปลอดภัย น้ำ อาหาร ยา ก่อน'],['users','ฟัง: ไม่เร่ง ไม่ตัดสิน ไม่บังคับให้เล่า'],['route','เชื่อมต่อ: ครอบครัว ข้อมูล หน่วยช่วยเหลือ'],['close','เลี่ยงคำว่า "ยังโชคดีนะ" หรือ "อย่าคิดมาก"']]},
+  {id:'help',kind:'read',title:'เมื่อไรควรคุยกับผู้เชี่ยวชาญ',kicker:'ขอความช่วยเหลือ',mins:1,icon:'phone',word:'1323',g:['#93C5FD','#1D52B8'],
+   desc:'อาการไม่ดีขึ้นเกิน 2 สัปดาห์ หรือคิดทำร้ายตัวเอง โทร 1323 ได้ตลอด',
+   steps:[['clock','อาการไม่ดีขึ้นเกิน 2 สัปดาห์'],['moon','กินไม่ได้ นอนไม่หลับต่อเนื่อง'],['user','ทำงานหรือดูแลตัวเองไม่ได้'],['alert','มีความคิดอยากทำร้ายตัวเอง']],call:'1323'}
+];
+const hlCover=(h,cls='')=>`<span class="hl-cover ${cls}" style="--g1:${h.g[0]};--g2:${h.g[h.g.length-1]};--g3:${h.g[1]}" aria-hidden="true"><i class="hc-ic">${ic(h.icon)}</i><b class="hc-w${h.word.length>6?' long':''}">${esc(h.word)}</b><small class="hc-brand">HELP ME 4U</small></span>`;
+const hlPill=h=>`<span class="hl-pill">${ic('play')}${h.kind==='breath'?'เริ่ม':h.mins+' นาที'}</span>`;
+(function(){const rail=$('#hl-rail'),eps=$('#hl-eps'),sh=$('#hl-sheet');if(!rail||!eps||!sh)return;
+  rail.innerHTML=HEAL.filter(h=>h.feat).map(h=>`<button type="button" class="hl-card" data-hl="${h.id}" role="listitem" style="--g1:${h.g[0]};--g2:${h.g[h.g.length-1]}">${hlCover(h,'big')}<span class="hl-cap"><b>${esc(h.title)}</b><small>${esc(h.kicker)} · ${h.mins} นาที</small>${hlPill(h)}</span></button>`).join('');
+  eps.innerHTML=HEAL.filter(h=>!h.feat).map(h=>`<button type="button" class="hl-ep" data-hl="${h.id}" role="listitem"><span class="hl-ep-t"><small>${esc(h.kicker)}</small><b>${esc(h.title)}</b><span class="hl-ep-d">${esc(h.desc)}</span>${hlPill(h)}</span>${hlCover(h,'thumb')}</button>`).join('');
+  let tm=[],last=null;const stopB=()=>{tm.forEach(clearTimeout);tm=[]};
+  const close=()=>{stopB();sh.hidden=true;sh.innerHTML='';document.body.classList.remove('hl-open');if(last)last.focus()};
+  function open(id,from){const h=HEAL.find(x=>x.id===id);if(!h)return;last=from;stopB();
+    const body=h.kind==='breath'?`<div class="hb2" id="hb2"><div class="br-orb" aria-hidden="true"><i class="r3"></i><i class="r2"></i><i class="r1"></i><span id="hb2-w">พร้อมไหม</span></div><p class="br-sub" id="hb2-s" aria-live="polite">${esc(h.desc)}</p><div class="br-dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>`
+      :`<ol class="hls-steps">${h.steps.map(([a,t])=>`<li><span class="n">${/^\d$/.test(a)||/\p{Extended_Pictographic}/u.test(a)?esc(a):ic(a)}</span>${esc(t)}</li>`).join('')}</ol>${h.note?`<p class="hls-note">${ic('info')}${esc(h.note)}</p>`:''}${h.call?`<a class="hls-call" href="tel:${h.call}">${ic('phone')}โทร ${h.call} · ฟรี 24 ชม.</a>`:''}`;
+    sh.innerHTML=`<div class="hls-hero" style="--g1:${h.g[0]};--g2:${h.g[h.g.length-1]};--g3:${h.g[1]}">${h.kind==='breath'?`<span class="hl-cover hero">${body}</span>`:hlCover(h,'hero')}<button type="button" class="hls-x" aria-label="ปิด">${ic('back')}</button></div>
+      <div class="hls-body"><small class="hls-k">${esc(h.kicker)} · ${h.mins} นาที</small><h2 id="hls-t">${esc(h.title)}</h2>
+      <p class="hls-src"><span class="hls-logo" data-icon="hands"></span>HELP ME 4U · ดูแลใจ</p>
+      ${h.kind==='breath'?`<button type="button" class="hls-play" id="hb2-go">${ic('play')}<b>เริ่มหายใจ 1 นาที</b></button>`:''}
+      <p class="hls-desc">${esc(h.desc)}</p>${h.kind==='breath'?'':body}</div>`;
+    iconify(sh);sh.hidden=false;document.body.classList.add('hl-open');sh.scrollTop=0;sh.querySelector('.hls-x').focus();
+    sh.querySelector('.hls-x').onclick=close;
+    const go=$('#hb2-go');if(go){const box=$('#hb2'),w=$('#hb2-w'),sub=$('#hb2-s'),dots=[...box.querySelectorAll('.br-dots i')],lbl=go.querySelector('b');let run=false;
+      const setIc=n=>{const o=go.querySelector('.ic');if(o)o.outerHTML=ic(n)};
+      const end=done=>{stopB();run=false;box.classList.remove('in','out');dots.forEach(d=>d.classList.remove('on'));w.textContent=done?'ดีมาก':'พร้อมไหม';sub.textContent=done?'ใจสงบลงบ้างไหม ทำซ้ำได้ทุกเมื่อ':h.desc;lbl.textContent=done?'หายใจอีกรอบ':'เริ่มหายใจ 1 นาที';setIc('play')};
+      const step=(t,c,wd,tx,r)=>tm.push(setTimeout(()=>{box.classList.remove('in','out');box.classList.add(c);w.textContent=wd;sub.textContent=tx;dots.forEach((d,k)=>d.classList.toggle('on',k<=r))},t));
+      go.onclick=()=>{if(run)return end(false);run=true;lbl.textContent='หยุด';setIc('pause');let t=0;
+        for(let r=0;r<4;r++){step(t,'in','เข้า','หายใจเข้าช้า ๆ ทางจมูก',r);t+=4000;step(t,'in','กลั้น','นับ 1…2…3…4',r);t+=4000;step(t,'out','ออก','ผ่อนลมหายใจยาว ๆ',r);t+=6000}
+        tm.push(setTimeout(()=>end(true),t))}}}
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-hl]');if(b)open(b.dataset.hl,b)});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!sh.hidden)close()});
+  addEventListener('hashchange',()=>{if(!sh.hidden)close()})})();
