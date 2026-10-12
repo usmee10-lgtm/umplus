@@ -25,7 +25,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./app.css?v=184">
+<link rel="stylesheet" href="./app.css?v=185">
 </head>
 <body>
 <nav aria-label="ทางลัด"><a class="skip" href="#" id="skip-link">ข้ามไปเนื้อหาหลัก</a></nav>
@@ -262,8 +262,8 @@
 </main>
 
 <!-- ===== หมอ ===== -->
-<main id="view-doctor" class="view" aria-label="ดูแลใจ" hidden>
-  <header class="page-top plain"><h1 tabindex="-1">ดูแลใจ</h1></header>
+<main id="view-doctor" class="view" aria-label="ฮีลใจ" hidden>
+  <header class="page-top plain"><h1 tabindex="-1">ฮีลใจ</h1></header>
   <div class="doc-wrap">
 
     <!-- ดูแลใจเบื้องต้น (ปฐมพยาบาลทางใจ) -->
@@ -302,7 +302,7 @@
   <button type="button" data-go="map" data-icon="tablist"><span>รายการ</span></button>
   <button type="button" data-go="stats" data-icon="tabchart" style="display:none"><span>สรุป</span></button>
   <button type="button" data-go="emergency" data-icon="tabphone"><span>ฉุกเฉิน</span></button>
-  <button type="button" data-go="doctor" data-icon="tabdoc"><span>หมอ</span></button>
+  <button type="button" data-go="doctor" data-icon="tabheal"><span>ฮีลใจ</span></button>
 </nav>
 
 <div class="layer-menu glass" id="layer-menu" hidden role="dialog" aria-label="แบบแผนที่และชั้นข้อมูล">
@@ -313,14 +313,14 @@
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="netbar" id="netbar" role="status" hidden></div>
 
-<script src="./icons.js?v=184"></script>
-<script src="./geocode.js?v=184"></script>
-<script src="./location.js?v=184"></script>
-<script src="./pickmap.js?v=184"></script>
-<script src="./stats.js?v=184"></script>
-<script src="./hotlines.js?v=184"></script>
-<script src="./script.js?v=184"></script>
-<script src="./notify.js?v=184"></script>
+<script src="./icons.js?v=185"></script>
+<script src="./geocode.js?v=185"></script>
+<script src="./location.js?v=185"></script>
+<script src="./pickmap.js?v=185"></script>
+<script src="./stats.js?v=185"></script>
+<script src="./hotlines.js?v=185"></script>
+<script src="./script.js?v=185"></script>
+<script src="./notify.js?v=185"></script>
 <script>
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
