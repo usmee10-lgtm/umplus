@@ -1,6 +1,7 @@
 /* โหมดปิดปรับปรุง (maintenance)
  * - MAINT=true → คนทั่วไปที่เปิดหน้าเว็บจะเห็นหน้า "กำลังปรับปรุง" แทนแอป (ไฟล์ js/css/รูป และ /api /hm ยังทำงานตามปกติ)
  * - ทีมพัฒนายังเปิดแอปจริงได้: เปิด https://helpme4u.com/?dev=1 ครั้งเดียว (จำไว้ในคุกกี้ 30 วัน) · ?dev=0 เพื่อกลับไปดูหน้าปรับปรุง
+ * - ทีมอาสาใช้งานได้ตามปกติ: https://helpme4u.com/volunteer (จำไว้ 30 วัน) · อาสาที่เคยใส่รหัสในเครื่องนั้นแล้ว เข้าได้อัตโนมัติ
  * - เปิดระบบอีกครั้ง: แก้ MAINT เป็น false แล้ว deploy */
 const MAINT = true;
 const FB = 'https://www.facebook.com/profile.php?id=61595380281728';
@@ -49,7 +50,8 @@ small{font-size:12px;color:#9A9FAE}
 <a href="tel:1669"><strong>1669</strong><span>เจ็บป่วยฉุกเฉิน</span></a>
 <a href="tel:1784"><strong>1784</strong><span>สาธารณภัย</span></a>
 <a href="tel:191"><strong>191</strong><span>เหตุด่วนเหตุร้าย</span></a></div></div>
-<small>ขออภัยในความไม่สะดวก</small>
+<small>ขออภัยในความไม่สะดวก · <a href="/volunteer" style="color:#626879">ทีมอาสา เข้าระบบที่นี่</a></small>
+<script>try{if(localStorage.getItem('uh_vol_ok')==='1'&&localStorage.getItem('uh_vol_key')&&!sessionStorage.getItem('hm_vol_try')){sessionStorage.setItem('hm_vol_try','1');document.cookie='hm_vol=1; Path=/; Max-Age=2592000; Secure; SameSite=Lax';location.reload()}}catch(e){}</script>
 </div></main></body></html>`;
 
 export async function onRequest(ctx) {
@@ -65,7 +67,8 @@ export async function onRequest(ctx) {
     if (dev === '0') return new Response(PAGE, { status: 503, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'retry-after': '3600', 'set-cookie': 'hm_dev=0; Path=/; Max-Age=0; Secure; SameSite=Lax' } });
     return res;
   }
-  if (/(?:^|;\s*)hm_dev=1(?:;|$)/.test(req.headers.get('cookie') || '')) return next();
+  if (url.pathname === '/volunteer' || url.pathname === '/volunteer/') return new Response(null, { status: 302, headers: { location: '/?vol=1', 'cache-control': 'no-store', 'set-cookie': 'hm_vol=1; Path=/; Max-Age=2592000; Secure; SameSite=Lax' } });
+  if (/(?:^|;\s*)hm_(?:dev|vol)=1(?:;|$)/.test(req.headers.get('cookie') || '')) return next();
   if (!isPage(req, url)) return next();
   return new Response(req.method === 'HEAD' ? null : PAGE, { status: 503, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'retry-after': '3600' } });
 }

@@ -868,7 +868,7 @@ function renderVol(forceOpen){
   /* กันกดพลาด: ลิงก์เล็ก → ต้องกดยืนยันอีกครั้ง */
   $('#vol-out-ask').onclick=()=>{$('#vol-out-confirm').hidden=false;$('#vol-out-ask').hidden=true;$('#vol-out-no').focus()};
   $('#vol-out-no').onclick=()=>{$('#vol-out-confirm').hidden=true;$('#vol-out-ask').hidden=false};
-  $('#vol-out').onclick=()=>{stopShare();store.set('uh_vol_key','');store.set('uh_vol_ok','');S.volunteer=false;p.hidden=true;p.dataset.mode='';S.cases=((store.json('uh_cases_cache',{})||{}).cases||[]).map(pubCase);renderAll();if(S.view==='detail')go('map');loadCases()};
+  $('#vol-out').onclick=()=>{stopShare();document.cookie='hm_vol=; Path=/; Max-Age=0; Secure; SameSite=Lax';store.set('uh_vol_key','');store.set('uh_vol_ok','');S.volunteer=false;p.hidden=true;p.dataset.mode='';S.cases=((store.json('uh_cases_cache',{})||{}).cases||[]).map(pubCase);renderAll();if(S.view==='detail')go('map');loadCases()};
 }
 
 const SHARE={watch:null,last:0,pos:null};
@@ -1178,6 +1178,8 @@ $('#stats').addEventListener('click',e=>{const am=e.target.closest('[data-amore]
 try{localStorage.removeItem('uh_no_track')}catch(e){}
 const startView=(location.hash||'#home').slice(1);
 go(['home','map','emergency','doctor','stats'].includes(startView)?startView:'home',false);
+/* เข้าทาง /volunteer (ช่วงปิดปรับปรุง): เปิดช่องใส่รหัสอาสาให้เลย */
+if(new URLSearchParams(location.search).get('vol')==='1'){history.replaceState(null,'',location.pathname+location.hash);if(!S.volunteer)setTimeout(()=>$('#btn-help').click(),400)}
 history.replaceState({view:S.view},'','#'+S.view);
 renderAll();loadCases();flushQueue();trackMine();
 $$('.view').forEach(v=>v.hidden=!v.classList.contains('active'));setTimeout(()=>{A11Y.ready=true},0);
@@ -1189,7 +1191,7 @@ setInterval(()=>{if(!document.hidden)trackMine()},REFRESH_MS*4);
 
 
 /* อัปเดตแอปอัตโนมัติ: เทียบ version.json กับเวอร์ชันที่โหลดอยู่ · เจอเวอร์ชันใหม่ → โหลดหน้าใหม่ (ยกเว้นกำลังกรอกฟอร์ม จะรอให้ออกจากฟอร์มก่อน) */
-const APP_V='284';let appNewer=false;
+const APP_V='285';let appNewer=false;
 let appRemoteV='';
 async function checkAppVersion(){try{const r=await fetch('./version.json?t='+Date.now(),{cache:'no-store'}).then(r=>r.json());if(r&&r.v&&String(r.v)!==APP_V){appNewer=true;appRemoteV=String(r.v)}}catch(e){}
   /* กันโหลดซ้ำวนไม่จบ: โหลดใหม่ได้ครั้งเดียวต่อเวอร์ชัน */
