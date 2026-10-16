@@ -3,7 +3,7 @@
  * - ทีมพัฒนายังเปิดแอปจริงได้: เปิด https://helpme4u.com/?dev=1 ครั้งเดียว (จำไว้ในคุกกี้ 30 วัน) · ?dev=0 เพื่อกลับไปดูหน้าปรับปรุง
  * - ทีมอาสาใช้งานได้ตามปกติ: https://helpme4u.com/volunteer (จำไว้ 30 วัน) · อาสาที่เคยใส่รหัสในเครื่องนั้นแล้ว เข้าได้อัตโนมัติ
  * - เปิดระบบอีกครั้ง: แก้ MAINT เป็น false แล้ว deploy */
-const MAINT = true;
+const MAINT = false;
 const FB = 'https://www.facebook.com/profile.php?id=61595380281728';
 
 const isPage = (req, url) => {
